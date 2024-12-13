@@ -30,6 +30,12 @@ export class User {
   nickname: string;
 
   @Column({
+    length: 150,
+    comment: '密码',
+  })
+  password: string;
+
+  @Column({
     comment: '是否是管理员',
     default: false,
   })
