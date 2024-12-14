@@ -1,16 +1,28 @@
-import { Inject, Injectable } from '@nestjs/common';
+import {
+  HttpException,
+  HttpStatus,
+  Inject,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from './entities/user.entity';
 import { Role } from './entities/role.entity';
 import { Repository } from 'typeorm';
 import { Permission } from './entities/permissions.entity';
-import { hash } from 'bcrypt';
+import { compare, hash } from 'bcrypt';
 import { ConfigService } from '@nestjs/config';
+import { LoginUserDto } from './dto/login-user.dto';
+import { LoginUserVo } from './vo/login-user.vo';
+import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
 export class UserService {
   @Inject(ConfigService)
   private configService: ConfigService;
+
+  @Inject(JwtService)
+  private jwtService: JwtService;
 
   @InjectRepository(User)
   private userRepository: Repository<User>;
@@ -60,5 +72,143 @@ export class UserService {
     await this.userRepository.save([user1, user2]);
     await this.roleRepository.save([role, role2]);
     await this.permissionRepository.save([permission1]);
+  }
+
+  async login(loginUserDto: LoginUserDto, isAdmin: boolean) {
+    const user = await this.userRepository.findOne({
+      where: {
+        username: loginUserDto.username,
+        isAdmin,
+      },
+      relations: ['roles', 'roles.permissions'],
+    });
+
+    if (!user) {
+      throw new HttpException('用户不存在', HttpStatus.BAD_REQUEST);
+    }
+
+    compare(loginUserDto.password, user.password).then((result) => {
+      if (!result) {
+        throw new HttpException('密码错误', HttpStatus.BAD_REQUEST);
+      }
+    });
+
+    const vo = new LoginUserVo();
+    vo.userinfo = {
+      id: user.id,
+      username: user.username,
+      nickname: user.nickname,
+      isFrozen: user.isFrozen,
+      isAdmin: user.isAdmin,
+      roles: user.roles.map((role) => role.name),
+      permissions: user.roles.reduce((arr, item) => {
+        item.permissions.forEach((permission) => {
+          if (arr.indexOf(permission) === -1) {
+            arr.push(permission);
+          }
+        });
+        return arr;
+      }, []),
+      createTime: user.createTime.toString(),
+      updateTime: user.updateTime.toString(),
+    };
+
+    return vo;
+  }
+
+  async findUserById(userId: number, isAdmin: boolean) {
+    const user = await this.userRepository.findOne({
+      where: {
+        id: userId,
+        isAdmin,
+      },
+      relations: ['roles', 'roles.permissions'],
+    });
+
+    return {
+      id: user.id,
+      username: user.username,
+      isAdmin: user.isAdmin,
+      roles: user.roles.map((item) => item.name),
+      permissions: user.roles.reduce((arr, item) => {
+        item.permissions.forEach((permission) => {
+          if (arr.indexOf(permission) === -1) {
+            arr.push(permission);
+          }
+        });
+        return arr;
+      }, []),
+    };
+  }
+
+  /**
+   * 生成双Token
+   * @param { LoginUserVo } vo
+   * @returns {{ accessToken: string, refreshToken: string }} 返回access_token 和 refresh_token
+   */
+  generateToken(vo: LoginUserVo): {
+    accessToken: string;
+    refreshToken: string;
+  } {
+    // 生成 AccessToken
+    const accessToken = this.jwtService.sign(
+      {
+        userId: vo.userinfo.id,
+        username: vo.userinfo.username,
+        roles: vo.userinfo.roles,
+        permissions: vo.userinfo.permissions,
+      },
+      {
+        expiresIn: this.configService.get('jwt_access_token_expires_time'),
+      },
+    );
+
+    // 生成 RefreshToken
+    const refreshToken = this.jwtService.sign(
+      {
+        userId: vo.userinfo.id,
+      },
+      {
+        expiresIn: this.configService.get('jwt_refresh_token_expires_time'),
+      },
+    );
+
+    return { accessToken, refreshToken };
+  }
+
+  /**
+   * 根据 refreshToken 刷新 accessToken
+   * @param {number} userId
+   * @param {boolean} isAdmin
+   */
+  async refreshToken(userId: number, isAdmin: boolean) {
+    try {
+      const user = await this.findUserById(userId, isAdmin);
+
+      const access_token = this.jwtService.sign(
+        {
+          userId: user.id,
+          username: user.username,
+          roles: user.roles,
+          permissions: user.permissions,
+        },
+        {
+          expiresIn: this.configService.get('jwt_access_token_expires_time'),
+        },
+      );
+
+      const refresh_token = this.jwtService.sign(
+        {
+          userId: user.id,
+        },
+        {
+          expiresIn: this.configService.get('jwt_refresh_token_expires_time'),
+        },
+      );
+
+      return { access_token, refresh_token };
+    } catch {
+      throw new UnauthorizedException('Token 已失效');
+    }
   }
 }
