@@ -1,5 +1,5 @@
 import { Body, Controller, Get, Inject, Post, Query } from '@nestjs/common';
-import { UserService } from './user.service';
+import { AuthService } from './auth.service';
 import { LoginUserDto } from './dto/login-user.dto';
 import { JwtService } from '@nestjs/jwt';
 import { RequireLogin, RequirePermission } from '../custom.decorator';
@@ -11,9 +11,9 @@ interface RefreshTokenPayload {
 }
 
 @Controller('user')
-export class UserController {
-  @Inject(UserService)
-  private userService: UserService;
+export class AuthController {
+  @Inject(AuthService)
+  private userService: AuthService;
 
   @Inject(JwtService)
   private jwtService: JwtService;
@@ -52,8 +52,11 @@ export class UserController {
     return await this.userService.refreshToken(userId, true);
   }
 
-  @Post('admin/update')
-  adminUpdate() {}
+  @Get('admin/users')
+  @RequireLogin()
+  async adminUsers() {
+    return await this.userService.getAllUsers();
+  }
 
   @Get('init-db')
   async initDb() {

@@ -2,19 +2,20 @@ import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { UserModule } from './user/user.module';
-import { User } from './user/entities/user.entity';
-import { Role } from './user/entities/role.entity';
-import { Permission } from './user/entities/permissions.entity';
+import { AuthModule } from './auth/auth.module';
+import { User } from './auth/entities/user.entity';
+import { Role } from './auth/entities/role.entity';
+import { Permission } from './auth/entities/permissions.entity';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { APP_GUARD } from '@nestjs/core';
 import { LoginGuard } from './login.guard';
 import { PermissionGuard } from './permission.guard';
+import { AdminModule } from './admin/admin.module';
 
 @Module({
   imports: [
-    UserModule,
+    AuthModule,
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: ['src/.env.development'],
@@ -52,6 +53,7 @@ import { PermissionGuard } from './permission.guard';
       },
       inject: [ConfigService],
     }),
+    AdminModule,
   ],
   controllers: [AppController],
   providers: [

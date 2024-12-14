@@ -17,7 +17,7 @@ import { LoginUserVo } from './vo/login-user.vo';
 import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
-export class UserService {
+export class AuthService {
   @Inject(ConfigService)
   private configService: ConfigService;
 
@@ -210,5 +210,9 @@ export class UserService {
     } catch {
       throw new UnauthorizedException('Token 已失效');
     }
+  }
+
+  async getAllUsers() {
+    return await this.userRepository.find();
   }
 }
