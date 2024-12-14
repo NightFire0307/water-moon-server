@@ -2,6 +2,7 @@ import { Body, Controller, Get, Inject, Post, Query } from '@nestjs/common';
 import { UserService } from './user.service';
 import { LoginUserDto } from './dto/login-user.dto';
 import { JwtService } from '@nestjs/jwt';
+import { RequireLogin, RequirePermission } from '../custom.decorator';
 
 interface RefreshTokenPayload {
   userId: number;
@@ -50,6 +51,9 @@ export class UserController {
       this.jwtService.verify<RefreshTokenPayload>(refreshToken);
     return await this.userService.refreshToken(userId, true);
   }
+
+  @Post('admin/update')
+  adminUpdate() {}
 
   @Get('init-db')
   async initDb() {
