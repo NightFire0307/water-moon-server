@@ -211,8 +211,4 @@ export class AuthService {
       throw new UnauthorizedException('Token 已失效');
     }
   }
-
-  async getAllUsers() {
-    return await this.userRepository.find();
-  }
 }

@@ -52,12 +52,6 @@ export class AuthController {
     return await this.userService.refreshToken(userId, true);
   }
 
-  @Get('admin/users')
-  @RequireLogin()
-  async adminUsers() {
-    return await this.userService.getAllUsers();
-  }
-
   @Get('init-db')
   async initDb() {
     await this.userService.initDb();
