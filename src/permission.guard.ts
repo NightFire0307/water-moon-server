@@ -12,7 +12,7 @@ import { Request } from 'express';
 @Injectable()
 export class PermissionGuard implements CanActivate {
   @Inject(Reflector)
-  private reflector: Reflector;
+  reflector: Reflector;
 
   canActivate(
     context: ExecutionContext,
