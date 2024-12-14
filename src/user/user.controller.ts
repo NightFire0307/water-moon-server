@@ -1,12 +1,4 @@
-import {
-  Body,
-  Controller,
-  Get,
-  Inject,
-  Post,
-  Query,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { Body, Controller, Get, Inject, Post, Query } from '@nestjs/common';
 import { UserService } from './user.service';
 import { LoginUserDto } from './dto/login-user.dto';
 import { ConfigService } from '@nestjs/config';
@@ -22,9 +14,6 @@ interface RefreshTokenPayload {
 export class UserController {
   @Inject(UserService)
   private userService: UserService;
-
-  @Inject(ConfigService)
-  private configService: ConfigService;
 
   @Inject(JwtService)
   private jwtService: JwtService;
