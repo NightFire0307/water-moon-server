@@ -23,4 +23,8 @@ export class AdminService {
       total,
     };
   }
+
+  async findUserById(userId: number) {
+    return await this.userRepository.findBy({ id: userId });
+  }
 }
