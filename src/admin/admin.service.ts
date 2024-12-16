@@ -35,9 +35,23 @@ export class AdminService {
     return await this.userRepository.findOneBy({ id: userId });
   }
 
-  createUser(createUserDto: CreateUserDto) {
-    console.log(createUserDto);
-    return 'done';
+  async createUser(createUserDto: CreateUserDto) {
+    try {
+      await this.userRepository.save(createUserDto);
+      return '创建成功';
+    } catch {
+      return '创建失败';
+    }
+  }
+
+  async deleteUser(userId: number) {
+    const foundUser = await this.userRepository.findOneBy({ id: userId });
+
+    if (!foundUser) return '未查询到用户';
+
+    foundUser.isDelete = true;
+    await this.userRepository.save(foundUser);
+    return '删除成功';
   }
 
   async updatePassword(userId: number, passwordDto: UpdateUserPasswordDto) {

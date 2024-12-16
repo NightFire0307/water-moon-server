@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post } from '@nestjs/common';
 import { AdminService } from './admin.service';
 import {
   Pagination,
@@ -38,9 +38,14 @@ export class AuthController {
 
   @Post('users')
   @RequireLogin()
-  createUser(@Body() createUserDto: CreateUserDto) {
-    console.log(createUserDto);
-    return 'done';
+  async createUser(@Body() createUserDto: CreateUserDto) {
+    return await this.adminService.createUser(createUserDto);
+  }
+
+  @Delete('users/:id')
+  @RequireLogin()
+  async removeUser(@Param('id') userId: string) {
+    return this.adminService.deleteUser(parseInt(userId));
   }
 
   @Post('users/update_password')
