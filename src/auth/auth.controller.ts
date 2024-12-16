@@ -1,8 +1,17 @@
-import { Body, Controller, Get, Inject, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Inject,
+  Post,
+  Query,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LoginUserDto } from './dto/login-user.dto';
 import { JwtService } from '@nestjs/jwt';
 import { RequireLogin, RequirePermission } from '../custom.decorator';
+import { UnloginException } from '../unlogin.filter';
 
 interface RefreshTokenPayload {
   userId: number;
@@ -40,9 +49,13 @@ export class AuthController {
 
   @Get('refresh')
   async refresh(@Query('refreshToken') refreshToken: string) {
-    const { userId } =
-      this.jwtService.verify<RefreshTokenPayload>(refreshToken);
-    return await this.userService.refreshToken(userId, false);
+    try {
+      const { userId } =
+        this.jwtService.verify<RefreshTokenPayload>(refreshToken);
+      return await this.userService.refreshToken(userId, false);
+    } catch {
+      throw new UnloginException('Token 已失效，请重新登录');
+    }
   }
 
   @Get('admin/refresh')
