@@ -11,7 +11,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { APP_GUARD } from '@nestjs/core';
 import { LoginGuard } from './login.guard';
 import { PermissionGuard } from './permission.guard';
-import { AdminModule } from './admin/admin.module';
+import { UserModule } from './user/user.module';
 
 @Module({
   imports: [
@@ -53,7 +53,7 @@ import { AdminModule } from './admin/admin.module';
       },
       inject: [ConfigService],
     }),
-    AdminModule,
+    UserModule,
   ],
   controllers: [AppController],
   providers: [

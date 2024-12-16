@@ -10,7 +10,7 @@ import { ConfigService } from '@nestjs/config';
 import { UpdateUseDto } from './dto/update-use.dto';
 
 @Injectable()
-export class AdminService {
+export class UserService {
   @InjectRepository(User)
   private userRepository: Repository<User>;
 

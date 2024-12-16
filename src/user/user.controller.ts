@@ -7,7 +7,7 @@ import {
   Post,
   Put,
 } from '@nestjs/common';
-import { AdminService } from './admin.service';
+import { UserService } from './user.service';
 import {
   Pagination,
   PaginationQuery,
@@ -21,7 +21,7 @@ import { UpdateUseDto } from './dto/update-use.dto';
 
 @Controller('admin')
 export class AuthController {
-  constructor(private readonly adminService: AdminService) {}
+  constructor(private readonly adminService: UserService) {}
 
   @Get('users')
   @RequireLogin()
