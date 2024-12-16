@@ -1,4 +1,12 @@
-import { Body, Controller, Delete, Get, Param, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Put,
+} from '@nestjs/common';
 import { AdminService } from './admin.service';
 import {
   Pagination,
@@ -9,6 +17,7 @@ import {
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserPasswordDto } from './dto/update-user-password.dto';
 import { UserDetailVo } from './vo/user-detail.vo';
+import { UpdateUseDto } from './dto/update-use.dto';
 
 @Controller('admin')
 export class AuthController {
@@ -40,6 +49,16 @@ export class AuthController {
   @RequireLogin()
   async createUser(@Body() createUserDto: CreateUserDto) {
     return await this.adminService.createUser(createUserDto);
+  }
+
+  @Put('users/:id')
+  @RequireLogin()
+  async updateUser(
+    @Param('id') userId: string,
+    @Body() updateUserDto: UpdateUseDto,
+  ) {
+    await this.adminService.updateUser(parseInt(userId), updateUserDto);
+    return 'done';
   }
 
   @Delete('users/:id')

@@ -7,6 +7,7 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserPasswordDto } from './dto/update-user-password.dto';
 import { hash } from 'bcrypt';
 import { ConfigService } from '@nestjs/config';
+import { UpdateUseDto } from './dto/update-use.dto';
 
 @Injectable()
 export class AdminService {
@@ -44,13 +45,21 @@ export class AdminService {
     }
   }
 
+  async updateUser(userId: number, updateUserDto: UpdateUseDto) {
+    const result = await this.userRepository.update(userId, updateUserDto);
+    if (result.affected === 0) return '未查询到该用户';
+    return '更新成功';
+  }
+
   async deleteUser(userId: number) {
     const foundUser = await this.userRepository.findOneBy({ id: userId });
 
     if (!foundUser) return '未查询到用户';
+    if (!foundUser.isDelete) {
+      foundUser.isDelete = true;
+      await this.userRepository.save(foundUser);
+    }
 
-    foundUser.isDelete = true;
-    await this.userRepository.save(foundUser);
     return '删除成功';
   }
 
