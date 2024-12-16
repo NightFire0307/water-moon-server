@@ -60,6 +60,9 @@ export class AuthService {
     const role2 = new Role();
     role2.name = '选片师';
 
+    const role3 = new Role();
+    role3.name = '普通用户';
+
     const permission1 = new Permission();
     permission1.code = 'ccc';
     permission1.description = '访问 ccc 接口';
@@ -70,7 +73,7 @@ export class AuthService {
     role.permissions = [permission1];
 
     await this.userRepository.save([user1, user2]);
-    await this.roleRepository.save([role, role2]);
+    await this.roleRepository.save([role, role2, role3]);
     await this.permissionRepository.save([permission1]);
   }
 

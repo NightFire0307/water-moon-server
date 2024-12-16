@@ -9,9 +9,10 @@ import { Permission } from './auth/entities/permissions.entity';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { APP_GUARD } from '@nestjs/core';
-import { LoginGuard } from './login.guard';
-import { PermissionGuard } from './permission.guard';
-import { AdminModule } from './admin/admin.module';
+import { LoginGuard } from './common/login.guard';
+import { PermissionGuard } from './common/permission.guard';
+import { UserModule } from './user/user.module';
+import { RoleModule } from './role/role.module';
 
 @Module({
   imports: [
@@ -53,7 +54,8 @@ import { AdminModule } from './admin/admin.module';
       },
       inject: [ConfigService],
     }),
-    AdminModule,
+    UserModule,
+    RoleModule,
   ],
   controllers: [AppController],
   providers: [

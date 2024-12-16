@@ -10,7 +10,7 @@ import {
 import { AuthService } from './auth.service';
 import { LoginUserDto } from './dto/login-user.dto';
 import { JwtService } from '@nestjs/jwt';
-import { RequireLogin, RequirePermission } from '../custom.decorator';
+import { RequireLogin, RequirePermission } from '../common/custom.decorator';
 import { UnloginException } from '../unlogin.filter';
 
 interface RefreshTokenPayload {
@@ -19,7 +19,7 @@ interface RefreshTokenPayload {
   exp?: number;
 }
 
-@Controller('user')
+@Controller('auth')
 export class AuthController {
   @Inject(AuthService)
   private userService: AuthService;

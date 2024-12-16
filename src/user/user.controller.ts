@@ -7,29 +7,29 @@ import {
   Post,
   Put,
 } from '@nestjs/common';
-import { AdminService } from './admin.service';
+import { UserService } from './user.service';
 import {
   Pagination,
   PaginationQuery,
   RequireLogin,
   UserInfo,
-} from '../custom.decorator';
+} from '../common/custom.decorator';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserPasswordDto } from './dto/update-user-password.dto';
 import { UserDetailVo } from './vo/user-detail.vo';
 import { UpdateUseDto } from './dto/update-use.dto';
 
-@Controller('admin')
+@Controller('admin/users')
 export class AuthController {
-  constructor(private readonly adminService: AdminService) {}
+  constructor(private readonly adminService: UserService) {}
 
-  @Get('users')
+  @Get()
   @RequireLogin()
   async findAllUsers(@Pagination() pagination: PaginationQuery) {
     return await this.adminService.findAllUsers(pagination);
   }
 
-  @Get('users/info')
+  @Get('info')
   @RequireLogin()
   async findUserById(@UserInfo('userId') userId: number) {
     const user = await this.adminService.findUserDetailById(userId);
@@ -45,13 +45,13 @@ export class AuthController {
     return vo;
   }
 
-  @Post('users')
+  @Post()
   @RequireLogin()
   async createUser(@Body() createUserDto: CreateUserDto) {
     return await this.adminService.createUser(createUserDto);
   }
 
-  @Put('users/:id')
+  @Put(':id')
   @RequireLogin()
   async updateUser(
     @Param('id') userId: string,
@@ -61,13 +61,13 @@ export class AuthController {
     return 'done';
   }
 
-  @Delete('users/:id')
+  @Delete(':id')
   @RequireLogin()
   async removeUser(@Param('id') userId: string) {
     return this.adminService.deleteUser(parseInt(userId));
   }
 
-  @Post('users/update_password')
+  @Post('update_password')
   @RequireLogin()
   async updatePassword(
     @UserInfo('userId') userId: number,

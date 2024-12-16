@@ -1,7 +1,11 @@
 import { Controller, Get } from '@nestjs/common';
 import { AppService } from './app.service';
-import { RequireLogin, RequirePermission, UserInfo } from './custom.decorator';
-import { JwtUserData } from './login.guard';
+import {
+  RequireLogin,
+  RequirePermission,
+  UserInfo,
+} from './common/custom.decorator';
+import { JwtUserData } from './common/login.guard';
 
 @Controller()
 export class AppController {

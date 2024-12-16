@@ -1,8 +1,8 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ConfigService } from '@nestjs/config';
-import { FormatResponseInterceptor } from './format-response.interceptor';
-import { InvokeRecordInterceptor } from './invoke-record.interceptor';
+import { FormatResponseInterceptor } from './common/format-response.interceptor';
+import { InvokeRecordInterceptor } from './common/invoke-record.interceptor';
 import { ValidationPipe } from '@nestjs/common';
 import { UnloginFilter } from './unlogin.filter';
 

@@ -2,7 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from '../auth/entities/user.entity';
 import { Repository } from 'typeorm';
-import { PaginationQuery } from '../custom.decorator';
+import { PaginationQuery } from '../common/custom.decorator';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserPasswordDto } from './dto/update-user-password.dto';
 import { hash } from 'bcrypt';
@@ -10,7 +10,7 @@ import { ConfigService } from '@nestjs/config';
 import { UpdateUseDto } from './dto/update-use.dto';
 
 @Injectable()
-export class AdminService {
+export class UserService {
   @InjectRepository(User)
   private userRepository: Repository<User>;
 
