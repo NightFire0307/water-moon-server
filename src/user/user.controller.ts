@@ -21,7 +21,7 @@ import { UserDetailVo } from './vo/user-detail.vo';
 import { UpdateUseDto } from './dto/update-use.dto';
 
 @Controller('admin/users')
-export class AuthController {
+export class UserController {
   constructor(private readonly adminService: UserService) { }
 
   @Get()
