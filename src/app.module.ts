@@ -15,6 +15,9 @@ import { UserModule } from './user/user.module';
 import { RoleModule } from './role/role.module';
 import { PermissionScanService } from './common/permission-scan.service';
 import { PermissionModule } from './permission/permission.module';
+import { ProductModule } from './product/product.module';
+import { ProductType } from './product/entities/productType.entity';
+import { Product } from './product/entities/product.entity';
 
 @Module({
   imports: [
@@ -35,7 +38,7 @@ import { PermissionModule } from './permission/permission.module';
           database: configService.get('mysql_server_database'),
           synchronize: true,
           logging: true,
-          entities: [User, Role, Permission],
+          entities: [User, Role, Permission, Product, ProductType],
           poolSize: 10,
           connectorPackage: 'mysql2',
           extra: {
@@ -60,6 +63,7 @@ import { PermissionModule } from './permission/permission.module';
     UserModule,
     RoleModule,
     PermissionModule,
+    ProductModule,
   ],
   controllers: [AppController],
   providers: [
