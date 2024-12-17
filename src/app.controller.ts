@@ -1,21 +1,7 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller } from '@nestjs/common';
 import { AppService } from './app.service';
-import {
-  RequireLogin,
-  RequirePermission,
-  UserInfo,
-} from './common/custom.decorator';
-import { JwtUserData } from './common/login.guard';
 
 @Controller()
 export class AppController {
-  constructor(private readonly appService: AppService) {}
-
-  @Get()
-  @RequireLogin()
-  @RequirePermission('bbb')
-  getHello(@UserInfo() userInfo: JwtUserData): string {
-    console.log(userInfo);
-    return this.appService.getHello();
-  }
+  constructor(private readonly appService: AppService) { }
 }

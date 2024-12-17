@@ -1,13 +1,23 @@
 import {
+  applyDecorators,
   createParamDecorator,
   ExecutionContext,
   SetMetadata,
 } from '@nestjs/common';
 import { Request } from 'express';
 
+export const PERMISSION_KEY = 'require-permission';
+
 export const RequireLogin = () => SetMetadata('require-login', true);
-export const RequirePermission = (...permissions: string[]) =>
-  SetMetadata('require-permission', permissions);
+export const RequirePermission = (
+  permissions: string,
+  description?: string,
+) => {
+  return applyDecorators(
+    SetMetadata(PERMISSION_KEY, permissions),
+    SetMetadata('description', description ?? ''),
+  );
+};
 
 export const UserInfo = createParamDecorator(
   (data: string, ctx: ExecutionContext) => {

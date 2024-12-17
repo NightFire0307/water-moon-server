@@ -13,10 +13,12 @@ import { LoginGuard } from './common/login.guard';
 import { PermissionGuard } from './common/permission.guard';
 import { UserModule } from './user/user.module';
 import { RoleModule } from './role/role.module';
+import { PermissionScanService } from './common/permission-scan.service';
 
 @Module({
   imports: [
     AuthModule,
+    TypeOrmModule.forFeature([Permission]),
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: ['src/.env.development'],
@@ -68,6 +70,7 @@ import { RoleModule } from './role/role.module';
       provide: APP_GUARD,
       useClass: PermissionGuard,
     },
+    PermissionScanService,
   ],
 })
 export class AppModule {}

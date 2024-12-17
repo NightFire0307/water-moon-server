@@ -1,4 +1,10 @@
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
+} from 'typeorm';
 
 @Entity({
   name: 'permissions',
@@ -8,14 +14,28 @@ export class Permission {
   id: number;
 
   @Column({
-    length: 20,
-    comment: '权限代码',
+    unique: true,
   })
-  code: string;
+  name: string;
+
+  @Column()
+  module: string;
+
+  @Column()
+  endpoint: string;
+
+  @Column()
+  action: string;
 
   @Column({
     length: 100,
     comment: '权限描述',
   })
   description: string;
+
+  @CreateDateColumn()
+  createTime: Date;
+
+  @UpdateDateColumn()
+  updateTime: Date;
 }
