@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Param, Post, Put } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Put,
+} from '@nestjs/common';
 import { RoleService } from './role.service';
 import {
   Pagination,
@@ -10,7 +18,7 @@ import { UpdateRoleDto, UpdateRolePermissionsDto } from './dto/update-role.dto';
 
 @Controller('admin/roles')
 export class RoleController {
-  constructor(private readonly roleService: RoleService) {}
+  constructor(private readonly roleService: RoleService) { }
 
   @Get()
   @RequireLogin()
@@ -29,8 +37,15 @@ export class RoleController {
   async updateRolePermissions(
     @Body() updateRolePermissionsDto: UpdateRolePermissionsDto,
   ) {
-    await this.roleService.updateRolePermissions(updateRolePermissionsDto);
-    return 'done';
+    return await this.roleService.updateRolePermissions(
+      updateRolePermissionsDto,
+    );
+  }
+
+  @Delete(':id')
+  @RequireLogin()
+  async deleteRole(@Param('id') id: string) {
+    return await this.roleService.removeRole(+id);
   }
 
   @Put(':id')

@@ -10,10 +10,10 @@ import { Permission } from '../auth/entities/permissions.entity';
 @Injectable()
 export class RoleService {
   @InjectRepository(Role)
-  private roleRepository: Repository<Role>;
+  private readonly roleRepository: Repository<Role>;
 
   @InjectRepository(Permission)
-  private permissionRepository: Repository<Permission>;
+  private readonly permissionRepository: Repository<Permission>;
 
   async getRoles(pagination: PaginationQuery) {
     const [data, total] = await this.roleRepository.findAndCount({
@@ -49,6 +49,18 @@ export class RoleService {
 
     await this.roleRepository.save(role);
     return '更新成功';
+  }
+
+  async removeRole(id: number) {
+    const role = await this.roleRepository.findOne({
+      where: {
+        id,
+      },
+    });
+
+    if (!role) return '删除失败！角色不存在';
+    await this.roleRepository.remove(role);
+    return '删除成功';
   }
 
   async updateRolePermissions(
