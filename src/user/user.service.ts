@@ -1,18 +1,22 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from '../auth/entities/user.entity';
-import { Like, Repository } from 'typeorm';
+import { In, Like, Repository } from 'typeorm';
 import { PaginationQuery } from '../common/custom.decorator';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserPasswordDto } from './dto/update-user-password.dto';
 import { hash } from 'bcrypt';
 import { ConfigService } from '@nestjs/config';
 import { UpdateUseDto } from './dto/update-use.dto';
+import { Role } from '../auth/entities/role.entity';
 
 @Injectable()
 export class UserService {
   @InjectRepository(User)
   private readonly userRepository: Repository<User>;
+
+  @InjectRepository(Role)
+  private readonly roleRepository: Repository<Role>;
 
   @Inject(ConfigService)
   private readonly configService: ConfigService;
@@ -84,5 +88,21 @@ export class UserService {
     } catch {
       return '密码修改失败';
     }
+  }
+
+  async updateUserRoles(userId: number, roleIds: number[]) {
+    const foundUser = await this.userRepository.findOneBy({ id: userId });
+    if (!foundUser) return '未查询到用户';
+
+    const roles = await this.roleRepository.find({
+      where: {
+        id: In(roleIds),
+      },
+    });
+
+    foundUser.roles = roles;
+    await this.userRepository.save(foundUser);
+
+    return '角色更新成功';
   }
 }

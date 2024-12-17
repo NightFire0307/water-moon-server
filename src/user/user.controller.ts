@@ -91,6 +91,16 @@ export class UserController {
     return this.adminService.deleteUser(parseInt(userId));
   }
 
+  @Put(':id/roles')
+  @RequireLogin()
+  @RequirePermission('user_update_role', '更新用户角色')
+  async updateUserRoles(
+    @Param('id') userId: string,
+    @Body('roleIds') roleIds: number[],
+  ) {
+    return await this.adminService.updateUserRoles(parseInt(userId), roleIds);
+  }
+
   @Post('update_password')
   @RequireLogin()
   @RequirePermission('user_update', '更新用户密码')
