@@ -28,8 +28,6 @@ export class PermissionScanService implements OnApplicationBootstrap {
 
   async onApplicationBootstrap() {
     const permissions = this.scanPermissions();
-    console.log(permissions);
-    console.log('----------');
     await this.savePermissions(permissions);
   }
 

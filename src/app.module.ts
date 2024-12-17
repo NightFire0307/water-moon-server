@@ -14,6 +14,7 @@ import { PermissionGuard } from './common/permission.guard';
 import { UserModule } from './user/user.module';
 import { RoleModule } from './role/role.module';
 import { PermissionScanService } from './common/permission-scan.service';
+import { PermissionModule } from './permission/permission.module';
 
 @Module({
   imports: [
@@ -58,6 +59,7 @@ import { PermissionScanService } from './common/permission-scan.service';
     }),
     UserModule,
     RoleModule,
+    PermissionModule,
   ],
   controllers: [AppController],
   providers: [
