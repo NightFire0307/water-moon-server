@@ -5,6 +5,7 @@ import { FormatResponseInterceptor } from './common/format-response.interceptor'
 import { InvokeRecordInterceptor } from './common/invoke-record.interceptor';
 import { ValidationPipe } from '@nestjs/common';
 import { UnloginFilter } from './unlogin.filter';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -17,6 +18,14 @@ async function bootstrap() {
   app.useGlobalInterceptors(new FormatResponseInterceptor());
   app.useGlobalInterceptors(new InvokeRecordInterceptor());
   app.useGlobalFilters(new UnloginFilter());
+
+  const config = new DocumentBuilder()
+    .setTitle('Water_Moon_Server')
+    .setDescription('The NestJS API description')
+    .setVersion('0.1')
+    .build();
+  const documentFactory = () => SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('api', app, documentFactory);
 
   const configService = app.get(ConfigService);
   await app.listen(configService.get('nest_server_port'));
