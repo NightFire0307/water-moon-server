@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from '../auth/entities/user.entity';
-import { Repository } from 'typeorm';
+import { Like, Repository } from 'typeorm';
 import { PaginationQuery } from '../common/custom.decorator';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserPasswordDto } from './dto/update-user-password.dto';
@@ -12,16 +12,25 @@ import { UpdateUseDto } from './dto/update-use.dto';
 @Injectable()
 export class UserService {
   @InjectRepository(User)
-  private userRepository: Repository<User>;
+  private readonly userRepository: Repository<User>;
 
   @Inject(ConfigService)
-  private configService: ConfigService;
+  private readonly configService: ConfigService;
 
-  async findAllUsers(pagination: PaginationQuery) {
+  async findAllUsers(
+    username: string,
+    nickname: string,
+    pagination: PaginationQuery,
+  ) {
     const { current, pageSize } = pagination;
+    const condition: Record<string, any> = {};
+
+    if (username) condition.username = Like(`%${username}%`);
+    if (nickname) condition.nickname = Like(`%${nickname}%`);
     const [data, total] = await this.userRepository.findAndCount({
       skip: (current - 1) * pageSize,
       take: pageSize,
+      where: condition,
     });
 
     return {

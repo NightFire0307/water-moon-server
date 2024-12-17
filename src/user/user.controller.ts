@@ -6,6 +6,7 @@ import {
   Param,
   Post,
   Put,
+  Query,
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import {
@@ -21,12 +22,16 @@ import { UpdateUseDto } from './dto/update-use.dto';
 
 @Controller('admin/users')
 export class AuthController {
-  constructor(private readonly adminService: UserService) {}
+  constructor(private readonly adminService: UserService) { }
 
   @Get()
   @RequireLogin()
-  async findAllUsers(@Pagination() pagination: PaginationQuery) {
-    return await this.adminService.findAllUsers(pagination);
+  async findAllUsers(
+    @Query('username') username: string,
+    @Query('nickname') nickname: string,
+    @Pagination() pagination: PaginationQuery,
+  ) {
+    return await this.adminService.findAllUsers(username, nickname, pagination);
   }
 
   @Get('info')
