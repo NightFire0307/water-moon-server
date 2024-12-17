@@ -12,7 +12,7 @@ export class PermissionService {
   async getPermissions(pagination: PaginationQuery) {
     const [list, total] = await this.permissionRepository.findAndCount({
       skip: (pagination.current - 1) * pagination.pageSize,
-      take: pagination.current,
+      take: pagination.pageSize,
     });
     return {
       list,

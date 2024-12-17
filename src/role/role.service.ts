@@ -64,9 +64,10 @@ export class RoleService {
   }
 
   async updateRolePermissions(
+    id: number,
     updateRolePermissionsDto: UpdateRolePermissionsDto,
   ) {
-    const { id, permissionsIds } = updateRolePermissionsDto;
+    const { permissionsIds } = updateRolePermissionsDto;
     const role_permissions = await this.roleRepository.findOne({
       where: {
         id,

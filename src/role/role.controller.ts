@@ -18,7 +18,7 @@ import { UpdateRoleDto, UpdateRolePermissionsDto } from './dto/update-role.dto';
 
 @Controller('admin/roles')
 export class RoleController {
-  constructor(private readonly roleService: RoleService) { }
+  constructor(private readonly roleService: RoleService) {}
 
   @Get()
   @RequireLogin()
@@ -32,12 +32,14 @@ export class RoleController {
     return this.roleService.createRole(createRoleDto);
   }
 
-  @Put('permissions')
+  @Put(':id/permissions')
   @RequireLogin()
   async updateRolePermissions(
+    @Param('id') id: string,
     @Body() updateRolePermissionsDto: UpdateRolePermissionsDto,
   ) {
     return await this.roleService.updateRolePermissions(
+      +id,
       updateRolePermissionsDto,
     );
   }
