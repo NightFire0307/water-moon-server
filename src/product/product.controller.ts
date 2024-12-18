@@ -1,4 +1,13 @@
-import { Body, Controller, Get, Param, Post, Put, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Put,
+  Query,
+} from '@nestjs/common';
 import { ProductService } from './product.service';
 import {
   Pagination,
@@ -37,6 +46,12 @@ export class ProductController {
     return await this.productService.updateProduct(+id, updateProductDto);
   }
 
+  @Delete(':id')
+  @RequireLogin()
+  async deleteProduct(@Param('id') id: string) {
+    return await this.productService.deleteProduct(+id);
+  }
+
   @Get('/type')
   @RequireLogin()
   async getProductTypes(@Pagination() pagination: PaginationQuery) {
@@ -59,5 +74,11 @@ export class ProductController {
       +id,
       createProductTypeDto,
     );
+  }
+
+  @Delete('/type/:id')
+  @RequireLogin()
+  async deleteProductType(@Param('id') id: string) {
+    return await this.productService.deleteProductType(+id);
   }
 }

@@ -49,21 +49,29 @@ export class UserController {
     return await this.adminService.findAllUsers(username, nickname, pagination);
   }
 
-  @Get('info')
+  @Get(':id')
   @RequireLogin()
   @RequirePermission('user_view_detail', '查看用户信息')
-  async findUserById(@UserInfo('userId') userId: number) {
-    const user = await this.adminService.findUserDetailById(userId);
-    const vo = new UserDetailVo();
-    vo.id = user.id;
-    vo.username = user.username;
-    vo.nickname = user.nickname;
-    vo.isFrozen = user.isFrozen;
-    vo.isAdmin = user.isAdmin;
-    vo.updateTime = user.updateTime;
-    vo.createTime = user.createTime;
+  async findCurUserDetail(@Param('id') id: string) {
+    if (Number.isNaN(+id)) {
+      return '参数错误';
+    }
 
-    return vo;
+    const user = await this.adminService.findUserDetailById(+id);
+
+    if (user) {
+      const vo = new UserDetailVo();
+      vo.id = user.id;
+      vo.username = user.username;
+      vo.nickname = user.nickname;
+      vo.isFrozen = user.isFrozen;
+      vo.isAdmin = user.isAdmin;
+      vo.updateTime = user.updateTime;
+      vo.createTime = user.createTime;
+      return vo;
+    } else {
+      return '用户不存在';
+    }
   }
 
   @Post()

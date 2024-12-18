@@ -81,6 +81,19 @@ export class ProductService {
     return '修改成功';
   }
 
+  async deleteProduct(id: number) {
+    const product = await this.productRepository.findOne({
+      where: {
+        id,
+      },
+    });
+
+    if (!product) return '产品不存在';
+
+    await this.productRepository.remove(product);
+    return '删除成功';
+  }
+
   async getProductTypes(pagination: PaginationQuery) {
     const [list, total] = await this.productTypeRepository.findAndCount({
       skip: (pagination.current - 1) * pagination.pageSize,
@@ -125,5 +138,18 @@ export class ProductService {
     productType.name = createProductTypeDto.name;
     await this.productTypeRepository.save(productType);
     return '修改成功';
+  }
+
+  async deleteProductType(id: number) {
+    const productType = await this.productTypeRepository.findOne({
+      where: {
+        id,
+      },
+    });
+
+    if (!productType) return '产品类型不存在';
+
+    await this.productTypeRepository.remove(productType);
+    return '删除成功';
   }
 }
