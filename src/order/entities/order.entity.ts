@@ -6,8 +6,12 @@ import {
   JoinColumn,
   CreateDateColumn,
   UpdateDateColumn,
+  OneToMany,
+  ManyToMany,
+  JoinTable,
 } from 'typeorm';
-import { PhotoCollection } from '../../photo/entities/photo-collection.entity'; // 引用照片集实体
+import { PhotoCollection } from '../../photo/entities/photo-collection.entity';
+import { Product } from '../../product/entities/product.entity'; // 引用照片集实体
 
 export enum OrderStatus {
   // 未开始、进行中、已提交、已过期
@@ -34,6 +38,14 @@ export class Order {
   @OneToOne(() => PhotoCollection, { eager: true })
   @JoinColumn()
   photo_collection: PhotoCollection;
+
+  @ManyToMany(() => Product, (product) => product.order)
+  @JoinTable({
+    name: 'order_products',
+    joinColumn: { name: 'order_id', referencedColumnName: 'id' },
+    inverseJoinColumn: { name: 'products_id', referencedColumnName: 'id' },
+  })
+  order_products: Product[];
 
   @Column({ default: 0 })
   total_photos: number;

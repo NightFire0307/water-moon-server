@@ -4,7 +4,6 @@ import {
   Pagination,
   PaginationQuery,
   RequireLogin,
-  RequirePermission,
 } from '../common/custom.decorator';
 
 @Controller('admin/permission')
@@ -13,7 +12,7 @@ export class PermissionController {
 
   @Get()
   @RequireLogin()
-  @RequirePermission('permission_view', '查看权限列表')
+  // @RequirePermission('permission_view', '查看权限列表')
   getPermissions(@Pagination() pagination: PaginationQuery) {
     return this.permissionService.getPermissions(pagination);
   }
