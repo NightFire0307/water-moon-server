@@ -27,7 +27,9 @@ export class Product {
   @ManyToOne(() => ProductType)
   type: ProductType;
 
-  @ManyToMany(() => Order, (order) => order.order_products)
+  @ManyToMany(() => Order, (order) => order.order_products, {
+    cascade: true,
+  })
   order: Order[];
 
   @CreateDateColumn()
