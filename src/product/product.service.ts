@@ -4,6 +4,9 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Product } from './entities/product.entity';
 import { Like, Repository } from 'typeorm';
 import { PaginationQuery } from '../common/custom.decorator';
+import { CreateProductDto } from './dto/create-product.dto';
+import { CreateProductTypeDto } from './dto/create-productType.dto';
+import { UpdateProductDto } from './dto/update-product.dto';
 
 @Injectable()
 export class ProductService {
@@ -40,5 +43,87 @@ export class ProductService {
       total,
       ...pagination,
     };
+  }
+
+  async createProduct(createProductDto: CreateProductDto) {
+    const product = new Product();
+    product.name = createProductDto.name;
+    product.picLimit = createProductDto.picLimit;
+    product.type = await this.productTypeRepository.findOne({
+      where: {
+        id: createProductDto.type,
+      },
+    });
+
+    if (!product.type) return '产品类型不存在';
+    return this.productRepository.save(product);
+  }
+
+  async updateProduct(id: number, updateProductDto: UpdateProductDto) {
+    const product = await this.productRepository.findOne({
+      where: {
+        id,
+      },
+    });
+
+    if (!product) return '产品不存在';
+
+    product.name = updateProductDto.name;
+    product.picLimit = updateProductDto.picLimit;
+    product.type = await this.productTypeRepository.findOne({
+      where: {
+        id: updateProductDto.type,
+      },
+    });
+
+    if (!product.type) return '产品类型不存在';
+    await this.productRepository.save(product);
+    return '修改成功';
+  }
+
+  async getProductTypes(pagination: PaginationQuery) {
+    const [list, total] = await this.productTypeRepository.findAndCount({
+      skip: (pagination.current - 1) * pagination.pageSize,
+      take: pagination.pageSize,
+    });
+
+    return {
+      list,
+      total,
+      ...pagination,
+    };
+  }
+
+  async createProductType(createProductTypeDto: CreateProductTypeDto) {
+    const foundProductType = await this.productTypeRepository.findOneBy({
+      name: createProductTypeDto.name,
+    });
+
+    if (foundProductType) return '产品类型已存在';
+
+    try {
+      const productType = new ProductType();
+      productType.name = createProductTypeDto.name;
+      return await this.productTypeRepository.save(productType);
+    } catch (e) {
+      return e;
+    }
+  }
+
+  async updateProductType(
+    id: number,
+    createProductTypeDto: CreateProductTypeDto,
+  ) {
+    const productType = await this.productTypeRepository.findOne({
+      where: {
+        id,
+      },
+    });
+
+    if (!productType) return '产品类型不存在';
+
+    productType.name = createProductTypeDto.name;
+    await this.productTypeRepository.save(productType);
+    return '修改成功';
   }
 }

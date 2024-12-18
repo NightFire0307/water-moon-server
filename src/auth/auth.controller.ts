@@ -2,10 +2,10 @@ import {
   Body,
   Controller,
   Get,
+  HttpCode,
   Inject,
   Post,
   Query,
-  UnauthorizedException,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LoginUserDto } from './dto/login-user.dto';
@@ -38,6 +38,7 @@ export class AuthController {
   }
 
   @Post('admin/login')
+  @HttpCode(200)
   async adminLogin(@Body() loginUser: LoginUserDto) {
     const vo = await this.userService.login(loginUser, true);
     const { accessToken, refreshToken } = this.userService.generateToken(vo);

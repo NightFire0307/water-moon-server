@@ -14,8 +14,12 @@ export class Product {
   id: number;
 
   // 产品名称
-  @Column({ type: 'varchar', length: 255 })
+  @Column({ type: 'varchar', length: 255, unique: true })
   name: string;
+
+  // 限制可选照片数量
+  @Column({ type: 'int', default: 1 })
+  picLimit: number;
 
   // 产品类型
   @ManyToOne(() => ProductType)
