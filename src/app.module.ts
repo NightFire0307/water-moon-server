@@ -18,6 +18,11 @@ import { PermissionModule } from './permission/permission.module';
 import { ProductModule } from './product/product.module';
 import { ProductType } from './product/entities/productType.entity';
 import { Product } from './product/entities/product.entity';
+import { OrderModule } from './order/order.module';
+import { PhotoModule } from './photo/photo.module';
+import { Order } from './order/entities/order.entity';
+import { Photo } from './photo/entities/photo.entity';
+import { PhotoCollection } from './photo/entities/photo-collection.entity';
 
 @Module({
   imports: [
@@ -38,7 +43,16 @@ import { Product } from './product/entities/product.entity';
           database: configService.get('mysql_server_database'),
           synchronize: true,
           logging: true,
-          entities: [User, Role, Permission, Product, ProductType],
+          entities: [
+            User,
+            Role,
+            Permission,
+            Product,
+            ProductType,
+            Order,
+            Photo,
+            PhotoCollection,
+          ],
           poolSize: 10,
           connectorPackage: 'mysql2',
           extra: {
@@ -64,6 +78,8 @@ import { Product } from './product/entities/product.entity';
     RoleModule,
     PermissionModule,
     ProductModule,
+    OrderModule,
+    PhotoModule,
   ],
   controllers: [AppController],
   providers: [
