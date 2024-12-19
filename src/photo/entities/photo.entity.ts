@@ -5,9 +5,10 @@ import {
   ManyToOne,
   CreateDateColumn,
   JoinColumn,
+  ManyToMany,
 } from 'typeorm';
-import { ProductType } from '../../product/entities/productType.entity';
-import { Order } from '../../order/entities/order.entity'; // 产品类型实体
+import { Order } from '../../order/entities/order.entity';
+import { Product } from '../../product/entities/product.entity'; // 产品类型实体
 
 @Entity('photos')
 export class Photo {
@@ -21,8 +22,8 @@ export class Photo {
   @JoinColumn({ name: 'order_id' })
   order: Order;
 
-  @ManyToOne(() => ProductType, { nullable: true })
-  marked_product: ProductType; // 标记的产品类型，可为空
+  @ManyToMany(() => Product, (product) => product.id, { nullable: true })
+  marked_product: Product; // 标记制作的产品，可为空
 
   @Column({ default: false })
   is_selected: boolean; // 是否被选中

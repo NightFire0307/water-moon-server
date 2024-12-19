@@ -47,7 +47,10 @@ export class Order {
   order_products: Product[];
 
   @Column({ default: 0 })
-  total_photos: number;
+  total_photos: number; // 总照片数
+
+  @Column({ default: 0 })
+  max_select_photos: number; // 最多可选照片数
 
   @Column({ default: 0 })
   extra_photo_price: number; // 超出照片的单张价格

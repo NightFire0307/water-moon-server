@@ -19,6 +19,7 @@ export const RequirePermission = (
   );
 };
 
+// 从Token中获取用户信息
 export const UserInfo = createParamDecorator(
   (data: string, ctx: ExecutionContext) => {
     const request: Request = ctx.switchToHttp().getRequest();

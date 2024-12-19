@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsNumber, IsString } from 'class-validator';
+import { IsBoolean, IsNotEmpty, IsNumber, IsString } from 'class-validator';
 
 export class CreateProductDto {
   @IsNotEmpty({
@@ -15,4 +15,9 @@ export class CreateProductDto {
 
   @IsNumber()
   photo_limit: number;
+
+  @IsBoolean({
+    message: `是否允许额外照片必须是布尔值`,
+  })
+  allow_extra_photos: boolean;
 }

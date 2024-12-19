@@ -20,7 +20,7 @@ export class Product {
   name: string;
 
   // 限制可选照片数量
-  @Column({ type: 'int', default: 1 })
+  @Column({ type: 'int', default: -1 })
   photo_limit: number;
 
   // 产品类型
