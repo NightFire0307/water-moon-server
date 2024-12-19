@@ -5,10 +5,10 @@ import {
   ManyToOne,
   CreateDateColumn,
   UpdateDateColumn,
-  ManyToMany,
+  OneToMany,
 } from 'typeorm';
 import { ProductType } from './productType.entity';
-import { Order } from '../../order/entities/order.entity';
+import { OrderProduct } from '../../order/entities/orderProduct.entity';
 
 @Entity('products')
 export class Product {
@@ -19,22 +19,14 @@ export class Product {
   @Column({ type: 'varchar', length: 255, unique: true })
   name: string;
 
-  // 限制可选照片数量
-  @Column({ type: 'int', default: -1 })
-  photo_limit: number;
-
   // 产品类型
   @ManyToOne(() => ProductType)
   type: ProductType;
 
-  @ManyToMany(() => Order, (order) => order.order_products, {
+  @OneToMany(() => OrderProduct, (orderProduct) => orderProduct.product, {
     cascade: true,
   })
-  order: Order[];
-
-  // 标识是否可以超过指定照片数量
-  @Column({ type: 'boolean', default: false })
-  allow_extra_photos: boolean;
+  order_products: OrderProduct[];
 
   @CreateDateColumn()
   createdAt: Date;

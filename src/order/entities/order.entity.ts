@@ -5,12 +5,10 @@ import {
   JoinColumn,
   CreateDateColumn,
   UpdateDateColumn,
-  ManyToMany,
-  JoinTable,
   OneToMany,
 } from 'typeorm';
-import { Product } from '../../product/entities/product.entity';
-import { Photo } from '../../photo/entities/photo.entity'; // 引用照片集实体
+import { Photo } from '../../photo/entities/photo.entity';
+import { OrderProduct } from './orderProduct.entity'; // 引用照片集实体
 
 export enum OrderStatus {
   // 未开始、进行中、已提交、已过期
@@ -38,13 +36,10 @@ export class Order {
   @JoinColumn()
   photos: Photo[];
 
-  @ManyToMany(() => Product, (product) => product.order)
-  @JoinTable({
-    name: 'order_products',
-    joinColumn: { name: 'order_id', referencedColumnName: 'id' },
-    inverseJoinColumn: { name: 'products_id', referencedColumnName: 'id' },
+  @OneToMany(() => OrderProduct, (orderProduct) => orderProduct.order, {
+    cascade: true,
   })
-  order_products: Product[];
+  order_products: OrderProduct[];
 
   @Column({ default: 0 })
   total_photos: number; // 总照片数

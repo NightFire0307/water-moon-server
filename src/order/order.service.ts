@@ -5,11 +5,15 @@ import { Order } from './entities/order.entity';
 import { In, Repository } from 'typeorm';
 import { Product } from '../product/entities/product.entity';
 import { PaginationQuery } from '../common/custom.decorator';
+import { OrderProduct } from './entities/orderProduct.entity';
 
 @Injectable()
 export class OrderService {
   @InjectRepository(Order)
   private orderRepository: Repository<Order>;
+
+  @InjectRepository(OrderProduct)
+  private orderProductRepository: Repository<OrderProduct>;
 
   @InjectRepository(Product)
   private productRepository: Repository<Product>;
@@ -50,26 +54,42 @@ export class OrderService {
       });
       await queryRunner.manager.save(order);
 
+      // 获取order_products中的产品id
+      const productIds = [...new Set(order_products.map((item) => item.id))];
+
       const foundProduct = await this.productRepository.find({
         where: {
-          id: In(order_products),
+          id: In(productIds),
         },
       });
 
-      if (foundProduct.length !== order_products.length) {
-        await queryRunner.rollbackTransaction();
-        return '查询不到产品';
+      if (foundProduct.length !== productIds.length) {
+        throw new Error('查询不到产品');
       }
 
-      order.order_products = foundProduct;
-      await queryRunner.manager.save(order);
+      // 保存order_products
+      const order_products_data = order_products.map((item) => {
+        const product = foundProduct.find((product) => product.id === item.id);
+        if (!product) {
+          throw new Error(`查询不到产品id: ${item.id}`);
+        }
+        return this.orderProductRepository.create({
+          order,
+          product,
+          quantity: item.quantity,
+          custom_photo_limit: item.custom_photo_limit,
+          allow_extra_photos: item.allow_extra_photos,
+        });
+      });
+      await queryRunner.manager.save(order_products_data);
 
       await queryRunner.commitTransaction();
 
       return '订单创建成功';
-    } catch {
+    } catch (e: unknown) {
+      const err = e as Error;
       await queryRunner.rollbackTransaction();
-      return 'error';
+      return err.message;
     } finally {
       await queryRunner.release();
     }

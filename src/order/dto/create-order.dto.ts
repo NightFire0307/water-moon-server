@@ -1,5 +1,12 @@
 import { IsArray, IsNotEmpty, IsNumber } from 'class-validator';
 
+export interface OrderProduct {
+  id: number;
+  quantity: number;
+  custom_photo_limit: number;
+  allow_extra_photos: boolean;
+}
+
 export class CreateOrderDto {
   @IsNotEmpty({
     message: '订单编号不能为空',
@@ -17,7 +24,7 @@ export class CreateOrderDto {
   customer_phone: string;
 
   @IsArray()
-  order_products: number[];
+  order_products: OrderProduct[];
 
   @IsNotEmpty({
     message: '最大可选照片总数不能为空',

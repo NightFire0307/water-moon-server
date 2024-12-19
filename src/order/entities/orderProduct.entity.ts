@@ -1,0 +1,31 @@
+import { Entity, PrimaryGeneratedColumn, ManyToOne, Column } from 'typeorm';
+import { Product } from '../../product/entities/product.entity';
+import { Order } from './order.entity';
+
+@Entity('order_products')
+export class OrderProduct {
+  @PrimaryGeneratedColumn()
+  id: number;
+
+  @ManyToOne(() => Order, (order) => order.order_products, {
+    onDelete: 'CASCADE',
+  })
+  order: Order;
+
+  @ManyToOne(() => Product, (product) => product.order_products, {
+    onDelete: 'CASCADE',
+  })
+  product: Product;
+
+  // 制作数量
+  @Column({ type: 'int', default: 1 })
+  quantity: number;
+
+  // 可选照片数
+  @Column({ type: 'int', default: 0 })
+  custom_photo_limit: number;
+
+  // 是否可以超过指定照片数量
+  @Column({ type: 'boolean', default: false })
+  allow_extra_photos: boolean;
+}
