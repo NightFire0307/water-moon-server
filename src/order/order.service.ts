@@ -6,6 +6,7 @@ import { In, Repository } from 'typeorm';
 import { Product } from '../product/entities/product.entity';
 import { PaginationQuery } from '../common/custom.decorator';
 import { OrderProduct } from './entities/orderProduct.entity';
+import { DatabaseException } from '../common/database-exception.filter';
 
 @Injectable()
 export class OrderService {
@@ -89,7 +90,7 @@ export class OrderService {
     } catch (e: unknown) {
       const err = e as Error;
       await queryRunner.rollbackTransaction();
-      return err.message;
+      throw new DatabaseException(err.message);
     } finally {
       await queryRunner.release();
     }

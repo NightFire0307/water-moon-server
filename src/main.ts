@@ -6,6 +6,7 @@ import { InvokeRecordInterceptor } from './common/invoke-record.interceptor';
 import { ValidationPipe } from '@nestjs/common';
 import { UnloginFilter } from './unlogin.filter';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { DatabaseExceptionFilter } from './common/database-exception.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -17,7 +18,7 @@ async function bootstrap() {
   );
   app.useGlobalInterceptors(new FormatResponseInterceptor());
   app.useGlobalInterceptors(new InvokeRecordInterceptor());
-  app.useGlobalFilters(new UnloginFilter());
+  app.useGlobalFilters(new UnloginFilter(), new DatabaseExceptionFilter());
 
   const config = new DocumentBuilder()
     .setTitle('Water_Moon_Server')
