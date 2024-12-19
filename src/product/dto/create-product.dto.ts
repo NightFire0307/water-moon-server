@@ -14,5 +14,5 @@ export class CreateProductDto {
   type: number;
 
   @IsNumber()
-  picLimit: number;
+  photo_limit: number;
 }

@@ -22,7 +22,6 @@ import { OrderModule } from './order/order.module';
 import { PhotoModule } from './photo/photo.module';
 import { Order } from './order/entities/order.entity';
 import { Photo } from './photo/entities/photo.entity';
-import { PhotoCollection } from './photo/entities/photo-collection.entity';
 
 @Module({
   imports: [
@@ -51,7 +50,6 @@ import { PhotoCollection } from './photo/entities/photo-collection.entity';
             ProductType,
             Order,
             Photo,
-            PhotoCollection,
           ],
           poolSize: 10,
           connectorPackage: 'mysql2',

@@ -2,15 +2,15 @@ import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
-  OneToOne,
   JoinColumn,
   CreateDateColumn,
   UpdateDateColumn,
   ManyToMany,
   JoinTable,
+  OneToMany,
 } from 'typeorm';
-import { PhotoCollection } from '../../photo/entities/photo-collection.entity';
-import { Product } from '../../product/entities/product.entity'; // 引用照片集实体
+import { Product } from '../../product/entities/product.entity';
+import { Photo } from '../../photo/entities/photo.entity'; // 引用照片集实体
 
 export enum OrderStatus {
   // 未开始、进行中、已提交、已过期
@@ -34,9 +34,9 @@ export class Order {
   @Column()
   customer_phone: string;
 
-  @OneToOne(() => PhotoCollection, { eager: true })
+  @OneToMany(() => Photo, (photo) => photo.order)
   @JoinColumn()
-  photo_collection: PhotoCollection;
+  photos: Photo[];
 
   @ManyToMany(() => Product, (product) => product.order)
   @JoinTable({

@@ -21,7 +21,7 @@ export class Product {
 
   // 限制可选照片数量
   @Column({ type: 'int', default: 1 })
-  picLimit: number;
+  photo_limit: number;
 
   // 产品类型
   @ManyToOne(() => ProductType)
@@ -31,6 +31,10 @@ export class Product {
     cascade: true,
   })
   order: Order[];
+
+  // 标识是否可以超过指定照片数量
+  @Column({ type: 'boolean', default: false })
+  allow_extra_photos: boolean;
 
   @CreateDateColumn()
   createdAt: Date;

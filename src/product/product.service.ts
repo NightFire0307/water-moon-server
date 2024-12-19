@@ -48,7 +48,7 @@ export class ProductService {
   async createProduct(createProductDto: CreateProductDto) {
     const product = new Product();
     product.name = createProductDto.name;
-    product.picLimit = createProductDto.picLimit;
+    product.photo_limit = createProductDto.photo_limit;
     product.type = await this.productTypeRepository.findOne({
       where: {
         id: createProductDto.type,
@@ -69,7 +69,7 @@ export class ProductService {
     if (!product) return '产品不存在';
 
     product.name = updateProductDto.name;
-    product.picLimit = updateProductDto.picLimit;
+    product.photo_limit = updateProductDto.photo_limit;
     product.type = await this.productTypeRepository.findOne({
       where: {
         id: updateProductDto.type,
