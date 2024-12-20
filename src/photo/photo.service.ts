@@ -85,7 +85,7 @@ export class PhotoService {
       throw new DatabaseException('删除照片失败');
     }
 
-    return '删除照片成功';
+    return { message: '删除照片成功', data: [] };
   }
 
   async updatePhotoRecommendStatus(
@@ -102,7 +102,7 @@ export class PhotoService {
       );
 
       if (affected === photoIds.length) {
-        return '更新推荐状态成功';
+        return { message: '更新推荐状态成功', data: [] };
       }
     } catch (e) {
       console.log(e);

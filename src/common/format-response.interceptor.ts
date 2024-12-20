@@ -12,10 +12,10 @@ export class FormatResponseInterceptor implements NestInterceptor {
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const response: Response = context.switchToHttp().getResponse();
     return next.handle().pipe(
-      map((data) => {
+      map(({ message = '请求成功', data = [] }) => {
         return {
           code: response.statusCode,
-          message: 'success',
+          message,
           data,
         };
       }),
