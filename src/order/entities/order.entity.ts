@@ -1,12 +1,4 @@
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  JoinColumn,
-  CreateDateColumn,
-  UpdateDateColumn,
-  OneToMany,
-} from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, JoinColumn, CreateDateColumn, UpdateDateColumn, OneToMany } from 'typeorm';
 import { Photo } from '../../photo/entities/photo.entity';
 import { OrderProduct } from './orderProduct.entity'; // 引用照片集实体
 
@@ -23,7 +15,7 @@ export class Order {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ unique: true })
+  @Column()
   order_number: string;
 
   @Column()
@@ -58,6 +50,9 @@ export class Order {
 
   @Column({ type: 'int', default: 0 })
   status: string; // 订单状态，如：未开始、进行中、已完成
+
+  @Column({ type: 'boolean', default: false })
+  is_deleted: boolean; // 是否已删除
 
   @CreateDateColumn()
   created_at: Date;

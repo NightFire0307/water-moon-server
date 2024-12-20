@@ -38,12 +38,24 @@ export class OrderService {
       access_link,
       access_password,
     } = createOrderDto;
+
     const queryRunner =
       this.orderRepository.manager.connection.createQueryRunner();
 
     await queryRunner.startTransaction();
 
     try {
+      const foundOrder = await this.orderRepository.findOne({
+        where: {
+          order_number,
+          is_deleted: false,
+        },
+      });
+
+      if (foundOrder) {
+        throw new Error('订单号已存在');
+      }
+
       const order = this.orderRepository.create({
         order_number,
         customer_name,

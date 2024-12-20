@@ -1,4 +1,10 @@
-import { IsArray, IsBoolean, IsNotEmpty, IsNumber } from 'class-validator';
+import {
+  IsArray,
+  IsBoolean,
+  IsNotEmpty,
+  IsNumber,
+  MinLength,
+} from 'class-validator';
 
 export class OrderProductDto {
   @IsNotEmpty()
@@ -30,6 +36,9 @@ export class CreateOrderDto {
 
   @IsNotEmpty({
     message: '客户电话不能为空',
+  })
+  @MinLength(11, {
+    message: '客户电话长度不能小于11',
   })
   customer_phone: string;
 
