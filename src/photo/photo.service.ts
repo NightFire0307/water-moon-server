@@ -96,15 +96,17 @@ export class PhotoService {
     await this.getOrderById(orderId);
 
     try {
-      await this.photoRepository.update(
+      const { affected } = await this.photoRepository.update(
         { id: In(photoIds), order: { id: orderId }, is_deleted: false },
         { is_recommended: isRecommended },
       );
+
+      if (affected === photoIds.length) {
+        return '更新推荐状态成功';
+      }
     } catch (e) {
       console.log(e);
       throw new DatabaseException('更新推荐状态失败');
     }
-
-    return '更新推荐状态成功';
   }
 }
