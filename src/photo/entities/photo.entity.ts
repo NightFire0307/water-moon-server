@@ -6,6 +6,8 @@ import {
   CreateDateColumn,
   JoinColumn,
   ManyToMany,
+  JoinTable,
+  UpdateDateColumn,
 } from 'typeorm';
 import { Order } from '../../order/entities/order.entity';
 import { Product } from '../../product/entities/product.entity'; // 产品类型实体
@@ -18,12 +20,15 @@ export class Photo {
   @Column()
   oss_url: string; // 照片存储路径
 
+  // 订单关联照片
   @ManyToOne(() => Order, (order) => order.photos)
   @JoinColumn({ name: 'order_id' })
   order: Order;
 
+  // 产品关联照片
   @ManyToMany(() => Product, (product) => product.id, { nullable: true })
-  marked_product: Product; // 标记制作的产品，可为空
+  @JoinTable({ name: 'photo_marked_products' })
+  marked_products: Product[]; // 标记制作的产品，可为空
 
   @Column({ default: false })
   is_selected: boolean; // 是否被选中
@@ -31,6 +36,12 @@ export class Photo {
   @Column({ default: false })
   is_recommended: boolean; // 是否推荐
 
+  @Column({ type: 'boolean', default: false })
+  is_deleted: boolean; // 是否删除
+
   @CreateDateColumn()
-  uploaded_at: Date;
+  created_at: Date;
+
+  @UpdateDateColumn()
+  updated_at: Date;
 }
