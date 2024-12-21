@@ -142,10 +142,9 @@ export class OrderService {
       await queryRunner.commitTransaction();
 
       return '订单创建成功';
-    } catch (e: unknown) {
-      const err = e as Error;
+    } catch (e) {
       await queryRunner.rollbackTransaction();
-      throw new DatabaseException(err.message);
+      throw new DatabaseException(e);
     } finally {
       await queryRunner.release();
     }
@@ -155,7 +154,7 @@ export class OrderService {
     const foundOrder = await this.orderRepository.findOneBy({ id });
 
     if (!foundOrder) {
-      throw new DatabaseException('订单不存在');
+      throw new Error('订单不存在');
     }
 
     const queryRunner =
@@ -200,10 +199,9 @@ export class OrderService {
       await queryRunner.commitTransaction();
 
       return '订单更新成功';
-    } catch (e: unknown) {
-      const err = e as Error;
+    } catch (e) {
       await queryRunner.rollbackTransaction();
-      throw new DatabaseException(err.message);
+      throw new DatabaseException(e);
     } finally {
       await queryRunner.release();
     }
@@ -213,7 +211,7 @@ export class OrderService {
     const foundOrder = await this.orderRepository.findOneBy({ id });
 
     if (!foundOrder) {
-      throw new DatabaseException('订单不存在');
+      throw new Error('订单不存在');
     }
 
     await this.orderRepository.update({ id }, { is_deleted: true });

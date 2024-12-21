@@ -74,6 +74,15 @@ export class ProductController {
     return await this.productService.deleteProductType(+id);
   }
 
+  @Get(':id')
+  @RequireLogin()
+  getProductDetail(@Param('id') id: string) {
+    if (Number.isNaN(+id)) {
+      return 'id 必须为数字';
+    }
+    return this.productService.getProductDetail(+id);
+  }
+
   @Put(':id')
   @RequireLogin()
   async updateProduct(

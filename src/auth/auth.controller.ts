@@ -45,7 +45,7 @@ export class AuthController {
 
     vo.accessToken = accessToken;
     vo.refreshToken = refreshToken;
-    return vo;
+    return { data: vo, message: '登录成功' };
   }
 
   @Get('refresh')
@@ -63,7 +63,8 @@ export class AuthController {
   async adminRefresh(@Query('refreshToken') refreshToken: string) {
     const { userId } =
       this.jwtService.verify<RefreshTokenPayload>(refreshToken);
-    return await this.userService.refreshToken(userId, true);
+    const data = await this.userService.refreshToken(userId, true);
+    return { data, message: '刷新成功' };
   }
 
   @Get('init-db')

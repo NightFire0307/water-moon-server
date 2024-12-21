@@ -25,7 +25,7 @@ export class PhotoService {
       },
     });
     if (!foundOrder) {
-      throw new DatabaseException('订单不存在');
+      throw new Error('订单不存在');
     }
 
     return foundOrder;
@@ -51,7 +51,7 @@ export class PhotoService {
 
   async createPhoto(orderId: number, createPhotosDto: CreatePhotosDto) {
     if (createPhotosDto.oss_urls.length === 0) {
-      throw new DatabaseException('请上传至少一张图片');
+      throw new Error('请上传至少一张图片');
     }
 
     const foundOrder = await this.getOrderById(orderId);
@@ -81,8 +81,8 @@ export class PhotoService {
           { is_deleted: true },
         );
       }
-    } catch {
-      throw new DatabaseException('删除照片失败');
+    } catch (e) {
+      throw new DatabaseException(e);
     }
 
     return { message: '删除照片成功', data: [] };
@@ -106,7 +106,7 @@ export class PhotoService {
       }
     } catch (e) {
       console.log(e);
-      throw new DatabaseException('更新推荐状态失败');
+      throw new DatabaseException(e);
     }
   }
 }
