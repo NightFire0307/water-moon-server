@@ -2,11 +2,14 @@ import { Injectable } from '@nestjs/common';
 import { ProductType } from './entities/productType.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Product } from './entities/product.entity';
-import { Like, Repository } from 'typeorm';
+import { Like, QueryFailedError, Repository } from 'typeorm';
 import { PaginationQuery } from '../common/custom.decorator';
 import { CreateProductDto } from './dto/create-product.dto';
 import { CreateProductTypeDto } from './dto/create-productType.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
+import { UpdateProductTypeDto } from './dto/update-productType.dto';
+import { DatabaseException } from '../common/database-exception.filter';
+import { MysqlDriver } from 'typeorm/driver/mysql/MysqlDriver';
 
 @Injectable()
 export class ProductService {
@@ -105,6 +108,20 @@ export class ProductService {
     };
   }
 
+  async getProductTypeDetail(id: number) {
+    const productType = await this.productTypeRepository.findOne({
+      where: {
+        id,
+      },
+    });
+
+    if (!productType) return '产品类型不存在';
+    return {
+      data: productType,
+      message: '查询成功',
+    };
+  }
+
   async createProductType(createProductTypeDto: CreateProductTypeDto) {
     const foundProductType = await this.productTypeRepository.findOneBy({
       name: createProductTypeDto.name,
@@ -115,16 +132,14 @@ export class ProductService {
     try {
       const productType = new ProductType();
       productType.name = createProductTypeDto.name;
-      return await this.productTypeRepository.save(productType);
+      const data = await this.productTypeRepository.save(productType);
+      return { data, message: '创建成功' };
     } catch (e) {
       return e;
     }
   }
 
-  async updateProductType(
-    id: number,
-    createProductTypeDto: CreateProductTypeDto,
-  ) {
+  async updateProductType(id: number, updateProductType: UpdateProductTypeDto) {
     const productType = await this.productTypeRepository.findOne({
       where: {
         id,
@@ -133,9 +148,13 @@ export class ProductService {
 
     if (!productType) return '产品类型不存在';
 
-    productType.name = createProductTypeDto.name;
-    await this.productTypeRepository.save(productType);
-    return '修改成功';
+    productType.name = updateProductType.name;
+    try {
+      const data = await this.productTypeRepository.save(productType);
+      return { data, message: '修改成功' };
+    } catch (e) {
+      throw new DatabaseException(e);
+    }
   }
 
   async deleteProductType(id: number) {

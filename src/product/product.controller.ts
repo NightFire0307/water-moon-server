@@ -17,6 +17,7 @@ import {
 import { CreateProductDto } from './dto/create-product.dto';
 import { CreateProductTypeDto } from './dto/create-productType.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
+import { UpdateProductTypeDto } from './dto/update-productType.dto';
 
 @Controller('admin/product')
 export class ProductController {
@@ -37,6 +38,42 @@ export class ProductController {
     return await this.productService.createProduct(createProductDto);
   }
 
+  @Put('/type/:id')
+  @RequireLogin()
+  async updateProductType(
+    @Param('id') id: string,
+    @Body() updateProductType: UpdateProductTypeDto,
+  ) {
+    return await this.productService.updateProductType(+id, updateProductType);
+  }
+
+  @Get('/type')
+  @RequireLogin()
+  async getProductTypes(@Pagination() pagination: PaginationQuery) {
+    return this.productService.getProductTypes(pagination);
+  }
+
+  @Get('/type/:id')
+  @RequireLogin()
+  getProductTypeDetail(@Param('id') id: string) {
+    if (Number.isNaN(+id)) {
+      return 'id 必须为数字';
+    }
+    return this.productService.getProductTypeDetail(+id);
+  }
+
+  @Post('/type')
+  @RequireLogin()
+  async createProductType(@Body() createProductTypeDto: CreateProductTypeDto) {
+    return await this.productService.createProductType(createProductTypeDto);
+  }
+
+  @Delete('/type/:id')
+  @RequireLogin()
+  async deleteProductType(@Param('id') id: string) {
+    return await this.productService.deleteProductType(+id);
+  }
+
   @Put(':id')
   @RequireLogin()
   async updateProduct(
@@ -49,36 +86,9 @@ export class ProductController {
   @Delete(':id')
   @RequireLogin()
   async deleteProduct(@Param('id') id: string) {
+    if (Number.isNaN(+id)) {
+      return 'id 必须为数字';
+    }
     return await this.productService.deleteProduct(+id);
-  }
-
-  @Get('/type')
-  @RequireLogin()
-  async getProductTypes(@Pagination() pagination: PaginationQuery) {
-    return this.productService.getProductTypes(pagination);
-  }
-
-  @Post('/type')
-  @RequireLogin()
-  async createProductType(@Body() createProductTypeDto: CreateProductTypeDto) {
-    return await this.productService.createProductType(createProductTypeDto);
-  }
-
-  @Put('/type/:id')
-  @RequireLogin()
-  async updateProductType(
-    @Param('id') id: string,
-    @Body() createProductTypeDto: CreateProductTypeDto,
-  ) {
-    return await this.productService.updateProductType(
-      +id,
-      createProductTypeDto,
-    );
-  }
-
-  @Delete('/type/:id')
-  @RequireLogin()
-  async deleteProductType(@Param('id') id: string) {
-    return await this.productService.deleteProductType(+id);
   }
 }
