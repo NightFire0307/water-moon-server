@@ -45,7 +45,7 @@ export class AuthController {
 
     vo.accessToken = accessToken;
     vo.refreshToken = refreshToken;
-    return { data: vo, message: '登录成功' };
+    return { ...vo, message: '登录成功' };
   }
 
   @Get('refresh')
