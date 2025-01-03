@@ -1,6 +1,15 @@
-import { Entity, PrimaryGeneratedColumn, Column, JoinColumn, CreateDateColumn, UpdateDateColumn, OneToMany } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  JoinColumn,
+  CreateDateColumn,
+  UpdateDateColumn,
+  OneToMany,
+} from 'typeorm';
 import { Photo } from '../../photo/entities/photo.entity';
-import { OrderProduct } from './orderProduct.entity'; // 引用照片集实体
+import { OrderProduct } from './orderProduct.entity';
+import { Link } from '../../link/entities/link.entity'; // 引用照片集实体
 
 export enum OrderStatus {
   // 未开始、进行中、已提交、已过期
@@ -50,6 +59,12 @@ export class Order {
 
   @Column({ type: 'int', default: 0 })
   status: string; // 订单状态，如：未开始、进行中、已完成
+
+  // 订单外链
+  @OneToMany(() => Link, (link) => link.order, {
+    cascade: true,
+  })
+  links: Link[];
 
   @Column({ type: 'boolean', default: false })
   is_deleted: boolean; // 是否已删除

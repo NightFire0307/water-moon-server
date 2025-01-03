@@ -23,6 +23,8 @@ import { PhotoModule } from './photo/photo.module';
 import { Order } from './order/entities/order.entity';
 import { Photo } from './photo/entities/photo.entity';
 import { OrderProduct } from './order/entities/orderProduct.entity';
+import { LinkModule } from './link/link.module';
+import { Link } from './link/entities/link.entity';
 
 @Module({
   imports: [
@@ -52,6 +54,7 @@ import { OrderProduct } from './order/entities/orderProduct.entity';
             Order,
             Photo,
             OrderProduct,
+            Link,
           ],
           poolSize: 10,
           connectorPackage: 'mysql2',
@@ -80,6 +83,7 @@ import { OrderProduct } from './order/entities/orderProduct.entity';
     ProductModule,
     OrderModule,
     PhotoModule,
+    LinkModule,
   ],
   controllers: [AppController],
   providers: [

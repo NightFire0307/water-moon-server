@@ -1,0 +1,46 @@
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  JoinColumn,
+  ManyToOne,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
+import { Order } from '../../order/entities/order.entity';
+
+export enum LinkStatus {
+  ACTIVE = 'active',
+  USED = 'used',
+  EXPIRED = 'expired',
+}
+
+@Entity('links')
+export class Link {
+  @PrimaryGeneratedColumn()
+  id: number;
+
+  @Column()
+  short_url: string;
+
+  // 动态链接密码
+  @Column()
+  password: string;
+
+  @ManyToOne(() => Order, (order) => order.links)
+  @JoinColumn({ name: 'order_id' })
+  order: Order;
+
+  @Column()
+  status: LinkStatus;
+
+  @Column()
+  created_by: number;
+
+  @Column({
+    type: 'timestamp',
+  })
+  expires_at: Date;
+
+  @CreateDateColumn()
+  created_at: Date;
+}
