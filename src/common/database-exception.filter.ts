@@ -5,12 +5,11 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { Response } from 'express';
-import { QueryFailedError } from 'typeorm';
 
 export class DatabaseException {
-  message: QueryFailedError;
+  message: string;
 
-  constructor(message: QueryFailedError) {
+  constructor(message: string) {
     this.message = message;
   }
 }
@@ -22,12 +21,27 @@ export class DatabaseExceptionFilter implements ExceptionFilter {
 
     // console.error(exception.message);
 
-    response
-      .json({
-        code: HttpStatus.BAD_REQUEST,
-        message: '数据库操作失败',
-        data: exception.message.message || '数据库操作失败',
-      })
-      .end();
+    switch (exception.message) {
+      case '数据已存在':
+        return response.json({
+          code: HttpStatus.CONFLICT,
+          message: exception.message,
+          data: '',
+        });
+
+      case '数据不存在':
+        return response.json({
+          code: HttpStatus.NOT_FOUND,
+          message: exception.message,
+          data: '',
+        });
+
+      default:
+        return response.json({
+          code: HttpStatus.BAD_REQUEST,
+          message: '数据库操作失败',
+          data: exception.message || '数据库操作失败',
+        });
+    }
   }
 }

@@ -90,7 +90,7 @@ export class ProductService {
       },
     });
 
-    if (!product) return '产品不存在';
+    if (!product) throw new DatabaseException('数据不存在');
 
     await this.productRepository.remove(product);
     return '删除成功';
@@ -125,7 +125,7 @@ export class ProductService {
       name: createProductTypeDto.name,
     });
 
-    if (foundProductType) return '产品类型已存在';
+    if (foundProductType) throw new DatabaseException('数据已存在');
 
     try {
       const productType = new ProductType();
@@ -144,7 +144,7 @@ export class ProductService {
       },
     });
 
-    if (!productType) return '产品类型不存在';
+    if (!productType) throw new DatabaseException('数据不存在');
 
     productType.name = updateProductType.name;
     try {
@@ -162,7 +162,7 @@ export class ProductService {
       },
     });
 
-    if (!productType) return '产品类型不存在';
+    if (!productType) throw new DatabaseException('数据不存在');
 
     await this.productTypeRepository.remove(productType);
     return '删除成功';
