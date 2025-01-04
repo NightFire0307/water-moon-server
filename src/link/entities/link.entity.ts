@@ -7,6 +7,7 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { Order } from '../../order/entities/order.entity';
+import { Exclude } from 'class-transformer';
 
 export enum LinkStatus {
   ACTIVE = 'active',
@@ -28,6 +29,7 @@ export class Link {
 
   @ManyToOne(() => Order, (order) => order.links)
   @JoinColumn({ name: 'order_id' })
+  @Exclude()
   order: Order;
 
   @Column()

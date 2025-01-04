@@ -1,12 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { CreateLinkDto } from './dto/create-link.dto';
-import { UpdateLinkDto } from './dto/update-link.dto';
 import basex from 'base-x';
 import { Link, LinkStatus } from './entities/link.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Order } from '../order/entities/order.entity';
 import { DatabaseException } from '../common/database-exception.filter';
+import { generatePassword } from '../utils/generatePassword';
+import { PaginationQuery } from '../common/custom.decorator';
 
 const BASE60 = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz_-';
 const bs60 = basex(BASE60);
@@ -39,30 +40,34 @@ export class LinkService {
 
     link.order = order;
     link.short_url = short_url;
-    link.expires_at = new Date();
-    link.password = '1234';
+    link.expires_at = new Date(expires_at);
+    link.password = generatePassword(4);
     link.status = LinkStatus.ACTIVE;
     link.created_by = 1;
 
-    const newLink = await this.linkRepository.save(link);
-    console.log(newLink);
-
-    return 'This action adds a new link';
+    return await this.linkRepository.save(link);
   }
 
-  findAll() {
-    return `This action returns all link`;
+  async findAll(pagination: PaginationQuery) {
+    const { current, pageSize } = pagination;
+    const [links, count] = await this.linkRepository.findAndCount({
+      skip: (current - 1) * pageSize,
+      take: pageSize,
+    });
+    return {
+      list: links,
+      total: count,
+      current,
+      pageSize,
+    };
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} link`;
-  }
+  async remove(id: number) {
+    const link = await this.linkRepository.findOneBy({ id });
 
-  update(id: number, updateLinkDto: UpdateLinkDto) {
-    return `This action updates a #${id} link`;
-  }
+    if (!link) throw new DatabaseException('数据不存在');
+    await this.linkRepository.remove(link);
 
-  remove(id: number) {
     return `This action removes a #${id} link`;
   }
 }
