@@ -24,8 +24,8 @@ export class ProductType {
   products: Product[];
 
   @CreateDateColumn()
-  createTime: Date;
+  createdAt: Date;
 
   @UpdateDateColumn()
-  updateTime: Date;
+  updatedAt: Date;
 }

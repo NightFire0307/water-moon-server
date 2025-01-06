@@ -21,7 +21,7 @@ import { UpdateProductTypeDto } from './dto/update-productType.dto';
 
 @Controller('admin/product')
 export class ProductController {
-  constructor(private readonly productService: ProductService) {}
+  constructor(private readonly productService: ProductService) { }
 
   @Get()
   @RequireLogin()
@@ -49,8 +49,11 @@ export class ProductController {
 
   @Get('/type')
   @RequireLogin()
-  async getProductTypes(@Pagination() pagination: PaginationQuery) {
-    return this.productService.getProductTypes(pagination);
+  async getProductTypes(
+    @Pagination() pagination: PaginationQuery,
+    @Query('name') name?: string,
+  ) {
+    return this.productService.getProductTypes(pagination, name);
   }
 
   @Get('/type/:id')

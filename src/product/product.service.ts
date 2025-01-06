@@ -96,8 +96,10 @@ export class ProductService {
     return '删除成功';
   }
 
-  async getProductTypes(pagination: PaginationQuery) {
+  async getProductTypes(pagination: PaginationQuery, name?: string) {
+    const whereCondition = name ? { name: Like(`%${name}%`) } : {};
     const [list, total] = await this.productTypeRepository.findAndCount({
+      where: whereCondition,
       skip: (pagination.current - 1) * pagination.pageSize,
       take: pagination.pageSize,
     });
