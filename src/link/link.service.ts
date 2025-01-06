@@ -59,8 +59,8 @@ export class LinkService {
         password: result.password,
       });
 
-      // 设置过期时间 7 天
-      await this.redisClient.expire(key, 60 * 60 * 24 * 7);
+      // 设置过期时间 10 秒
+      await this.redisClient.expire(key, 10);
     } catch (e) {
       console.log('Redis Error: ', e);
     }

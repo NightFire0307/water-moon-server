@@ -25,7 +25,8 @@ import { Photo } from './photo/entities/photo.entity';
 import { OrderProduct } from './order/entities/orderProduct.entity';
 import { LinkModule } from './link/link.module';
 import { Link } from './link/entities/link.entity';
-import { createClient } from "redis";
+import { createClient } from 'redis';
+import { RedisListenerService } from './common/redis-listener.service';
 
 @Module({
   imports: [
@@ -105,14 +106,29 @@ import { createClient } from "redis";
           socket: {
             host: 'localhost',
             port: 6379,
-          }
-        })
+          },
+        });
 
-        await client.connect()
-        return client
-      }
-    }
+        await client.connect();
+        return client;
+      },
+    },
+    {
+      provide: 'REDIS_LISTENER',
+      async useFactory() {
+        const client = createClient({
+          socket: {
+            host: 'localhost',
+            port: 6379,
+          },
+        });
+
+        await client.connect();
+        return client;
+      },
+    },
+    RedisListenerService,
   ],
-  exports: ['REDIS_CLIENT']
+  exports: ['REDIS_CLIENT'],
 })
 export class AppModule {}
