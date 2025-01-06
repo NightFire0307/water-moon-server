@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { CreateLinkDto } from './dto/create-link.dto';
 import basex from 'base-x';
 import { Link, LinkStatus } from './entities/link.entity';
@@ -8,12 +8,16 @@ import { Order } from '../order/entities/order.entity';
 import { DatabaseException } from '../common/database-exception.filter';
 import { generatePassword } from '../utils/generatePassword';
 import { PaginationQuery } from '../common/custom.decorator';
+import { RedisClientType } from 'redis';
 
 const BASE60 = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz_-';
 const bs60 = basex(BASE60);
 
 @Injectable()
 export class LinkService {
+  @Inject('REDIS_CLIENT')
+  private redisClient: RedisClientType;
+
   @InjectRepository(Link)
   private linkRepository: Repository<Link>;
 
@@ -45,7 +49,22 @@ export class LinkService {
     link.status = LinkStatus.ACTIVE;
     link.created_by = 1;
 
-    return await this.linkRepository.save(link);
+    const result = await this.linkRepository.save(link);
+
+    // 保存到 redis
+    const key = `order:${result.order.id}:link:${result.id}`;
+    try {
+      await this.redisClient.hSet(key, {
+        short_url: result.short_url,
+        password: result.password,
+      });
+
+      // 设置过期时间 7 天
+      await this.redisClient.expire(key, 60 * 60 * 24 * 7);
+    } catch (e) {
+      console.log('Redis Error: ', e);
+    }
+    return result;
   }
 
   async findAll(pagination: PaginationQuery) {
