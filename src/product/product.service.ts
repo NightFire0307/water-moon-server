@@ -18,9 +18,17 @@ export class ProductService {
   @InjectRepository(Product)
   private readonly productRepository: Repository<Product>;
 
-  async getProducts(pagination: PaginationQuery, name?: string) {
+  async getProducts(
+    pagination: PaginationQuery,
+    name?: string,
+    productTypeId?: string,
+  ) {
+    const whereCondition: any = {};
+    if (name) whereCondition.name = Like(`%${name}%`);
+    if (productTypeId) whereCondition.type = { id: productTypeId };
+
     const [list, total] = await this.productRepository.findAndCount({
-      where: name ? { name: Like(`%${name}%`) } : {},
+      where: whereCondition,
       skip: (pagination.current - 1) * pagination.pageSize,
       take: pagination.pageSize,
       relations: ['type'],
