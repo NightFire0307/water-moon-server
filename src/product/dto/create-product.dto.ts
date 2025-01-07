@@ -11,5 +11,5 @@ export class CreateProductDto {
     message: '产品类型不能为空',
   })
   @IsNumber()
-  type: number;
+  productTypeId: number;
 }

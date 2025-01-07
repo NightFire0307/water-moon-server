@@ -23,6 +23,7 @@ export class ProductService {
       where: name ? { name: Like(`%${name}%`) } : {},
       skip: (pagination.current - 1) * pagination.pageSize,
       take: pagination.pageSize,
+      relations: ['type'],
     });
 
     return {
@@ -49,7 +50,7 @@ export class ProductService {
     product.name = createProductDto.name;
     product.type = await this.productTypeRepository.findOne({
       where: {
-        id: createProductDto.type,
+        id: createProductDto.productTypeId,
       },
     });
 
@@ -69,7 +70,7 @@ export class ProductService {
     product.name = updateProductDto.name;
     product.type = await this.productTypeRepository.findOne({
       where: {
-        id: updateProductDto.type,
+        id: updateProductDto.productTypeId,
       },
     });
 
