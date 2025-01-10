@@ -1,8 +1,10 @@
 import {
   IsArray,
   IsBoolean,
+  IsInt,
   IsNotEmpty,
   IsNumber,
+  IsOptional,
   MinLength,
 } from 'class-validator';
 
@@ -45,6 +47,9 @@ export class CreateOrderDto {
   @IsArray()
   order_products: OrderProductDto[];
 
+  @IsBoolean()
+  is_extra_allowed: boolean;
+
   @IsNotEmpty({
     message: '最大可选照片总数不能为空',
   })
@@ -56,14 +61,7 @@ export class CreateOrderDto {
   )
   max_select_photos: number;
 
-  @IsNumber(
-    {},
-    {
-      message: '超出照片的单张价格必须是数字',
-    },
-  )
-  extra_photo_price: number;
-
-  access_link: string;
-  access_password: string;
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @IsOptional()
+  extra_photo_price?: number;
 }

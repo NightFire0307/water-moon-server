@@ -45,16 +45,19 @@ export class Order {
   @Column({ default: 0 })
   total_photos: number; // 总照片数
 
+  @Column({ type: 'boolean' })
+  is_extra_allowed: boolean; // 是否允许超出照片数
+
   @Column({ default: 0 })
   max_select_photos: number; // 最多可选照片数
 
   @Column({ default: 0 })
   extra_photo_price: number; // 超出照片的单张价格
 
-  @Column()
+  @Column({ default: '' })
   access_link: string;
 
-  @Column()
+  @Column({ default: '' })
   access_password: string;
 
   @Column({ type: 'int', default: 0 })
