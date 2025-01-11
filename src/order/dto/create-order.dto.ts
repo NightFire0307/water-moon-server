@@ -47,9 +47,6 @@ export class CreateOrderDto {
   @IsArray()
   order_products: OrderProductDto[];
 
-  @IsBoolean()
-  is_extra_allowed: boolean;
-
   @IsNotEmpty({
     message: '最大可选照片总数不能为空',
   })

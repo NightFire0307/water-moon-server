@@ -78,7 +78,6 @@ export class OrderService {
       order_products,
       max_select_photos,
       extra_photo_price,
-      is_extra_allowed,
     } = createOrderDto;
 
     const queryRunner =
@@ -104,7 +103,6 @@ export class OrderService {
         customer_phone,
         max_select_photos,
         extra_photo_price,
-        is_extra_allowed,
       });
       await queryRunner.manager.save(order);
 
