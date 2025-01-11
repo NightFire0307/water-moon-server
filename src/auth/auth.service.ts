@@ -15,6 +15,7 @@ import { ConfigService } from '@nestjs/config';
 import { LoginUserDto } from './dto/login-user.dto';
 import { LoginUserVo } from './vo/login-user.vo';
 import { JwtService } from '@nestjs/jwt';
+import * as qiniu from 'qiniu';
 
 @Injectable()
 export class AuthService {
@@ -206,5 +207,23 @@ export class AuthService {
     } catch {
       throw new UnauthorizedException('Token 已失效');
     }
+  }
+
+  async getOssToken() {
+    const accessKey = this.configService.get('oss_access_key');
+    const secretKey = this.configService.get('oss_secret_key');
+    const options = {
+      scope: this.configService.get('oss_bucket'),
+      expires: this.configService.get('oss_token_expire_time'),
+      returnBody:
+        '{"key": $(key), "hash": $(etag), "bucket": $(bucket), "fsize": $(fsize)}, "name": $(x:name)}',
+    };
+
+    const mac = new qiniu.auth.digest.Mac(accessKey, secretKey);
+    const putPolicy = new qiniu.rs.PutPolicy(options);
+    const uploadToken = putPolicy.uploadToken(mac);
+    return {
+      uploadToken,
+    };
   }
 }

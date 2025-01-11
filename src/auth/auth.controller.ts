@@ -67,6 +67,12 @@ export class AuthController {
     return { data, message: '刷新成功' };
   }
 
+  @Get('admin/oss-token')
+  @RequireLogin()
+  async getOssToken() {
+    return await this.userService.getOssToken();
+  }
+
   @Get('init-db')
   async initDb() {
     await this.userService.initDb();
