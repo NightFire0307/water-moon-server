@@ -212,9 +212,11 @@ export class AuthService {
   async getOssToken() {
     const accessKey = this.configService.get('oss_access_key');
     const secretKey = this.configService.get('oss_secret_key');
+    const scope = this.configService.get('oss_bucket');
+    const expires = Number(this.configService.get('oss_token_expire_time'));
     const options = {
-      scope: this.configService.get('oss_bucket'),
-      expires: this.configService.get('oss_token_expire_time'),
+      scope: `${scope}`,
+      expires,
       returnBody:
         '{"key": $(key), "hash": $(etag), "bucket": $(bucket), "fsize": $(fsize)}, "name": $(x:name)}',
     };
