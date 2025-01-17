@@ -70,7 +70,7 @@ export class AuthController {
   @Get('admin/oss-token')
   @RequireLogin()
   async getOssToken() {
-    return await this.userService.getOssToken();
+    return await this.userService.getMinioToken();
   }
 
   @Get('init-db')

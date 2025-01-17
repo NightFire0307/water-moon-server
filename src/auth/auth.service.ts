@@ -16,6 +16,7 @@ import { LoginUserDto } from './dto/login-user.dto';
 import { LoginUserVo } from './vo/login-user.vo';
 import { JwtService } from '@nestjs/jwt';
 import * as qiniu from 'qiniu';
+import * as Minio from 'minio';
 
 @Injectable()
 export class AuthService {
@@ -24,6 +25,9 @@ export class AuthService {
 
   @Inject(JwtService)
   private jwtService: JwtService;
+
+  @Inject('MINIO_CLIENT')
+  private minioClient: Minio.Client;
 
   @InjectRepository(User)
   private userRepository: Repository<User>;
@@ -226,6 +230,18 @@ export class AuthService {
     const uploadToken = putPolicy.uploadToken(mac);
     return {
       uploadToken,
+    };
+  }
+
+  async getMinioToken() {
+    const bucketName = 'water-moon';
+    const policy = this.minioClient.newPostPolicy();
+    policy.setBucket(bucketName);
+    const { postURL, formData } =
+      await this.minioClient.presignedPostPolicy(policy);
+    return {
+      postURL,
+      formData,
     };
   }
 }
