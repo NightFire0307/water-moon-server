@@ -17,6 +17,7 @@ import { LoginUserVo } from './vo/login-user.vo';
 import { JwtService } from '@nestjs/jwt';
 import * as qiniu from 'qiniu';
 import * as Minio from 'minio';
+import { FileArrayDto } from './dto/mino-file-array';
 
 @Injectable()
 export class AuthService {
@@ -233,15 +234,19 @@ export class AuthService {
     };
   }
 
-  async getMinioToken() {
+  async getMinioToken(uid: string, name: string, order_number: string) {
     const bucketName = 'water-moon';
-    const policy = this.minioClient.newPostPolicy();
-    policy.setBucket(bucketName);
-    const { postURL, formData } =
-      await this.minioClient.presignedPostPolicy(policy);
+    const expiresIn = 60 * 60;
+
+    const fileKey = `${order_number}/${name}-${uid}`;
+    const presignedUrl = await this.minioClient.presignedPutObject(
+      bucketName,
+      fileKey,
+      expiresIn,
+    );
+
     return {
-      postURL,
-      formData,
+      presignedUrl,
     };
   }
 }

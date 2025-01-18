@@ -12,6 +12,7 @@ import { LoginUserDto } from './dto/login-user.dto';
 import { JwtService } from '@nestjs/jwt';
 import { RequireLogin, RequirePermission } from '../common/custom.decorator';
 import { UnloginException } from '../unlogin.filter';
+import { FileArrayDto } from './dto/mino-file-array';
 
 interface RefreshTokenPayload {
   userId: number;
@@ -69,8 +70,12 @@ export class AuthController {
 
   @Get('admin/oss-token')
   @RequireLogin()
-  async getOssToken() {
-    return await this.userService.getMinioToken();
+  async getOssToken(
+    @Query('uid') uid: string,
+    @Query('name') name: string,
+    @Query('order_number') order_number: string,
+  ) {
+    return await this.userService.getMinioToken(uid, name, order_number);
   }
 
   @Get('init-db')
