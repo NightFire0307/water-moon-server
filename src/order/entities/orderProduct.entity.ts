@@ -1,15 +1,18 @@
 import { Entity, PrimaryGeneratedColumn, ManyToOne, Column } from 'typeorm';
 import { Product } from '../../product/entities/product.entity';
 import { Order } from './order.entity';
+import { Exclude } from 'class-transformer';
 
 @Entity('order_products')
 export class OrderProduct {
   @PrimaryGeneratedColumn()
+  @Exclude()
   id: number;
 
   @ManyToOne(() => Order, (order) => order.order_products, {
     onDelete: 'CASCADE',
   })
+  @Exclude()
   order: Order;
 
   @ManyToOne(() => Product, (product) => product.order_products, {

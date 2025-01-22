@@ -10,8 +10,8 @@ import { generatePassword } from '../utils/generatePassword';
 import { PaginationQuery } from '../common/custom.decorator';
 import { RedisClientType } from 'redis';
 
-const BASE60 = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz_-';
-const bs60 = basex(BASE60);
+const BASE62 = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+const bs62 = basex(BASE62);
 
 @Injectable()
 export class LinkService {
@@ -24,46 +24,43 @@ export class LinkService {
   @InjectRepository(Order)
   private orderRepository: Repository<Order>;
 
-  async create(createLinkDto: CreateLinkDto) {
-    const { order_id, expires_at } = createLinkDto;
-    const order = await this.orderRepository.findOne({
-      where: { id: order_id },
-    });
+  async generateShareUrl(createLinkDto: CreateLinkDto) {
+    const { password, expired_at, order_id } = createLinkDto;
+    const order = await this.orderRepository.findOneBy({ id: order_id });
+    if (!order) throw new DatabaseException('订单不存在');
 
-    if (!order) throw new DatabaseException('数据不存在');
-
-    const { customer_phone } = order;
     const cur_time = new Date().getTime();
-    const buffer = Buffer.from(
-      `${order_id}_${customer_phone}_${cur_time}`,
-      'utf-8',
-    );
-    const short_url = bs60.encode(buffer);
+    const buffer = Buffer.from(`${order.id}_${cur_time}`, 'utf-8');
+    const short_url = bs62.encode(buffer);
 
     const link = new Link();
-
     link.order = order;
     link.short_url = short_url;
-    link.expires_at = new Date(expires_at);
-    link.password = generatePassword(4);
+    link.password = password ? password : generatePassword(4);
     link.status = LinkStatus.ACTIVE;
+    // 传递过来的时间戳是秒所以需要乘以1000
+    link.expired_at = expired_at !== 0 ? new Date(expired_at * 1000) : null;
     link.created_by = 1;
 
     const result = await this.linkRepository.save(link);
 
-    // 保存到 redis
-    const key = `order:${result.order.id}:link:${result.id}`;
+    // 计算redis过期时间(秒)
+    const expired_in_sec = expired_at - Math.floor(new Date().getTime() / 1000);
+
+    const key = `order:${result.order.id}:links`;
     try {
       await this.redisClient.hSet(key, {
-        short_url: result.short_url,
-        password: result.password,
+        [result.short_url]: result.password,
       });
 
-      // 设置过期时间 10 秒
-      await this.redisClient.expire(key, 10);
+      if (expired_at > 0) {
+        // 设置过期时间
+        await this.redisClient.expire(key, expired_in_sec);
+      }
     } catch (e) {
       console.log('Redis Error: ', e);
     }
+
     return result;
   }
 

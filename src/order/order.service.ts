@@ -8,6 +8,7 @@ import { PaginationQuery } from '../common/custom.decorator';
 import { OrderProduct } from './entities/orderProduct.entity';
 import { DatabaseException } from '../common/database-exception.filter';
 import { UpdateOrderDto } from './dto/update-order.dto';
+import { classToPlain, instanceToPlain } from 'class-transformer';
 
 interface OrderProductCount {
   orderId: number;
@@ -137,7 +138,10 @@ export class OrderService {
 
       await queryRunner.commitTransaction();
 
-      return '订单创建成功';
+      return {
+        ...order,
+        order_products: instanceToPlain(order_products_data),
+      };
     } catch (e) {
       await queryRunner.rollbackTransaction();
       throw new DatabaseException(e);

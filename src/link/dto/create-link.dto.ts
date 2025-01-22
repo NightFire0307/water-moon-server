@@ -1,9 +1,13 @@
-import { IsNotEmpty } from 'class-validator';
+import { IsNotEmpty, IsOptional, Length } from 'class-validator';
 
 export class CreateLinkDto {
   @IsNotEmpty()
   order_id: number;
 
-  @IsNotEmpty({ message: '过期时间不能为空' })
-  expires_at: number;
+  @IsOptional()
+  @Length(6, 6)
+  password: string;
+
+  @IsNotEmpty()
+  expired_at: number;
 }

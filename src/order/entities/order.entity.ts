@@ -9,7 +9,8 @@ import {
 } from 'typeorm';
 import { Photo } from '../../photo/entities/photo.entity';
 import { OrderProduct } from './orderProduct.entity';
-import { Link } from '../../link/entities/link.entity'; // 引用照片集实体
+import { Link } from '../../link/entities/link.entity';
+import { Exclude } from 'class-transformer'; // 引用照片集实体
 
 export enum OrderStatus {
   // 未开始、进行中、已提交、已过期
@@ -42,20 +43,17 @@ export class Order {
   })
   order_products: OrderProduct[];
 
-  @Column({ default: 0 })
+  @Column({ type: 'int', default: 0 })
+  select_photos: number; // 已选照片数
+
+  @Column({ type: 'int', default: 0 })
   total_photos: number; // 总照片数
 
-  @Column({ default: 0 })
+  @Column({ type: 'int', default: 0 })
   max_select_photos: number; // 最多可选照片数
 
-  @Column({ default: 0 })
+  @Column({ type: 'float', default: 0 })
   extra_photo_price: number; // 超出照片的单张价格
-
-  @Column({ default: '' })
-  access_link: string;
-
-  @Column({ default: '' })
-  access_password: string;
 
   @Column({ type: 'int', default: 0 })
   status: string; // 订单状态，如：未开始、进行中、已完成

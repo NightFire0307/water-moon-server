@@ -18,8 +18,8 @@ export class LinkController {
 
   @Post()
   @UseInterceptors(ClassSerializerInterceptor)
-  create(@Body() createLinkDto: CreateLinkDto) {
-    return this.linkService.create(createLinkDto);
+  generateShareUrl(@Body() createLinkDto: CreateLinkDto) {
+    return this.linkService.generateShareUrl(createLinkDto);
   }
 
   @Get()

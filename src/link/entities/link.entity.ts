@@ -20,7 +20,9 @@ export class Link {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column()
+  @Column({
+    unique: true,
+  })
   short_url: string;
 
   // 动态链接密码
@@ -40,8 +42,9 @@ export class Link {
 
   @Column({
     type: 'timestamp',
+    nullable: true,
   })
-  expires_at: Date;
+  expired_at: Date;
 
   @CreateDateColumn()
   created_at: Date;
