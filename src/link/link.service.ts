@@ -5,7 +5,10 @@ import { Link, LinkStatus } from './entities/link.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Order } from '../order/entities/order.entity';
-import { DatabaseException } from '../common/database-exception.filter';
+import {
+  DatabaseErrorType,
+  DatabaseException,
+} from '../common/database-exception.filter';
 import { generatePassword } from '../utils/generatePassword';
 import { PaginationQuery } from '../common/custom.decorator';
 import { RedisClientType } from 'redis';
@@ -27,7 +30,11 @@ export class LinkService {
   async generateShareUrl(createLinkDto: CreateLinkDto) {
     const { password, expired_at, order_id } = createLinkDto;
     const order = await this.orderRepository.findOneBy({ id: order_id });
-    if (!order) throw new DatabaseException('订单不存在');
+    if (!order)
+      throw new DatabaseException(
+        DatabaseErrorType.DATA_NOT_FOUND,
+        '订单不存在',
+      );
 
     const cur_time = new Date().getTime();
     const buffer = Buffer.from(`${order.id}_${cur_time}`, 'utf-8');
@@ -81,7 +88,11 @@ export class LinkService {
   async remove(id: number) {
     const link = await this.linkRepository.findOneBy({ id });
 
-    if (!link) throw new DatabaseException('数据不存在');
+    if (!link)
+      throw new DatabaseException(
+        DatabaseErrorType.DATA_NOT_FOUND,
+        '数据不存在',
+      );
     await this.linkRepository.remove(link);
 
     return `This action removes a #${id} link`;

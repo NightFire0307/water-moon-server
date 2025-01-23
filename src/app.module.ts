@@ -27,6 +27,7 @@ import { LinkModule } from './link/link.module';
 import { Link } from './link/entities/link.entity';
 import { createClient } from 'redis';
 import { RedisListenerService } from './common/redis-listener.service';
+import { MinioInitService } from './common/minio-init.service';
 
 @Module({
   imports: [
@@ -128,6 +129,7 @@ import { RedisListenerService } from './common/redis-listener.service';
       },
     },
     RedisListenerService,
+    MinioInitService,
   ],
   exports: ['REDIS_CLIENT'],
 })

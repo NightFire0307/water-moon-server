@@ -27,5 +27,6 @@ import { ConfigService } from '@nestjs/config';
       inject: [ConfigService],
     },
   ],
+  exports: ['MINIO_CLIENT'],
 })
 export class AuthModule {}

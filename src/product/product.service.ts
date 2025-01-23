@@ -8,7 +8,10 @@ import { CreateProductDto } from './dto/create-product.dto';
 import { CreateProductTypeDto } from './dto/create-productType.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { UpdateProductTypeDto } from './dto/update-productType.dto';
-import { DatabaseException } from '../common/database-exception.filter';
+import {
+  DatabaseErrorType,
+  DatabaseException,
+} from '../common/database-exception.filter';
 
 @Injectable()
 export class ProductService {
@@ -88,7 +91,7 @@ export class ProductService {
       await this.productRepository.save(product);
       return '修改成功';
     } catch (e) {
-      throw new DatabaseException(e);
+      throw new DatabaseException(DatabaseErrorType.DEFAULT, e);
     }
   }
 
@@ -99,7 +102,11 @@ export class ProductService {
       },
     });
 
-    if (!product) throw new DatabaseException('数据不存在');
+    if (!product)
+      throw new DatabaseException(
+        DatabaseErrorType.DATA_NOT_FOUND,
+        '数据不存在',
+      );
 
     await this.productRepository.remove(product);
     return '删除成功';
@@ -136,7 +143,11 @@ export class ProductService {
       name: createProductTypeDto.name,
     });
 
-    if (foundProductType) throw new DatabaseException('数据已存在');
+    if (foundProductType)
+      throw new DatabaseException(
+        DatabaseErrorType.DATA_ALREADY_EXISTS,
+        '数据已存在',
+      );
 
     try {
       const productType = new ProductType();
@@ -155,14 +166,18 @@ export class ProductService {
       },
     });
 
-    if (!productType) throw new DatabaseException('数据不存在');
+    if (!productType)
+      throw new DatabaseException(
+        DatabaseErrorType.DATA_NOT_FOUND,
+        '数据不存在',
+      );
 
     productType.name = updateProductType.name;
     try {
       const data = await this.productTypeRepository.save(productType);
       return { data, message: '修改成功' };
     } catch (e) {
-      throw new DatabaseException(e);
+      throw new DatabaseException(DatabaseErrorType.DEFAULT, e);
     }
   }
 
@@ -173,7 +188,11 @@ export class ProductService {
       },
     });
 
-    if (!productType) throw new DatabaseException('数据不存在');
+    if (!productType)
+      throw new DatabaseException(
+        DatabaseErrorType.DATA_NOT_FOUND,
+        '数据不存在',
+      );
 
     await this.productTypeRepository.remove(productType);
     return '删除成功';

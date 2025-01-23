@@ -17,7 +17,6 @@ import { LoginUserVo } from './vo/login-user.vo';
 import { JwtService } from '@nestjs/jwt';
 import * as qiniu from 'qiniu';
 import * as Minio from 'minio';
-import { FileArrayDto } from './dto/mino-file-array';
 
 @Injectable()
 export class AuthService {

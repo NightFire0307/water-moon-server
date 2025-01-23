@@ -4,7 +4,10 @@ import { Photo } from './entities/photo.entity';
 import { In, Repository } from 'typeorm';
 import { CreatePhotosDto } from './dto/create-photos.dto';
 import { Order } from '../order/entities/order.entity';
-import { DatabaseException } from '../common/database-exception.filter';
+import {
+  DatabaseErrorType,
+  DatabaseException,
+} from '../common/database-exception.filter';
 import { PaginationQuery } from '../common/custom.decorator';
 import { DeletePhotosDto } from './dto/delete-photos.dto';
 import { UpdatePhotoRecommendDto } from './dto/update-photo-recommend.dto';
@@ -82,7 +85,7 @@ export class PhotoService {
         );
       }
     } catch (e) {
-      throw new DatabaseException(e);
+      throw new DatabaseException(DatabaseErrorType.DEFAULT, e);
     }
 
     return { message: '删除照片成功', data: [] };
@@ -106,7 +109,7 @@ export class PhotoService {
       }
     } catch (e) {
       console.log(e);
-      throw new DatabaseException(e);
+      throw new DatabaseException(DatabaseErrorType.DEFAULT, e);
     }
   }
 }
