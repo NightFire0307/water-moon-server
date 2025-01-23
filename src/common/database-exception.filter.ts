@@ -6,11 +6,19 @@ import {
 } from '@nestjs/common';
 import { Response } from 'express';
 
-export class DatabaseException {
-  message: string;
+export enum DatabaseErrorType {
+  DATA_ALREADY_EXISTS = 'DATA_ALREADY_EXISTS',
+  DATA_NOT_FOUND = 'DATA_NOT_FOUND',
+  DEFAULT = 'DEFAULT',
+}
 
-  constructor(message: string) {
-    this.message = message;
+export class DatabaseException extends Error {
+  constructor(
+    public type: DatabaseErrorType,
+    message: string,
+  ) {
+    super(message);
+    this.name = 'DatabaseException';
   }
 }
 
@@ -19,21 +27,21 @@ export class DatabaseExceptionFilter implements ExceptionFilter {
   catch(exception: DatabaseException, host: ArgumentsHost) {
     const response: Response = host.switchToHttp().getResponse();
 
-    // console.error(exception.message);
+    // console.error(exception);
 
-    switch (exception.message) {
-      case '数据已存在':
+    switch (exception.type) {
+      case DatabaseErrorType.DATA_ALREADY_EXISTS:
         return response.json({
           code: HttpStatus.CONFLICT,
           msg: exception.message,
-          data: '',
+          data: '数据库操作失败',
         });
 
-      case '数据不存在':
+      case DatabaseErrorType.DATA_NOT_FOUND:
         return response.json({
           code: HttpStatus.NOT_FOUND,
           msg: exception.message,
-          data: '',
+          data: '数据库操作失败',
         });
 
       default:
