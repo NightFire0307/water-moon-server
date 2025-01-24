@@ -68,7 +68,11 @@ export class LinkService {
       console.log('Redis Error: ', e);
     }
 
-    return result;
+    return {
+      ...result,
+      share_url: result.short_url,
+      share_password: result.password,
+    };
   }
 
   async findAll(pagination: PaginationQuery) {
