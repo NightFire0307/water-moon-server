@@ -65,6 +65,7 @@ export class Order {
   links: Link[];
 
   @Column({ type: 'boolean', default: false })
+  @Exclude()
   is_deleted: boolean; // 是否已删除
 
   @CreateDateColumn()

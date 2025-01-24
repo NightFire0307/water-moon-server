@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Body,
+  ClassSerializerInterceptor,
   Controller,
   Delete,
   Get,
@@ -8,6 +9,7 @@ import {
   Post,
   Put,
   Query,
+  UseInterceptors,
   ValidationPipe,
 } from '@nestjs/common';
 import { OrderService } from './order.service';
@@ -38,6 +40,7 @@ export class OrderController {
 
   @Get(':id')
   @RequireLogin()
+  @UseInterceptors(ClassSerializerInterceptor)
   async getOrderDetail(@Param('id') id: string) {
     if (Number.isNaN(+id)) {
       throw new BadRequestException('Id必须是一个数字');

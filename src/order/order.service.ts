@@ -103,7 +103,7 @@ export class OrderService {
       where: {
         id,
       },
-      relations: ['order_products'],
+      relations: ['order_products', 'links'],
     });
   }
 
