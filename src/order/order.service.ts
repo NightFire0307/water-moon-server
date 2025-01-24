@@ -12,6 +12,7 @@ import {
 } from '../common/database-exception.filter';
 import { UpdateOrderDto } from './dto/update-order.dto';
 import { instanceToPlain } from 'class-transformer';
+import { GetOrderListDto } from './dto/get-order-list.dto';
 
 interface OrderProductCount {
   orderId: number;
@@ -30,11 +31,24 @@ export class OrderService {
   @InjectRepository(Product)
   private productRepository: Repository<Product>;
 
-  async getOrderList(pagination: PaginationQuery, is_admin: boolean = false) {
+  async getOrderList(
+    query: GetOrderListDto,
+    pagination: PaginationQuery,
+    is_admin: boolean = false,
+  ) {
+    const { order_number, customer_name, customer_phone, status } = query;
+
+    // 构建查询条件或调用数据库查询逻辑
+    const where: any = {};
+    if (order_number) where.order_number = order_number;
+    if (customer_name) where.customer_name = customer_name;
+    if (customer_phone) where.customer_phone = customer_phone;
+    if (status) where.status = status;
+
+    if (!is_admin) where.is_deleted = false;
+
     const [orders, total] = await this.orderRepository.findAndCount({
-      where: {
-        is_deleted: is_admin,
-      },
+      where,
       take: pagination.pageSize,
       skip: (pagination.current - 1) * pagination.pageSize,
     });

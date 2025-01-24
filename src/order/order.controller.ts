@@ -7,6 +7,7 @@ import {
   Param,
   Post,
   Put,
+  Query,
   ValidationPipe,
 } from '@nestjs/common';
 import { OrderService } from './order.service';
@@ -18,6 +19,7 @@ import {
 } from '../common/custom.decorator';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
+import { GetOrderListDto } from './dto/get-order-list.dto';
 
 @Controller('admin/orders')
 export class OrderController {
@@ -26,10 +28,12 @@ export class OrderController {
   @Get()
   @RequireLogin()
   async getOrderList(
+    @Query() query: GetOrderListDto,
     @Pagination() pagination: PaginationQuery,
     @UserInfo('is_admin') is_admin: boolean,
   ) {
-    return await this.orderService.getOrderList(pagination, is_admin);
+    console.log(query);
+    return await this.orderService.getOrderList(query, pagination, is_admin);
   }
 
   @Get(':id')
