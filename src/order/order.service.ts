@@ -99,12 +99,13 @@ export class OrderService {
   }
 
   async getOrderDetail(id: number) {
-    return await this.orderRepository.findOne({
-      where: {
-        id,
-      },
-      relations: ['order_products', 'links'],
-    });
+    return await this.orderRepository
+      .createQueryBuilder('order')
+      .where('order.id = :orderId', { orderId: id })
+      .leftJoinAndSelect('order.order_products', 'order_products')
+      .leftJoinAndSelect('order_products.product', 'product')
+      .leftJoinAndSelect('order.links', 'links')
+      .getOne();
   }
 
   async createOrder(createOrderDto: CreateOrderDto) {
