@@ -10,6 +10,7 @@ export enum DatabaseErrorType {
   DATA_ALREADY_EXISTS = 'DATA_ALREADY_EXISTS',
   DATA_NOT_FOUND = 'DATA_NOT_FOUND',
   DEFAULT = 'DEFAULT',
+  DATA_INVALID = 'DATA_INVALID',
 }
 
 export class DatabaseException extends Error {

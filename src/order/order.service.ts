@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Order } from './entities/order.entity';
@@ -13,6 +13,7 @@ import {
 import { UpdateOrderDto } from './dto/update-order.dto';
 import { instanceToPlain } from 'class-transformer';
 import { GetOrderListDto } from './dto/get-order-list.dto';
+import { RedisClientType } from 'redis';
 
 interface OrderProductCount {
   orderId: number;
@@ -21,7 +22,7 @@ interface OrderProductCount {
 }
 
 @Injectable()
-export class OrderService {
+export class OrderService implements OnModuleInit {
   @InjectRepository(Order)
   private orderRepository: Repository<Order>;
 
@@ -30,6 +31,22 @@ export class OrderService {
 
   @InjectRepository(Product)
   private productRepository: Repository<Product>;
+
+  @Inject('REDIS_CLIENT')
+  private redisClient: RedisClientType;
+
+  onModuleInit() {
+    this.processQueue();
+  }
+
+  async processQueue() {
+    while (true) {
+      const task = await this.redisClient.brPop('photo:queue', 0);
+      const { orderId, photoCount, operation } = JSON.parse(task.element);
+
+      await this.updateOrderPhotoCount(orderId, photoCount, operation);
+    }
+  }
 
   async getOrderList(
     query: GetOrderListDto,
@@ -261,5 +278,28 @@ export class OrderService {
     await this.orderRepository.update({ id }, { is_deleted: true });
 
     return '订单删除成功';
+  }
+
+  async updateOrderPhotoCount(
+    orderId: number,
+    photoCount: number,
+    operation: 'add' | 'subtract',
+  ) {
+    const order = await this.orderRepository.findOneBy({ id: orderId });
+
+    if (!order)
+      throw new DatabaseException(
+        DatabaseErrorType.DATA_NOT_FOUND,
+        '订单不存在',
+      );
+
+    if (operation === 'add') order.total_photos += photoCount;
+    else if (operation === 'subtract') {
+      if (order.total_photos < photoCount) {
+        order.total_photos = 0;
+      }
+      order.total_photos -= photoCount;
+    }
+    await this.orderRepository.save(order);
   }
 }
