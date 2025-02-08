@@ -10,9 +10,8 @@ import {
 import { AuthService } from './auth.service';
 import { LoginUserDto } from './dto/login-user.dto';
 import { JwtService } from '@nestjs/jwt';
-import { RequireLogin, RequirePermission } from '../common/custom.decorator';
+import { RequireLogin } from '../common/custom.decorator';
 import { UnloginException } from '../unlogin.filter';
-import { FileArrayDto } from './dto/mino-file-array';
 
 interface RefreshTokenPayload {
   userId: number;
@@ -23,10 +22,10 @@ interface RefreshTokenPayload {
 @Controller('auth')
 export class AuthController {
   @Inject(AuthService)
-  private userService: AuthService;
+  private readonly userService: AuthService;
 
   @Inject(JwtService)
-  private jwtService: JwtService;
+  private readonly jwtService: JwtService;
 
   @Post('login')
   async userLogin(@Body() loginUser: LoginUserDto) {

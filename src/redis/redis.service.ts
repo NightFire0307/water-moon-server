@@ -14,10 +14,10 @@ import { Cron } from '@nestjs/schedule';
 @Injectable()
 export class RedisService implements OnModuleInit, OnModuleDestroy {
   @Inject('REDIS_CLIENT')
-  private redisClient: Redis;
+  private readonly redisClient: Redis;
 
   @Inject('SUBSCRIBER_CLIENT')
-  private subscriber: Redis;
+  private readonly subscriber: Redis;
 
   async onModuleInit() {
     // 配置键空间通知（如果 Redis 已启用该设置）
@@ -93,9 +93,9 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   @Cron('*/30 * * * *')
   async autoCleanShareLink() {
     const keys = await this.redisClient.keys('share_expires:*');
+    console.log('清理过期链接');
     for (const orderKey of keys) {
       const orderNumber = orderKey.split(':')[1];
-      console.log('清理订单号为', orderNumber, '的过期链接');
       await this.cleanExpiredShareLinks(orderNumber);
     }
   }

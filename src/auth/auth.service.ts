@@ -21,22 +21,22 @@ import * as Minio from 'minio';
 @Injectable()
 export class AuthService {
   @Inject(ConfigService)
-  private configService: ConfigService;
+  private readonly configService: ConfigService;
 
   @Inject(JwtService)
-  private jwtService: JwtService;
+  private readonly jwtService: JwtService;
 
   @Inject('MINIO_CLIENT')
-  private minioClient: Minio.Client;
+  private readonly minioClient: Minio.Client;
 
   @InjectRepository(User)
-  private userRepository: Repository<User>;
+  private readonly userRepository: Repository<User>;
 
   @InjectRepository(Role)
-  private roleRepository: Repository<Role>;
+  private readonly roleRepository: Repository<Role>;
 
   @InjectRepository(Permission)
-  private permissionRepository: Repository<Permission>;
+  private readonly permissionRepository: Repository<Permission>;
 
   async initDb() {
     const saltRounds: string = this.configService.get('hash_salt_rounds');
@@ -156,8 +156,6 @@ export class AuthService {
       {
         userId: vo.userinfo.id,
         username: vo.userinfo.username,
-        roles: vo.userinfo.roles,
-        permissions: vo.userinfo.permissions,
       },
       {
         expiresIn: this.configService.get('jwt_access_token_expires_time'),
@@ -190,8 +188,6 @@ export class AuthService {
         {
           userId: user.id,
           username: user.username,
-          roles: user.roles,
-          permissions: user.permissions,
         },
         {
           expiresIn: this.configService.get('jwt_access_token_expires_time'),

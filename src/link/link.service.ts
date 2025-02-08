@@ -11,7 +11,6 @@ import {
 } from '../common/database-exception.filter';
 import { generatePassword } from '../utils/generatePassword';
 import { PaginationQuery } from '../common/custom.decorator';
-import { Redis } from 'ioredis';
 import { RedisService } from '../redis/redis.service';
 
 const BASE62 = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
@@ -19,17 +18,14 @@ const bs62 = basex(BASE62);
 
 @Injectable()
 export class LinkService {
-  @Inject('REDIS_CLIENT')
-  private redisClient: Redis;
-
   @Inject(RedisService)
-  private redisService: RedisService;
+  private readonly redisService: RedisService;
 
   @InjectRepository(Link)
-  private linkRepository: Repository<Link>;
+  private readonly linkRepository: Repository<Link>;
 
   @InjectRepository(Order)
-  private orderRepository: Repository<Order>;
+  private readonly orderRepository: Repository<Order>;
 
   async generateShareUrl(createLinkDto: CreateLinkDto) {
     const { password, expired_at, order_id } = createLinkDto;
@@ -47,7 +43,7 @@ export class LinkService {
     const link = new Link();
     link.order = order;
     link.short_url = short_url;
-    link.password = password ? password : generatePassword(4);
+    link.password = password ?? generatePassword(4);
     link.status = LinkStatus.ACTIVE;
     // 传递过来的时间戳是秒所以需要乘以1000
     link.expired_at = expired_at !== 0 ? new Date(expired_at * 1000) : null;

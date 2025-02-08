@@ -18,19 +18,19 @@ import { Redis } from 'ioredis';
 @Injectable()
 export class PhotoService {
   @Inject(ConfigService)
-  private configService: ConfigService;
+  private readonly configService: ConfigService;
 
   @InjectRepository(Order)
-  private orderRepository: Repository<Order>;
+  private readonly orderRepository: Repository<Order>;
 
   @InjectRepository(Photo)
-  private photoRepository: Repository<Photo>;
+  private readonly photoRepository: Repository<Photo>;
 
   @Inject('MINIO_CLIENT')
   private readonly minioClient: Minio.Client;
 
   @Inject('REDIS_CLIENT')
-  private redisClient: Redis;
+  private readonly redisClient: Redis;
 
   // 获取订单信息
   async getOrderById(orderId: number) {
