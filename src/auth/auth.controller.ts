@@ -71,11 +71,10 @@ export class AuthController {
   @Get('admin/oss-token')
   @RequireLogin()
   async getOssToken(
-    @Query('uid') uid: string,
-    @Query('name') name: string,
-    @Query('order_number') order_number: string,
+    @Query('order_number') orderNumber: string,
+    @Query('file_name') fileName: string,
   ) {
-    return await this.userService.getMinioToken(uid, name, order_number);
+    return await this.userService.getMinioToken(orderNumber, fileName);
   }
 
   @Get('init-db')

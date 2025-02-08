@@ -233,19 +233,22 @@ export class AuthService {
     };
   }
 
-  async getMinioToken(uid: string, name: string, order_number: string) {
-    const bucketName = 'water-moon';
-    const expiresIn = 60 * 60;
+  async getMinioToken(orderNumber: string, fileName: string) {
+    const bucket = 'water-moon';
+    const expires = new Date();
+    expires.setSeconds(24 * 60 * 60);
 
-    const fileKey = `${order_number}/${name}-${uid}`;
-    const presignedUrl = await this.minioClient.presignedPutObject(
-      bucketName,
-      fileKey,
-      expiresIn,
-    );
+    const policy = this.minioClient.newPostPolicy();
+    policy.setKey(`${orderNumber}/${fileName}`);
+    policy.setBucket(bucket);
+    policy.setExpires(expires);
+
+    const { postURL, formData } =
+      await this.minioClient.presignedPostPolicy(policy);
 
     return {
-      presignedUrl,
+      postURL,
+      formData,
     };
   }
 }
