@@ -117,6 +117,12 @@ export class PhotoService {
     // 设置过期时间
     this.redisClient.expire(order.order_number, expires);
 
+    // Redis 照片计数
+    this.redisClient.incrby(
+      `photo_count:${order.order_number}`,
+      createPhotosDtoList.length,
+    );
+
     return redisData.map((item) => JSON.parse(item));
   }
 

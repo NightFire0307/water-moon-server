@@ -27,6 +27,7 @@ import { LinkModule } from './link/link.module';
 import { Link } from './link/entities/link.entity';
 import { MinioInitService } from './common/minio-init.service';
 import { RedisModule } from './redis/redis.module';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { RedisModule } from './redis/redis.module';
       isGlobal: true,
       envFilePath: ['src/.env.development'],
     }),
+    ScheduleModule.forRoot(),
     TypeOrmModule.forRootAsync({
       useFactory(configService: ConfigService) {
         return {
