@@ -1,4 +1,4 @@
-import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Order } from './entities/order.entity';
@@ -13,7 +13,6 @@ import {
 import { UpdateOrderDto } from './dto/update-order.dto';
 import { instanceToPlain } from 'class-transformer';
 import { GetOrderListDto } from './dto/get-order-list.dto';
-import { RedisClientType } from 'redis';
 
 interface OrderProductCount {
   orderId: number;
@@ -22,7 +21,7 @@ interface OrderProductCount {
 }
 
 @Injectable()
-export class OrderService implements OnModuleInit {
+export class OrderService {
   @InjectRepository(Order)
   private orderRepository: Repository<Order>;
 
@@ -31,22 +30,6 @@ export class OrderService implements OnModuleInit {
 
   @InjectRepository(Product)
   private productRepository: Repository<Product>;
-
-  @Inject('REDIS_CLIENT')
-  private redisClient: RedisClientType;
-
-  onModuleInit() {
-    this.processQueue();
-  }
-
-  async processQueue() {
-    while (true) {
-      const task = await this.redisClient.brPop('photo:queue', 0);
-      const { orderId, photoCount, operation } = JSON.parse(task.element);
-
-      await this.updateOrderPhotoCount(orderId, photoCount, operation);
-    }
-  }
 
   async getOrderList(
     query: GetOrderListDto,

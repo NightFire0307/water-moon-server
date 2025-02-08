@@ -11,7 +11,8 @@ import {
 } from '../common/database-exception.filter';
 import { generatePassword } from '../utils/generatePassword';
 import { PaginationQuery } from '../common/custom.decorator';
-import { RedisClientType } from 'redis';
+import { Redis } from 'ioredis';
+import { RedisService } from '../redis/redis.service';
 
 const BASE62 = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
 const bs62 = basex(BASE62);
@@ -19,7 +20,10 @@ const bs62 = basex(BASE62);
 @Injectable()
 export class LinkService {
   @Inject('REDIS_CLIENT')
-  private redisClient: RedisClientType;
+  private redisClient: Redis;
+
+  @Inject(RedisService)
+  private redisService: RedisService;
 
   @InjectRepository(Link)
   private linkRepository: Repository<Link>;
@@ -51,22 +55,12 @@ export class LinkService {
 
     const result = await this.linkRepository.save(link);
 
-    // 计算redis过期时间(秒)
-    const expired_in_sec = expired_at - Math.floor(new Date().getTime() / 1000);
-
-    const key = `order:${result.order.id}:links`;
-    try {
-      await this.redisClient.hSet(key, {
-        [result.short_url]: result.password,
-      });
-
-      if (expired_at > 0) {
-        // 设置过期时间
-        await this.redisClient.expire(key, expired_in_sec);
-      }
-    } catch (e) {
-      console.log('Redis Error: ', e);
-    }
+    await this.redisService.addShareLink(
+      order.order_number,
+      short_url,
+      link.password,
+      expired_at,
+    );
 
     return {
       ...result,
