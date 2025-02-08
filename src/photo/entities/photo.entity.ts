@@ -18,7 +18,10 @@ export class Photo {
   id: number;
 
   @Column()
-  oss_url: string; // 照片存储路径
+  name: string; // 照片名称
+
+  @Column()
+  oss_file_key: string;
 
   // 订单关联照片
   @ManyToOne(() => Order, (order) => order.photos)

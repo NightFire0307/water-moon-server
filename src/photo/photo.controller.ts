@@ -37,14 +37,14 @@ export class PhotoController {
 
   @Post(':orderId')
   @RequireLogin()
-  async createPhoto(
+  async savePhotoOssUrl(
     @Param('orderId') orderId: string,
-    @Body() createPhotosDto: CreatePhotosDto,
+    @Body() createPhotosDto: CreatePhotosDto[],
   ) {
     if (Number.isNaN(+orderId)) {
       throw new BadRequestException('订单ID必须是数字');
     }
-    return this.photoService.createPhoto(+orderId, createPhotosDto);
+    return this.photoService.savePhotoOssUrl(+orderId, createPhotosDto);
   }
 
   @Put('recommend')

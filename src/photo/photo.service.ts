@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Photo } from './entities/photo.entity';
 import { In, Repository } from 'typeorm';
@@ -11,14 +11,26 @@ import {
 import { PaginationQuery } from '../common/custom.decorator';
 import { DeletePhotosDto } from './dto/delete-photos.dto';
 import { UpdatePhotoRecommendDto } from './dto/update-photo-recommend.dto';
+import * as Minio from 'minio';
+import { ConfigService } from '@nestjs/config';
+import { Redis } from 'ioredis';
 
 @Injectable()
 export class PhotoService {
+  @Inject(ConfigService)
+  private configService: ConfigService;
+
   @InjectRepository(Order)
   private orderRepository: Repository<Order>;
 
   @InjectRepository(Photo)
   private photoRepository: Repository<Photo>;
+
+  @Inject('MINIO_CLIENT')
+  private readonly minioClient: Minio.Client;
+
+  @Inject('REDIS_CLIENT')
+  private redisClient: Redis;
 
   // 获取订单信息
   async getOrderById(orderId: number) {
@@ -28,7 +40,10 @@ export class PhotoService {
       },
     });
     if (!foundOrder) {
-      throw new Error('订单不存在');
+      throw new DatabaseException(
+        DatabaseErrorType.DATA_NOT_FOUND,
+        '订单不存在',
+      );
     }
 
     return foundOrder;
@@ -52,22 +67,57 @@ export class PhotoService {
     };
   }
 
-  async createPhoto(orderId: number, createPhotosDto: CreatePhotosDto) {
-    if (createPhotosDto.oss_urls.length === 0) {
-      throw new Error('请上传至少一张图片');
+  async savePhotoOssUrl(
+    orderId: number,
+    createPhotosDtoList: CreatePhotosDto[],
+  ) {
+    const order = await this.orderRepository.findOneBy({ id: orderId });
+    if (!order) {
+      throw new DatabaseException(
+        DatabaseErrorType.DATA_NOT_FOUND,
+        '订单不存在',
+      );
     }
 
-    const foundOrder = await this.getOrderById(orderId);
+    const bucketName: string = this.configService.get('minio_bucket');
+    const expires = 24 * 60 * 60 * 7;
 
-    const photoEntities = createPhotosDto.oss_urls.map((url) => ({
-      oss_url: url,
-      order: foundOrder,
-    }));
+    const photoEntities: Photo[] = [];
+    const redisData = [];
 
-    await this.photoRepository.insert(photoEntities);
+    for (const dto of createPhotosDtoList) {
+      const ossFileKey = `${order.order_number}/${dto.objectName}`;
+      const presignedUrl = await this.minioClient.presignedGetObject(
+        bucketName,
+        dto.objectName,
+        expires,
+      );
 
-    console.log(createPhotosDto);
-    return 'This action adds a new photo';
+      photoEntities.push({
+        order,
+        oss_file_key: ossFileKey,
+        name: dto.objectName,
+      } as Photo);
+
+      redisData.push(
+        JSON.stringify({
+          name: dto.objectName,
+          oss_url: presignedUrl,
+        }),
+      );
+    }
+
+    await this.photoRepository.save(photoEntities);
+
+    // 批量插入 Redis
+    if (redisData.length > 0) {
+      this.redisClient.rpush(order.order_number, ...redisData);
+    }
+
+    // 设置过期时间
+    this.redisClient.expire(order.order_number, expires);
+
+    return redisData.map((item) => JSON.parse(item));
   }
 
   async deletePhotos(orderId: number, deletePhotosDto: DeletePhotosDto) {
