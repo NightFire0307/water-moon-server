@@ -8,6 +8,7 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { Permission } from './permissions.entity';
+import { Exclude } from 'class-transformer';
 
 @Entity({
   name: 'roles',
@@ -29,8 +30,10 @@ export class Role {
   permissions: Permission[];
 
   @CreateDateColumn()
+  @Exclude()
   createTime: Date;
 
   @UpdateDateColumn()
+  @Exclude()
   updateTime: Date;
 }

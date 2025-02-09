@@ -1,11 +1,13 @@
 import {
   Body,
+  ClassSerializerInterceptor,
   Controller,
   Get,
   HttpCode,
   Inject,
   Post,
   Query,
+  UseInterceptors,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LoginUserDto } from './dto/login-user.dto';
@@ -29,23 +31,27 @@ export class AuthController {
 
   @Post('login')
   async userLogin(@Body() loginUser: LoginUserDto) {
-    const vo = await this.userService.login(loginUser, false);
-    const { accessToken, refreshToken } = this.userService.generateToken(vo);
+    const user = await this.userService.login(loginUser, false);
+    const { accessToken, refreshToken } = this.userService.generateToken(user);
 
-    vo.accessToken = accessToken;
-    vo.refreshToken = refreshToken;
-    return vo;
+    return {
+      user,
+      accessToken,
+      refreshToken,
+    };
   }
 
   @Post('admin/login')
   @HttpCode(200)
+  @UseInterceptors(ClassSerializerInterceptor)
   async adminLogin(@Body() loginUser: LoginUserDto) {
-    const vo = await this.userService.login(loginUser, true);
-    const { accessToken, refreshToken } = this.userService.generateToken(vo);
-
-    vo.accessToken = accessToken;
-    vo.refreshToken = refreshToken;
-    return vo;
+    const user = await this.userService.login(loginUser, true);
+    const { accessToken, refreshToken } = this.userService.generateToken(user);
+    return {
+      user,
+      accessToken,
+      refreshToken,
+    };
   }
 
   @Get('refresh')

@@ -8,6 +8,7 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { Role } from './role.entity';
+import { Exclude } from 'class-transformer';
 
 @Entity({
   name: 'users',
@@ -33,6 +34,7 @@ export class User {
     length: 150,
     comment: '密码',
   })
+  @Exclude()
   password: string;
 
   @Column({
@@ -48,12 +50,15 @@ export class User {
   isFrozen: boolean;
 
   @Column({ default: false, comment: '是否删除' })
+  @Exclude()
   isDelete: boolean;
 
   @CreateDateColumn()
+  @Exclude()
   createTime: Date;
 
   @UpdateDateColumn()
+  @Exclude()
   updateTime: Date;
 
   @ManyToMany(() => Role)

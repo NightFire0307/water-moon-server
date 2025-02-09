@@ -81,7 +81,7 @@ export class AuthService {
         username: loginUserDto.username,
         isAdmin,
       },
-      relations: ['roles', 'roles.permissions'],
+      relations: ['roles'],
     });
 
     if (!user) {
@@ -94,27 +94,7 @@ export class AuthService {
       }
     });
 
-    const vo = new LoginUserVo();
-    vo.userinfo = {
-      id: user.id,
-      username: user.username,
-      nickname: user.nickname,
-      isFrozen: user.isFrozen,
-      isAdmin: user.isAdmin,
-      roles: user.roles.map((role) => role.name),
-      permissions: user.roles.reduce((arr, item) => {
-        item.permissions.forEach((permission) => {
-          if (arr.indexOf(permission) === -1) {
-            arr.push(permission);
-          }
-        });
-        return arr;
-      }, []),
-      createTime: user.createTime.toString(),
-      updateTime: user.updateTime.toString(),
-    };
-
-    return vo;
+    return user;
   }
 
   async findUserById(userId: number, isAdmin: boolean) {
@@ -147,15 +127,15 @@ export class AuthService {
    * @param { LoginUserVo } vo
    * @returns {{ accessToken: string, refreshToken: string }} 返回access_token 和 refresh_token
    */
-  generateToken(vo: LoginUserVo): {
+  generateToken(vo: User): {
     accessToken: string;
     refreshToken: string;
   } {
     // 生成 AccessToken
     const accessToken = this.jwtService.sign(
       {
-        userId: vo.userinfo.id,
-        username: vo.userinfo.username,
+        userId: vo.id,
+        username: vo.username,
       },
       {
         expiresIn: this.configService.get('jwt_access_token_expires_time'),
@@ -165,7 +145,7 @@ export class AuthService {
     // 生成 RefreshToken
     const refreshToken = this.jwtService.sign(
       {
-        userId: vo.userinfo.id,
+        userId: vo.id,
       },
       {
         expiresIn: this.configService.get('jwt_refresh_token_expires_time'),
