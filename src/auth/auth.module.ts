@@ -7,9 +7,10 @@ import { Role } from './entities/role.entity';
 import { Permission } from './entities/permissions.entity';
 import * as Minio from 'minio';
 import { ConfigService } from '@nestjs/config';
+import { RedisModule } from '../redis/redis.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([User, Role, Permission])],
+  imports: [TypeOrmModule.forFeature([User, Role, Permission]), RedisModule],
   controllers: [AuthController],
   providers: [
     AuthService,

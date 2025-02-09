@@ -17,6 +17,7 @@ import { LoginUserVo } from './vo/login-user.vo';
 import { JwtService } from '@nestjs/jwt';
 import * as qiniu from 'qiniu';
 import * as Minio from 'minio';
+import { Redis } from 'ioredis';
 
 @Injectable()
 export class AuthService {
@@ -25,6 +26,9 @@ export class AuthService {
 
   @Inject(JwtService)
   private readonly jwtService: JwtService;
+
+  @Inject('REDIS_CLIENT')
+  private readonly redisClient: Redis;
 
   @Inject('MINIO_CLIENT')
   private readonly minioClient: Minio.Client;
@@ -81,7 +85,7 @@ export class AuthService {
         username: loginUserDto.username,
         isAdmin,
       },
-      relations: ['roles'],
+      relations: ['roles', 'roles.permissions'],
     });
 
     if (!user) {
@@ -93,6 +97,24 @@ export class AuthService {
         throw new HttpException('密码错误', HttpStatus.BAD_REQUEST);
       }
     });
+    console.log(user);
+
+    // 合并角色权限
+    const permissions = user.roles.reduce((arr, item) => {
+      item.permissions.forEach((permission) => {
+        if (arr.indexOf(permission) === -1) {
+          arr.push(permission);
+        }
+      });
+      return arr;
+    }, []);
+    // 缓存用户权限(24小时)
+    this.redisClient.set(
+      `permissions:${user.id}`,
+      JSON.stringify(permissions),
+      'EX',
+      60 * 60 * 24,
+    );
 
     return user;
   }

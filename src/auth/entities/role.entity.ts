@@ -27,6 +27,7 @@ export class Role {
   @JoinTable({
     name: 'role_permissions',
   })
+  @Exclude()
   permissions: Permission[];
 
   @CreateDateColumn()
