@@ -65,19 +65,21 @@ export class PhotoService {
     // });
 
     // 获取 Redis 中订单照片 OSS URL
-    const oss_lists = await this.redisClient.lrange(
-      `photos_url:${order.order_number}`,
-      (pagination.current - 1) * pagination.pageSize,
-      pagination.current * pagination.pageSize - 1,
-    );
-    const oss_lists_length = await this.redisClient.llen(
+    const oss_all_lists = await this.redisClient.hgetall(
       `photos_url:${order.order_number}`,
     );
 
+    const total = Object.keys(oss_all_lists).length;
+    const start = (pagination.current - 1) * pagination.pageSize;
+    const end = pagination.current * pagination.pageSize;
+
+    const oss_lists = Object.values(oss_all_lists)
+      .slice(start, end)
+      .map((item) => JSON.parse(item));
+
     return {
-      list: oss_lists.map((item) => JSON.parse(item)),
-      total: oss_lists_length,
-      ...pagination,
+      list: oss_lists,
+      total,
     };
   }
 
