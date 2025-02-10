@@ -14,6 +14,10 @@ import { UpdatePhotoRecommendDto } from './dto/update-photo-recommend.dto';
 import * as Minio from 'minio';
 import { ConfigService } from '@nestjs/config';
 import { Redis } from 'ioredis';
+import {
+  RedisErrorType,
+  RedisException,
+} from '../common/redis-exception.filter';
 
 @Injectable()
 export class PhotoService {
@@ -50,19 +54,29 @@ export class PhotoService {
   }
 
   async getPhotosByOrderId(orderId: number, pagination: PaginationQuery) {
-    await this.getOrderById(orderId);
+    const order = await this.getOrderById(orderId);
 
-    const [photos, total] = await this.photoRepository.findAndCount({
-      where: {
-        order: { id: orderId },
-      },
-      take: pagination.pageSize,
-      skip: (pagination.current - 1) * pagination.pageSize,
-    });
+    // const [photos, total] = await this.photoRepository.findAndCount({
+    //   where: {
+    //     order: { id: orderId },
+    //   },
+    //   take: pagination.pageSize,
+    //   skip: (pagination.current - 1) * pagination.pageSize,
+    // });
+
+    // 获取 Redis 中订单照片 OSS URL
+    const oss_lists = await this.redisClient.lrange(
+      `photos_url:${order.order_number}`,
+      (pagination.current - 1) * pagination.pageSize,
+      pagination.current * pagination.pageSize - 1,
+    );
+    const oss_lists_length = await this.redisClient.llen(
+      `photos_url:${order.order_number}`,
+    );
 
     return {
-      list: photos,
-      total,
+      list: oss_lists.map((item) => JSON.parse(item)),
+      total: oss_lists_length,
       ...pagination,
     };
   }
@@ -83,39 +97,57 @@ export class PhotoService {
     const expires = 24 * 60 * 60 * 7;
 
     const photoEntities: Photo[] = [];
-    const redisData = [];
 
     for (const dto of createPhotosDtoList) {
-      const ossFileKey = `${order.order_number}/${dto.objectName}`;
-      const presignedUrl = await this.minioClient.presignedGetObject(
-        bucketName,
-        dto.objectName,
-        expires,
-      );
+      const ossFileKey = `${order.order_number}/${dto.file_name}`;
 
       photoEntities.push({
         order,
         oss_file_key: ossFileKey,
-        name: dto.objectName,
+        name: dto.file_name,
+        size: dto.file_size,
       } as Photo);
-
-      redisData.push(
-        JSON.stringify({
-          name: dto.objectName,
-          oss_url: presignedUrl,
-        }),
-      );
     }
 
-    await this.photoRepository.save(photoEntities);
+    // 批量插入数据库
+    const savedPhotos = await this.photoRepository.save(photoEntities);
+
+    const redisData = [];
+    for (const photo of savedPhotos) {
+      const presignedUrl = await this.minioClient.presignedGetObject(
+        bucketName,
+        photo.name,
+        expires,
+      );
+
+      redisData.push({
+        id: photo.id,
+        oss_url: presignedUrl,
+        name: photo.name,
+        size: photo.size,
+        is_recommended: photo.is_recommended,
+      });
+    }
 
     // 批量插入 Redis
     if (redisData.length > 0) {
-      this.redisClient.rpush(order.order_number, ...redisData);
-    }
+      const pipeline = this.redisClient.pipeline();
 
-    // 设置过期时间
-    this.redisClient.expire(order.order_number, expires);
+      redisData.forEach((photo) => {
+        const redisKey = `photos_url:${order.order_number}`;
+        const photoName = photo.name;
+
+        pipeline.hset(redisKey, photoName, JSON.stringify(photo));
+      });
+
+      // 设置过期时间
+      pipeline.expire(`photos_url:${order.order_number}`, expires);
+      try {
+        await pipeline.exec();
+      } catch (e) {
+        throw new RedisException(RedisErrorType.UNKNOWN_ERROR, e);
+      }
+    }
 
     // Redis 照片计数
     this.redisClient.incrby(
@@ -123,7 +155,7 @@ export class PhotoService {
       createPhotosDtoList.length,
     );
 
-    return redisData.map((item) => JSON.parse(item));
+    return redisData;
   }
 
   async deletePhotos(orderId: number, deletePhotosDto: DeletePhotosDto) {

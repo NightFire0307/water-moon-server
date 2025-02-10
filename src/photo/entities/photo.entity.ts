@@ -23,6 +23,9 @@ export class Photo {
   @Column()
   oss_file_key: string;
 
+  @Column()
+  size: number;
+
   // 订单关联照片
   @ManyToOne(() => Order, (order) => order.photos)
   @JoinColumn({ name: 'order_id' })

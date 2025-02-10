@@ -1,3 +1,4 @@
 export class CreatePhotosDto {
-  objectName: string;
+  file_name: string;
+  file_size: number;
 }
