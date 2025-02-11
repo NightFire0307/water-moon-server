@@ -118,7 +118,7 @@ export class PhotoService {
     for (const photo of savedPhotos) {
       const presignedUrl = await this.minioClient.presignedGetObject(
         bucketName,
-        photo.name,
+        `${order.order_number}/${photo.name}`,
         expires,
       );
 
