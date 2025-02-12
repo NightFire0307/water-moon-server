@@ -76,8 +76,8 @@ export class AuthController {
   @Get('admin/oss-token')
   @RequireLogin()
   async getOssToken(
-    @Query('order_number') orderNumber: string,
-    @Query('file_name') fileName: string,
+    @Query('orderNumber') orderNumber: string,
+    @Query('fileName') fileName: string,
   ) {
     return await this.userService.getMinioToken(orderNumber, fileName);
   }
