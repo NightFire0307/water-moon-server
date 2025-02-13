@@ -5,29 +5,16 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from './entities/user.entity';
 import { Role } from './entities/role.entity';
 import { Permission } from './entities/permissions.entity';
-import * as Minio from 'minio';
-import { ConfigService } from '@nestjs/config';
 import { RedisModule } from '../redis/redis.module';
+import { MinioModule } from '../minio/minio.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([User, Role, Permission]), RedisModule],
-  controllers: [AuthController],
-  providers: [
-    AuthService,
-    {
-      provide: 'MINIO_CLIENT',
-      useFactory(configService: ConfigService) {
-        return new Minio.Client({
-          endPoint: configService.get('minio_endpoint'),
-          port: configService.get('minio_port'),
-          useSSL: false,
-          accessKey: configService.get('minio_access_key'),
-          secretKey: configService.get('minio_secret_key'),
-        });
-      },
-      inject: [ConfigService],
-    },
+  imports: [
+    TypeOrmModule.forFeature([User, Role, Permission]),
+    RedisModule,
+    MinioModule,
   ],
-  exports: ['MINIO_CLIENT'],
+  controllers: [AuthController],
+  providers: [AuthService],
 })
 export class AuthModule {}

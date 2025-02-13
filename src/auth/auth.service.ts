@@ -13,7 +13,6 @@ import { Permission } from './entities/permissions.entity';
 import { compare, hash } from 'bcrypt';
 import { ConfigService } from '@nestjs/config';
 import { LoginUserDto } from './dto/login-user.dto';
-import { LoginUserVo } from './vo/login-user.vo';
 import { JwtService } from '@nestjs/jwt';
 import * as qiniu from 'qiniu';
 import * as Minio from 'minio';

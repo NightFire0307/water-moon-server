@@ -28,6 +28,7 @@ import { Link } from './link/entities/link.entity';
 import { MinioInitService } from './common/minio-init.service';
 import { RedisModule } from './redis/redis.module';
 import { ScheduleModule } from '@nestjs/schedule';
+import { MinioModule } from './minio/minio.module';
 
 @Module({
   imports: [
@@ -89,6 +90,7 @@ import { ScheduleModule } from '@nestjs/schedule';
     PhotoModule,
     LinkModule,
     RedisModule,
+    MinioModule,
   ],
   controllers: [AppController],
   providers: [
