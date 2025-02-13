@@ -226,7 +226,7 @@ export class PhotoService {
 
     // 压缩图片
     const compressImageBuffer = await sharp(file.buffer)
-      .resize({ width: 800 })
+      .resize({ width: 800, fit: 'inside' })
       .jpeg({ quality: 80 })
       .toBuffer();
 
@@ -240,6 +240,18 @@ export class PhotoService {
         `${order.order_number}/${file.originalname}`,
       ),
     ]);
-    return 'success';
+
+    // 获取下载链接
+    const thumbnail_url = await this.minioService.generateGetUrl(
+      `${order.order_number}/thumbnail_${file.originalname}`,
+    );
+    const original_url = await this.minioService.generateGetUrl(
+      `${order.order_number}/${file.originalname}`,
+    );
+
+    return {
+      thumbnail_url,
+      original_url,
+    };
   }
 }

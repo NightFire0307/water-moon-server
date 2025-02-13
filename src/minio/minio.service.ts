@@ -30,6 +30,21 @@ export class MinioService {
   }
 
   /**
+   * 生成MINIO下载链接
+   * @param keyName 文件名
+   * @param expires 下载链接过期时间（默认24小时）
+   */
+  async generateGetUrl(keyName: string, expires?: number) {
+    const bucketName: string = this.configService.get('minio_bucket');
+
+    return await this.minioClient.presignedGetObject(
+      bucketName,
+      keyName,
+      expires,
+    );
+  }
+
+  /**
    * 上传图片到MINIO
    * @param imageBuffer 图片Buffer
    * @param keyName 图片名称
