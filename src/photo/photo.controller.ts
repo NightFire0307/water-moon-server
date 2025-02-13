@@ -8,6 +8,9 @@ import {
   Post,
   Put,
   Query,
+  UploadedFile,
+  UploadedFiles,
+  UseInterceptors,
 } from '@nestjs/common';
 import { PhotoService } from './photo.service';
 import {
@@ -18,6 +21,9 @@ import {
 import { CreatePhotosDto } from './dto/create-photos.dto';
 import { DeletePhotosDto } from './dto/delete-photos.dto';
 import { UpdatePhotoRecommendDto } from './dto/update-photo-recommend.dto';
+import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
+import { Express } from 'express';
+import { FileTypeValidationPipe } from './file-type-validation.pipe';
 
 @Controller('/admin/photos')
 export class PhotoController {
@@ -33,6 +39,22 @@ export class PhotoController {
       throw new BadRequestException('订单ID必须是数字');
     }
     return this.photoService.getPhotosByOrderId(+orderId, pagination);
+  }
+
+  @Post('upload/:orderId')
+  @RequireLogin()
+  @UseInterceptors(
+    FileInterceptor('file', {
+      limits: { fileSize: 20 * 1024 * 1024 },
+    }),
+  )
+  uploadPhoto(
+    @Param('orderId') orderId: string,
+    @UploadedFile(new FileTypeValidationPipe())
+    file: Express.Multer.File,
+  ) {
+    console.log(file);
+    return this.photoService.savePhotoToMinio(+orderId, file);
   }
 
   @Post(':orderId')

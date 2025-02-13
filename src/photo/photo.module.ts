@@ -7,9 +7,15 @@ import { Order } from '../order/entities/order.entity';
 import { AuthModule } from '../auth/auth.module';
 import { RedisModule } from '../redis/redis.module';
 import { PhotoCountSyncService } from './photo-count-sync.service';
+import { MinioModule } from '../minio/minio.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Photo, Order]), RedisModule, AuthModule],
+  imports: [
+    TypeOrmModule.forFeature([Photo, Order]),
+    RedisModule,
+    AuthModule,
+    MinioModule,
+  ],
   controllers: [PhotoController],
   providers: [PhotoService, PhotoCountSyncService],
 })

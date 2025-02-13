@@ -18,11 +18,16 @@ import {
   RedisErrorType,
   RedisException,
 } from '../common/redis-exception.filter';
+import * as sharp from 'sharp';
+import { MinioService } from '../minio/minio.service';
 
 @Injectable()
 export class PhotoService {
   @Inject(ConfigService)
   private readonly configService: ConfigService;
+
+  @Inject(MinioService)
+  private readonly minioService: MinioService;
 
   @InjectRepository(Order)
   private readonly orderRepository: Repository<Order>;
@@ -55,14 +60,6 @@ export class PhotoService {
 
   async getPhotosByOrderId(orderId: number, pagination: PaginationQuery) {
     const order = await this.getOrderById(orderId);
-
-    // const [photos, total] = await this.photoRepository.findAndCount({
-    //   where: {
-    //     order: { id: orderId },
-    //   },
-    //   take: pagination.pageSize,
-    //   skip: (pagination.current - 1) * pagination.pageSize,
-    // });
 
     // 获取 Redis 中订单照片 OSS URL
     const oss_all_lists = await this.redisClient.hgetall(
@@ -214,5 +211,35 @@ export class PhotoService {
       console.log(e);
       throw new DatabaseException(DatabaseErrorType.DEFAULT, e);
     }
+  }
+
+  // 服务端压缩图片并上传到 Minio
+  async savePhotoToMinio(orderId: number, file: Express.Multer.File) {
+    const order = await this.getOrderById(orderId);
+
+    if (!order) {
+      throw new DatabaseException(
+        DatabaseErrorType.DATA_NOT_FOUND,
+        '订单不存在',
+      );
+    }
+
+    // 压缩图片
+    const compressImageBuffer = await sharp(file.buffer)
+      .resize({ width: 800 })
+      .jpeg({ quality: 80 })
+      .toBuffer();
+
+    await Promise.all([
+      this.minioService.uploadImage(
+        compressImageBuffer,
+        `${order.order_number}/thumbnail_${file.originalname}`,
+      ),
+      this.minioService.uploadImage(
+        file.buffer,
+        `${order.order_number}/${file.originalname}`,
+      ),
+    ]);
+    return 'success';
   }
 }
