@@ -137,9 +137,8 @@ export class PhotoService {
 
       redisData.forEach((photo) => {
         const redisKey = `photos_url:${order.order_number}`;
-        const photoName = photo.name;
 
-        pipeline.hset(redisKey, photoName, JSON.stringify(photo));
+        pipeline.hset(redisKey, photo.id, JSON.stringify(photo));
       });
 
       // 设置过期时间
@@ -164,7 +163,21 @@ export class PhotoService {
     // 删除照片的批量操作，每次最多删除50张
     const batchSize = 100;
     const { photoIds } = deletePhotosDto;
-    await this.getOrderById(orderId);
+    const order = await this.getOrderById(orderId);
+
+    // 删除 Redis 中的照片 URL
+    const photoUrlsRedisKey = `photos_url:${order.order_number}`;
+    const photoUrlsHash = await this.redisClient.hgetall(photoUrlsRedisKey);
+    const redisPipeline = this.redisClient.pipeline();
+    for (const photoId in photoUrlsHash) {
+      if (photoIds.includes(Number(photoId))) {
+        redisPipeline.hdel(photoUrlsRedisKey, photoId);
+      }
+    }
+
+    redisPipeline.incrby(`photo_count:${order.order_number}`, -photoIds.length);
+
+    await redisPipeline.exec();
 
     try {
       for (let i = 0; i < photoIds.length; i += batchSize) {

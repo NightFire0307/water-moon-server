@@ -62,10 +62,10 @@ export class PhotoController {
     );
   }
 
-  @Delete()
+  @Delete(':orderId')
   @RequireLogin()
   deletePhotos(
-    @Query('orderId') orderId: string,
+    @Param('orderId') orderId: string,
     @Body() deletePhotosDto: DeletePhotosDto,
   ) {
     if (Number.isNaN(+orderId)) {
