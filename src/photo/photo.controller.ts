@@ -4,12 +4,13 @@ import {
   Controller,
   Delete,
   Get,
+  Inject,
   Param,
   Post,
   Put,
   Query,
+  Sse,
   UploadedFile,
-  UploadedFiles,
   UseInterceptors,
 } from '@nestjs/common';
 import { PhotoService } from './photo.service';
@@ -21,13 +22,19 @@ import {
 import { CreatePhotosDto } from './dto/create-photos.dto';
 import { DeletePhotosDto } from './dto/delete-photos.dto';
 import { UpdatePhotoRecommendDto } from './dto/update-photo-recommend.dto';
-import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { Express } from 'express';
 import { FileTypeValidationPipe } from './file-type-validation.pipe';
+import { interval, map, Observable } from 'rxjs';
+import { CompressPhotoProcessor } from './compress-photo.processor';
 
 @Controller('/admin/photos')
 export class PhotoController {
-  constructor(private readonly photoService: PhotoService) {}
+  @Inject(PhotoService)
+  private readonly photoService: PhotoService;
+
+  @Inject(CompressPhotoProcessor)
+  private readonly compressPhotoProcessor: CompressPhotoProcessor;
 
   @Get()
   @RequireLogin()
@@ -39,6 +46,16 @@ export class PhotoController {
       throw new BadRequestException('订单ID必须是数字');
     }
     return this.photoService.getPhotosByOrderId(+orderId, pagination);
+  }
+
+  // 服务端推送照片处理进度
+  @Sse('completions')
+  completions(): Observable<any> {
+    return this.compressPhotoProcessor.imageProcessed$.pipe(
+      map((event) => {
+        return { data: event };
+      }),
+    );
   }
 
   @Post('upload/:orderId')

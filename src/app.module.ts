@@ -29,6 +29,7 @@ import { MinioInitService } from './common/minio-init.service';
 import { RedisModule } from './redis/redis.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { MinioModule } from './minio/minio.module';
+import { BullModule } from '@nestjs/bullmq';
 
 @Module({
   imports: [
@@ -81,6 +82,12 @@ import { MinioModule } from './minio/minio.module';
         };
       },
       inject: [ConfigService],
+    }),
+    BullModule.forRoot({
+      connection: {
+        host: 'localhost',
+        port: 6379,
+      },
     }),
     UserModule,
     RoleModule,

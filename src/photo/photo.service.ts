@@ -18,11 +18,16 @@ import {
   RedisErrorType,
   RedisException,
 } from '../common/redis-exception.filter';
-import * as sharp from 'sharp';
 import { MinioService } from '../minio/minio.service';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
+import * as fs from 'node:fs/promises';
+import * as process from 'node:process';
 
 @Injectable()
 export class PhotoService {
+  constructor(@InjectQueue('photo') private photoQueue: Queue) {}
+
   @Inject(ConfigService)
   private readonly configService: ConfigService;
 
@@ -224,34 +229,33 @@ export class PhotoService {
       );
     }
 
-    // 压缩图片
-    const compressImageBuffer = await sharp(file.buffer)
-      .resize({ width: 800, fit: 'inside' })
-      .jpeg({ quality: 80 })
-      .toBuffer();
+    // 保存图片信息到数据库
+    const photo = new Photo();
+    photo.name = file.originalname;
+    photo.size = file.size;
+    photo.order = order;
+    photo.oss_file_key = `${order.order_number}/${file.originalname}`;
+    await this.photoRepository.save(photo);
 
-    await Promise.all([
-      this.minioService.uploadImage(
-        compressImageBuffer,
-        `${order.order_number}/thumbnail_${file.originalname}`,
-      ),
-      this.minioService.uploadImage(
-        file.buffer,
-        `${order.order_number}/${file.originalname}`,
-      ),
-    ]);
+    // 缓存图片到本地
+    const tempDir = `${process.cwd()}\\tmp\\${order.order_number}`;
+    await fs.mkdir(tempDir, { recursive: true });
+    await fs.writeFile(`${tempDir}\\${file.originalname}`, file.buffer);
 
-    // 获取下载链接
-    const thumbnail_url = await this.minioService.generateGetUrl(
-      `${order.order_number}/thumbnail_${file.originalname}`,
-    );
-    const original_url = await this.minioService.generateGetUrl(
-      `${order.order_number}/${file.originalname}`,
+    // 推送压缩图片并上传任务队列
+    await this.photoQueue.add(
+      'compressImage',
+      {
+        orderNumber: order.order_number,
+        fileName: file.originalname,
+        filePath: `${tempDir}\\${file.originalname}`,
+      },
+      { delay: 100 },
     );
 
     return {
-      thumbnail_url,
-      original_url,
+      name: file.originalname,
+      size: file.size,
     };
   }
 }
