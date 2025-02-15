@@ -25,7 +25,7 @@ import { UpdatePhotoRecommendDto } from './dto/update-photo-recommend.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Express } from 'express';
 import { FileTypeValidationPipe } from './file-type-validation.pipe';
-import { interval, map, Observable } from 'rxjs';
+import { map, Observable } from 'rxjs';
 import { CompressPhotoProcessor } from './compress-photo.processor';
 
 @Controller('/admin/photos')

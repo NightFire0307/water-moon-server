@@ -229,13 +229,22 @@ export class PhotoService {
       );
     }
 
-    // 保存图片信息到数据库
-    const photo = new Photo();
-    photo.name = file.originalname;
-    photo.size = file.size;
-    photo.order = order;
-    photo.oss_file_key = `${order.order_number}/${file.originalname}`;
-    await this.photoRepository.save(photo);
+    // 去掉文件后缀名
+    const file_name = file.originalname.split('.')[0];
+    let photo = await this.photoRepository.findOneBy({
+      order: { id: order.id },
+      name: file_name,
+    });
+
+    // 如果图片不存在
+    if (photo === null) {
+      const newPhoto = new Photo();
+      newPhoto.name = file_name;
+      newPhoto.size = file.size;
+      newPhoto.order = order;
+      newPhoto.oss_file_key = `${order.order_number}/${file.originalname}`;
+      photo = await this.photoRepository.save(photo);
+    }
 
     // 缓存图片到本地
     const tempDir = `${process.cwd()}\\tmp\\${order.order_number}`;
@@ -246,9 +255,10 @@ export class PhotoService {
     await this.photoQueue.add(
       'compressImage',
       {
-        orderNumber: order.order_number,
-        fileName: file.originalname,
-        filePath: `${tempDir}\\${file.originalname}`,
+        id: photo.id,
+        order_number: order.order_number,
+        file_name,
+        file_path: `${tempDir}\\${file.originalname}`,
       },
       { delay: 100 },
     );
