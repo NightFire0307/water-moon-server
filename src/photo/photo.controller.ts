@@ -4,6 +4,7 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
   Inject,
   Param,
   Post,
@@ -65,6 +66,7 @@ export class PhotoController {
       limits: { fileSize: 20 * 1024 * 1024 },
     }),
   )
+  @HttpCode(202)
   uploadPhoto(
     @Param('orderId') orderId: string,
     @UploadedFile(new FileTypeValidationPipe())

@@ -252,7 +252,7 @@ export class PhotoService {
     await fs.writeFile(`${tempDir}\\${file.originalname}`, file.buffer);
 
     // 推送压缩图片并上传任务队列
-    await this.photoQueue.add(
+    const job = await this.photoQueue.add(
       'compressImage',
       {
         id: photo.id,
@@ -264,8 +264,11 @@ export class PhotoService {
     );
 
     return {
-      name: file.originalname,
-      size: file.size,
+      id: photo.id,
+      fileName: file_name,
+      fileSize: file.size,
+      fileType: file.mimetype,
+      taskId: job.id,
     };
   }
 }
