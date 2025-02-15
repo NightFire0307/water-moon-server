@@ -75,9 +75,9 @@ export class PhotoService {
     const start = (pagination.current - 1) * pagination.pageSize;
     const end = pagination.current * pagination.pageSize;
 
-    const oss_lists = Object.values(oss_all_lists)
+    const oss_lists = Object.entries(oss_all_lists)
       .slice(start, end)
-      .map((item) => JSON.parse(item));
+      .map(([key, value]) => ({ id: key, ...JSON.parse(value) }));
 
     return {
       list: oss_lists,
@@ -237,13 +237,13 @@ export class PhotoService {
     });
 
     // 如果图片不存在
-    if (photo === null) {
+    if (!photo) {
       const newPhoto = new Photo();
       newPhoto.name = file_name;
       newPhoto.size = file.size;
       newPhoto.order = order;
       newPhoto.oss_file_key = `${order.order_number}/${file.originalname}`;
-      photo = await this.photoRepository.save(photo);
+      photo = await this.photoRepository.save(newPhoto);
     }
 
     // 缓存图片到本地
