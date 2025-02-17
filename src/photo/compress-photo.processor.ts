@@ -1,7 +1,6 @@
 import { OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
 import { Inject, Injectable } from '@nestjs/common';
 import { Job } from 'bullmq';
-import * as fs from 'node:fs/promises';
 import * as sharp from 'sharp';
 import { MinioService } from '../minio/minio.service';
 import { Subject } from 'rxjs';
@@ -9,9 +8,11 @@ import { Redis } from 'ioredis';
 
 export interface CompressImageJobData {
   id: number;
+  uid: string;
   file_name: string;
-  file_path: string;
+  file_buffer: Buffer;
   order_number: string;
+  is_recommend: boolean;
   thumbnail_url?: string;
   original_url?: string;
   expires?: number;
@@ -37,26 +38,28 @@ export class CompressPhotoProcessor extends WorkerHost {
 
   async process(job: Job<CompressImageJobData, any, string>): Promise<any> {
     console.log('BullMQ: ', job.data);
-    const { file_name, file_path, order_number } = job.data;
+    const { file_name, file_buffer, order_number } = job.data;
 
     try {
-      // 读取缓存图片
-      const imageBuffer = await fs.readFile(file_path);
+      // 拷贝图片 Buffer
+      const imageBuffer = Buffer.from(file_buffer);
       // 压缩图片
       const compressImageBuffer = await this.compressImage(imageBuffer);
-      // 设置图片过期时间
-      const expires = 24 * 60 * 60 * 7;
 
+      // 上传原图和缩略图
       await Promise.all([
         this.minioService.uploadImage(
           compressImageBuffer,
           `${order_number}/thumbnail_${file_name}`,
         ),
         this.minioService.uploadImage(
-          imageBuffer,
+          Buffer.from(file_buffer),
           `${order_number}/${file_name}`,
         ),
       ]);
+
+      // 设置图片过期时间
+      const expires = 24 * 60 * 60 * 7;
 
       // 获取下载链接
       const thumbnail_url = await this.minioService.generateGetUrl(
@@ -80,12 +83,13 @@ export class CompressPhotoProcessor extends WorkerHost {
   async onActive(job: Job<CompressImageJobData, any, string>) {
     const {
       id,
+      uid,
       file_name,
-      file_path,
       order_number,
       thumbnail_url,
       original_url,
       expires,
+      is_recommend,
     } = job.data;
 
     // 图片临时链接存入 Redis
@@ -96,15 +100,19 @@ export class CompressPhotoProcessor extends WorkerHost {
     );
 
     // 移除缓存图片
-    try {
-      await fs.unlink(file_path);
-    } catch (e) {
-      console.log(e);
-    }
+    // try {
+    //   await fs.unlink(file_path);
+    // } catch (e) {
+    //   console.log(e);
+    // }
 
     // 通知客户端图片处理完成
     this.imageProcessedSubject.next({
+      id,
+      uid,
+      is_recommend,
       order_number,
+      file_name,
       thumbnail_url,
       original_url,
     });

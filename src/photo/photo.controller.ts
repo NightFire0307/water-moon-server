@@ -54,7 +54,7 @@ export class PhotoController {
   completions(): Observable<any> {
     return this.compressPhotoProcessor.imageProcessed$.pipe(
       map((event) => {
-        return { data: event };
+        return event;
       }),
     );
   }
@@ -69,11 +69,11 @@ export class PhotoController {
   @HttpCode(202)
   uploadPhoto(
     @Param('orderId') orderId: string,
+    @Body('uid') uid: string,
     @UploadedFile(new FileTypeValidationPipe())
     file: Express.Multer.File,
   ) {
-    console.log(file);
-    return this.photoService.savePhotoToMinio(+orderId, file);
+    return this.photoService.savePhotoToMinio(+orderId, file, uid);
   }
 
   @Post(':orderId')

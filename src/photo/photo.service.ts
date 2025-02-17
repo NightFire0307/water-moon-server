@@ -21,8 +21,6 @@ import {
 import { MinioService } from '../minio/minio.service';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
-import * as fs from 'node:fs/promises';
-import * as process from 'node:process';
 
 @Injectable()
 export class PhotoService {
@@ -219,7 +217,11 @@ export class PhotoService {
   }
 
   // 服务端压缩图片并上传到 Minio
-  async savePhotoToMinio(orderId: number, file: Express.Multer.File) {
+  async savePhotoToMinio(
+    orderId: number,
+    file: Express.Multer.File,
+    uid: string,
+  ) {
     const order = await this.getOrderById(orderId);
 
     if (!order) {
@@ -247,21 +249,19 @@ export class PhotoService {
     }
 
     // 缓存图片到本地
-    const tempDir = `${process.cwd()}\\tmp\\${order.order_number}`;
-    await fs.mkdir(tempDir, { recursive: true });
-    await fs.writeFile(`${tempDir}\\${file.originalname}`, file.buffer);
+    // const tempDir = `${process.cwd()}\\tmp\\${order.order_number}`;
+    // await fs.mkdir(tempDir, { recursive: true });
+    // await fs.writeFile(`${tempDir}\\${file.originalname}`, file.buffer);
 
     // 推送压缩图片并上传任务队列
-    const job = await this.photoQueue.add(
-      'compressImage',
-      {
-        id: photo.id,
-        order_number: order.order_number,
-        file_name,
-        file_path: `${tempDir}\\${file.originalname}`,
-      },
-      { delay: 100 },
-    );
+    const job = await this.photoQueue.add('compressImage', {
+      id: photo.id,
+      uid,
+      file_buffer: file.buffer,
+      order_number: order.order_number,
+      is_recommend: photo.is_recommended,
+      file_name,
+    });
 
     return {
       id: photo.id,
