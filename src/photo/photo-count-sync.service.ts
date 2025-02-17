@@ -17,7 +17,7 @@ export class PhotoCountSyncService {
   @Cron('*/30 * * * * *')
   async syncPhotoCount() {
     // 获取所有照片数量
-    const keys = await this.redisClient.keys('photo_count:*');
+    const keys = await this.redisClient.keys('photos_count:*');
     for (const key of keys) {
       const order_number = key.split(':')[1];
       const count = await this.redisClient.get(key);

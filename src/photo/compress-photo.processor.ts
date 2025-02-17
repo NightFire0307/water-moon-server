@@ -58,6 +58,9 @@ export class CompressPhotoProcessor extends WorkerHost {
         ),
       ]);
 
+      // Redis 存储上传完成的图片数量
+      await this.redisClient.incr(`photos_count:${order_number}`);
+
       // 设置图片过期时间
       const expires = 24 * 60 * 60 * 7;
 
