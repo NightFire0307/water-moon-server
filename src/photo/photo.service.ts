@@ -75,7 +75,7 @@ export class PhotoService {
 
     const oss_lists = Object.entries(oss_all_lists)
       .slice(start, end)
-      .map(([key, value]) => ({ id: key, ...JSON.parse(value) }));
+      .map(([key, value]) => ({ id: Number(key), ...JSON.parse(value) }));
 
     return {
       list: oss_lists,
