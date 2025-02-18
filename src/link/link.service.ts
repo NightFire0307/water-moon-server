@@ -59,9 +59,11 @@ export class LinkService {
     );
 
     return {
-      ...result,
-      share_url: result.short_url,
-      share_password: result.password,
+      data: {
+        ...result,
+        share_url: result.short_url,
+        share_password: result.password,
+      },
     };
   }
 
@@ -72,10 +74,12 @@ export class LinkService {
       take: pageSize,
     });
     return {
-      list: links,
-      total: count,
-      current,
-      pageSize,
+      data: {
+        list: links,
+        total: count,
+        current,
+        pageSize,
+      },
     };
   }
 

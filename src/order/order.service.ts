@@ -53,24 +53,6 @@ export class OrderService {
       skip: (pagination.current - 1) * pagination.pageSize,
     });
 
-    // const order_product_counts: OrderProductCount[] = await this.orderRepository
-    //   .createQueryBuilder('order')
-    //   .where('order.is_deleted = :is_deleted', { is_deleted: is_admin })
-    //   .leftJoinAndSelect('order.order_products', 'order_products')
-    //   .select('order.id', 'orderId')
-    //   .addSelect('COUNT(order_products.id)', 'product_count')
-    //   .groupBy('order.id')
-    //   .getRawMany();
-
-    // const order_links: OrderProductCount[] = await this.orderRepository
-    //   .createQueryBuilder('order')
-    //   .where('order.is_deleted = :is_deleted', { is_deleted: is_admin })
-    //   .leftJoinAndSelect('order.links', 'link')
-    //   .select('order.id', 'orderId')
-    //   .addSelect('COUNT(link.id)', 'order_link_count')
-    //   .groupBy('order.id')
-    //   .getRawMany();
-
     const order_counts: OrderProductCount[] = await this.orderRepository
       .createQueryBuilder('order')
       .where('order.is_deleted = :is_deleted', { is_deleted: is_admin })
@@ -92,20 +74,27 @@ export class OrderService {
     });
 
     return {
-      list: order_map,
-      total,
-      ...pagination,
+      data: {
+        list: order_map,
+        total,
+        ...pagination,
+      },
     };
   }
 
   async getOrderDetail(id: number) {
-    return await this.orderRepository
+    const orderDetail = await this.orderRepository
       .createQueryBuilder('order')
       .where('order.id = :orderId', { orderId: id })
       .leftJoinAndSelect('order.order_products', 'order_products')
       .leftJoinAndSelect('order_products.product', 'product')
       .leftJoinAndSelect('order.links', 'links')
       .getOne();
+
+    return {
+      data: orderDetail,
+      msg: '获取订单详情成功',
+    };
   }
 
   async createOrder(createOrderDto: CreateOrderDto) {
@@ -182,8 +171,10 @@ export class OrderService {
       await queryRunner.commitTransaction();
 
       return {
-        ...order,
-        order_products: instanceToPlain(order_products_data),
+        data: {
+          ...order,
+          order_products: instanceToPlain(order_products_data),
+        },
       };
     } catch (e) {
       await queryRunner.rollbackTransaction();
@@ -242,7 +233,10 @@ export class OrderService {
     try {
       await queryRunner.commitTransaction();
 
-      return '订单更新成功';
+      return {
+        data: '',
+        msg: '订单更新成功',
+      };
     } catch (e) {
       await queryRunner.rollbackTransaction();
       throw new DatabaseException(DatabaseErrorType.DEFAULT, e);

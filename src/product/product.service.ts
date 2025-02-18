@@ -38,9 +38,11 @@ export class ProductService {
     });
 
     return {
-      list,
-      total,
-      ...pagination,
+      data: {
+        list,
+        total,
+        ...pagination,
+      },
     };
   }
 
@@ -53,7 +55,9 @@ export class ProductService {
     });
 
     if (!product) return '产品不存在';
-    return product;
+    return {
+      data: product,
+    };
   }
 
   async createProduct(createProductDto: CreateProductDto) {
@@ -89,7 +93,7 @@ export class ProductService {
 
     try {
       await this.productRepository.save(product);
-      return '修改成功';
+      return { data: '', message: '修改成功' };
     } catch (e) {
       throw new DatabaseException(DatabaseErrorType.DEFAULT, e);
     }
@@ -109,7 +113,7 @@ export class ProductService {
       );
 
     await this.productRepository.remove(product);
-    return '删除成功';
+    return { data: '', message: '删除成功' };
   }
 
   async getProductTypes(pagination: PaginationQuery, name?: string) {
@@ -121,9 +125,11 @@ export class ProductService {
     });
 
     return {
-      list,
-      total,
-      ...pagination,
+      data: {
+        list,
+        total,
+        ...pagination,
+      },
     };
   }
 
@@ -135,7 +141,9 @@ export class ProductService {
     });
 
     if (!productType) return '产品类型不存在';
-    return productType;
+    return {
+      data: productType,
+    };
   }
 
   async createProductType(createProductTypeDto: CreateProductTypeDto) {
@@ -195,6 +203,9 @@ export class ProductService {
       );
 
     await this.productTypeRepository.remove(productType);
-    return '删除成功';
+    return {
+      data: '',
+      message: '删除成功',
+    };
   }
 }
