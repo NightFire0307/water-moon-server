@@ -135,6 +135,7 @@ export class CompressPhotoProcessor extends WorkerHost {
         thumbnail_url,
         original_url,
       });
+      console.log('通知完成');
     } catch (e) {
       console.log(e);
     }

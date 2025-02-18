@@ -182,7 +182,7 @@ export class PhotoService {
     }
 
     // 推送压缩图片并上传任务队列
-    const job = await this.photoQueue.add('compressImage', {
+    const job = await this.photoQueue.add(PhotoJobName.CompressImage, {
       id: photo.id,
       uid,
       file_buffer: file.buffer,
