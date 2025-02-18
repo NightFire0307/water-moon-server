@@ -20,7 +20,6 @@ import {
   PaginationQuery,
   RequireLogin,
 } from '../common/custom.decorator';
-import { CreatePhotosDto } from './dto/create-photos.dto';
 import { DeletePhotosDto } from './dto/delete-photos.dto';
 import { UpdatePhotoRecommendDto } from './dto/update-photo-recommend.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
