@@ -76,22 +76,10 @@ export class PhotoController {
     return this.photoService.savePhotoToMinio(+orderId, file, uid);
   }
 
-  @Post(':orderId')
-  @RequireLogin()
-  async savePhotoOssUrl(
-    @Param('orderId') orderId: string,
-    @Body() createPhotosDto: CreatePhotosDto[],
-  ) {
-    if (Number.isNaN(+orderId)) {
-      throw new BadRequestException('订单ID必须是数字');
-    }
-    return this.photoService.savePhotoOssUrl(+orderId, createPhotosDto);
-  }
-
-  @Put('recommend')
+  @Put('recommend/:orderId')
   @RequireLogin()
   updatePhotoRecommendStatus(
-    @Query('orderId') orderId: string,
+    @Param('orderId') orderId: string,
     @Body() updatePhotoRecommendStatusDto: UpdatePhotoRecommendDto,
   ) {
     if (Number.isNaN(+orderId)) {

@@ -2,7 +2,6 @@ import { Inject, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Photo } from './entities/photo.entity';
 import { In, Repository } from 'typeorm';
-import { CreatePhotosDto } from './dto/create-photos.dto';
 import { Order } from '../order/entities/order.entity';
 import {
   DatabaseErrorType,
@@ -11,35 +10,20 @@ import {
 import { PaginationQuery } from '../common/custom.decorator';
 import { DeletePhotosDto } from './dto/delete-photos.dto';
 import { UpdatePhotoRecommendDto } from './dto/update-photo-recommend.dto';
-import * as Minio from 'minio';
-import { ConfigService } from '@nestjs/config';
 import { Redis } from 'ioredis';
-import {
-  RedisErrorType,
-  RedisException,
-} from '../common/redis-exception.filter';
-import { MinioService } from '../minio/minio.service';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
+import { PhotoJobName } from './compress-photo.processor';
 
 @Injectable()
 export class PhotoService {
   constructor(@InjectQueue('photo') private photoQueue: Queue) {}
-
-  @Inject(ConfigService)
-  private readonly configService: ConfigService;
-
-  @Inject(MinioService)
-  private readonly minioService: MinioService;
 
   @InjectRepository(Order)
   private readonly orderRepository: Repository<Order>;
 
   @InjectRepository(Photo)
   private readonly photoRepository: Repository<Photo>;
-
-  @Inject('MINIO_CLIENT')
-  private readonly minioClient: Minio.Client;
 
   @Inject('REDIS_CLIENT')
   private readonly redisClient: Redis;
@@ -78,85 +62,11 @@ export class PhotoService {
       .map(([key, value]) => ({ id: Number(key), ...JSON.parse(value) }));
 
     return {
-      list: oss_lists,
-      total,
+      data: {
+        list: oss_lists,
+        total,
+      },
     };
-  }
-
-  async savePhotoOssUrl(
-    orderId: number,
-    createPhotosDtoList: CreatePhotosDto[],
-  ) {
-    const order = await this.orderRepository.findOneBy({ id: orderId });
-    if (!order) {
-      throw new DatabaseException(
-        DatabaseErrorType.DATA_NOT_FOUND,
-        '订单不存在',
-      );
-    }
-
-    const bucketName: string = this.configService.get('minio_bucket');
-    const expires = 24 * 60 * 60 * 7;
-
-    const photoEntities: Photo[] = [];
-
-    for (const dto of createPhotosDtoList) {
-      const ossFileKey = `${order.order_number}/${dto.file_name}`;
-
-      photoEntities.push({
-        order,
-        oss_file_key: ossFileKey,
-        name: dto.file_name,
-        size: dto.file_size,
-      } as Photo);
-    }
-
-    // 批量插入数据库
-    const savedPhotos = await this.photoRepository.save(photoEntities);
-
-    const redisData = [];
-    for (const photo of savedPhotos) {
-      const presignedUrl = await this.minioClient.presignedGetObject(
-        bucketName,
-        `${order.order_number}/${photo.name}`,
-        expires,
-      );
-
-      redisData.push({
-        id: photo.id,
-        oss_url: presignedUrl,
-        name: photo.name,
-        size: photo.size,
-        is_recommended: photo.is_recommended,
-      });
-    }
-
-    // 批量插入 Redis
-    if (redisData.length > 0) {
-      const pipeline = this.redisClient.pipeline();
-
-      redisData.forEach((photo) => {
-        const redisKey = `photos_url:${order.order_number}`;
-
-        pipeline.hset(redisKey, photo.id, JSON.stringify(photo));
-      });
-
-      // 设置过期时间
-      pipeline.expire(`photos_url:${order.order_number}`, expires);
-      try {
-        await pipeline.exec();
-      } catch (e) {
-        throw new RedisException(RedisErrorType.UNKNOWN_ERROR, e);
-      }
-    }
-
-    // Redis 照片计数
-    this.redisClient.incrby(
-      `photo_count:${order.order_number}`,
-      createPhotosDtoList.length,
-    );
-
-    return redisData;
   }
 
   async deletePhotos(orderId: number, deletePhotosDto: DeletePhotosDto) {
@@ -199,21 +109,44 @@ export class PhotoService {
     updatePhotoRecommendStatusDto: UpdatePhotoRecommendDto,
   ) {
     const { photoIds, isRecommended } = updatePhotoRecommendStatusDto;
-    await this.getOrderById(orderId);
+    const order = await this.getOrderById(orderId);
 
-    try {
-      const { affected } = await this.photoRepository.update(
-        { id: In(photoIds), order: { id: orderId }, is_deleted: false },
-        { is_recommended: isRecommended },
+    if (!order) {
+      throw new DatabaseException(
+        DatabaseErrorType.DATA_NOT_FOUND,
+        '订单不存在',
       );
-
-      if (affected === photoIds.length) {
-        return { message: '更新推荐状态成功', data: [] };
-      }
-    } catch (e) {
-      console.log(e);
-      throw new DatabaseException(DatabaseErrorType.DEFAULT, e);
     }
+
+    // 修改 Redis 中照片推荐状态
+    const photosUrl = await this.redisClient.hgetall(
+      `photos_url:${order.order_number}`,
+    );
+    const pipeline = this.redisClient.pipeline();
+    for (const photoId in photosUrl) {
+      if (photoIds.includes(Number(photoId))) {
+        const photo = JSON.parse(photosUrl[photoId]);
+        photo.is_recommend = isRecommended;
+        pipeline.hset(
+          `photos_url:${order.order_number}`,
+          photoId,
+          JSON.stringify(photo),
+        );
+      }
+    }
+    await pipeline.exec();
+
+    // 推送修改数据库中照片推荐状态任务队列
+    await this.photoQueue.add(PhotoJobName.UpdateRecommend, {
+      orderId,
+      photoIds,
+      isRecommended,
+    });
+
+    return {
+      data: photoIds,
+      msg: '修改成功',
+    };
   }
 
   // 服务端压缩图片并上传到 Minio
@@ -248,11 +181,6 @@ export class PhotoService {
       photo = await this.photoRepository.save(newPhoto);
     }
 
-    // 缓存图片到本地
-    // const tempDir = `${process.cwd()}\\tmp\\${order.order_number}`;
-    // await fs.mkdir(tempDir, { recursive: true });
-    // await fs.writeFile(`${tempDir}\\${file.originalname}`, file.buffer);
-
     // 推送压缩图片并上传任务队列
     const job = await this.photoQueue.add('compressImage', {
       id: photo.id,
@@ -264,11 +192,13 @@ export class PhotoService {
     });
 
     return {
-      id: photo.id,
-      fileName: file_name,
-      fileSize: file.size,
-      fileType: file.mimetype,
-      taskId: job.id,
+      data: {
+        id: photo.id,
+        fileName: file_name,
+        fileSize: file.size,
+        fileType: file.mimetype,
+        taskId: job.id,
+      },
     };
   }
 }
