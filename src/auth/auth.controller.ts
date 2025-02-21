@@ -35,9 +35,11 @@ export class AuthController {
     const { accessToken, refreshToken } = this.userService.generateToken(user);
 
     return {
-      user,
-      accessToken,
-      refreshToken,
+      data: {
+        user,
+        accessToken,
+        refreshToken,
+      },
     };
   }
 
@@ -48,9 +50,11 @@ export class AuthController {
     const user = await this.userService.login(loginUser, true);
     const { accessToken, refreshToken } = this.userService.generateToken(user);
     return {
-      user,
-      accessToken,
-      refreshToken,
+      data: {
+        user,
+        accessToken,
+        refreshToken,
+      },
     };
   }
 
