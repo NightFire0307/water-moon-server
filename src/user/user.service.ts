@@ -46,7 +46,7 @@ export class UserService {
   }
 
   async findUserDetailById(userId: number) {
-    return await this.userRepository.findOneBy({ id: userId });
+    return await this.userRepository.findOneBy({ user_id: userId });
   }
 
   async createUser(createUserDto: CreateUserDto) {
@@ -65,7 +65,7 @@ export class UserService {
   }
 
   async deleteUser(userId: number) {
-    const foundUser = await this.userRepository.findOneBy({ id: userId });
+    const foundUser = await this.userRepository.findOneBy({ user_id: userId });
 
     if (!foundUser) return '未查询到用户';
     if (!foundUser.isDelete) {
@@ -77,7 +77,7 @@ export class UserService {
   }
 
   async updatePassword(userId: number, passwordDto: UpdateUserPasswordDto) {
-    const foundUser = await this.userRepository.findOneBy({ id: userId });
+    const foundUser = await this.userRepository.findOneBy({ user_id: userId });
     const saltRounds: string = this.configService.get('hash_salt_rounds');
 
     foundUser.password = await hash(passwordDto.password, parseInt(saltRounds));
@@ -91,12 +91,12 @@ export class UserService {
   }
 
   async updateUserRoles(userId: number, roleIds: number[]) {
-    const foundUser = await this.userRepository.findOneBy({ id: userId });
+    const foundUser = await this.userRepository.findOneBy({ user_id: userId });
     if (!foundUser) return '未查询到用户';
 
     const roles = await this.roleRepository.find({
       where: {
-        id: In(roleIds),
+        role_id: In(roleIds),
       },
     });
 

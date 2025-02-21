@@ -61,7 +61,7 @@ export class UserController {
 
     if (user) {
       const vo = new UserDetailVo();
-      vo.id = user.id;
+      vo.id = user.user_id;
       vo.username = user.username;
       vo.nickname = user.nickname;
       vo.isFrozen = user.isFrozen;
@@ -81,7 +81,7 @@ export class UserController {
     return await this.adminService.createUser(createUserDto);
   }
 
-  @Put(':id')
+  @Put('/:id')
   @RequireLogin()
   @RequirePermission('user_update', '更新用户信息')
   async updateUser(
@@ -92,14 +92,14 @@ export class UserController {
     return 'done';
   }
 
-  @Delete(':id')
+  @Delete('/:id')
   @RequireLogin()
   @RequirePermission('user_delete', '删除用户')
   async removeUser(@Param('id') userId: string) {
     return this.adminService.deleteUser(parseInt(userId));
   }
 
-  @Put(':id/roles')
+  @Put('/:id/roles')
   @RequireLogin()
   @RequirePermission('user_update_role', '更新用户角色')
   async updateUserRoles(

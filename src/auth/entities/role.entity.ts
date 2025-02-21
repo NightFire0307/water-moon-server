@@ -15,7 +15,7 @@ import { Exclude } from 'class-transformer';
 })
 export class Role {
   @PrimaryGeneratedColumn()
-  id: number;
+  role_id: number;
 
   @Column({
     length: 20,
@@ -27,7 +27,6 @@ export class Role {
   @JoinTable({
     name: 'role_permissions',
   })
-  @Exclude()
   permissions: Permission[];
 
   @CreateDateColumn()

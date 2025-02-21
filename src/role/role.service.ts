@@ -41,7 +41,7 @@ export class RoleService {
 
   async updateRole(id: number, updateRoleDto: UpdateRoleDto) {
     const role = await this.roleRepository.preload({
-      id,
+      role_id: id,
       ...updateRoleDto,
     });
 
@@ -54,7 +54,7 @@ export class RoleService {
   async removeRole(id: number) {
     const role = await this.roleRepository.findOne({
       where: {
-        id,
+        role_id: id,
       },
     });
 
@@ -70,7 +70,7 @@ export class RoleService {
     const { permissionsIds } = updateRolePermissionsDto;
     const role_permissions = await this.roleRepository.findOne({
       where: {
-        id,
+        role_id: id,
       },
       relations: {
         permissions: true,

@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import * as Minio from 'minio';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
+import * as dayjs from 'dayjs';
 
 @Injectable()
 export class MinioService {
@@ -19,8 +20,7 @@ export class MinioService {
   async generatePostPolicy(keyName: string, expires?: Date) {
     const bucketName = this.configService.get('minio_bucket');
     const policy = this.minioClient.newPostPolicy();
-    const expiresTime =
-      expires || new Date(new Date().setSeconds(24 * 60 * 60));
+    const expiresTime = expires || dayjs().add(24, 'hour').toDate();
 
     policy.setBucket(bucketName);
     policy.setKey(keyName);

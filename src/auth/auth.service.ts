@@ -109,7 +109,7 @@ export class AuthService {
     }, []);
     // 缓存用户权限(24小时)
     this.redisClient.set(
-      `permissions:${user.id}`,
+      `permissions:${user.user_id}`,
       JSON.stringify(permissions),
       'EX',
       60 * 60 * 24,
@@ -121,14 +121,14 @@ export class AuthService {
   async findUserById(userId: number, isAdmin: boolean) {
     const user = await this.userRepository.findOne({
       where: {
-        id: userId,
+        user_id: userId,
         isAdmin,
       },
       relations: ['roles', 'roles.permissions'],
     });
 
     return {
-      id: user.id,
+      id: user.user_id,
       username: user.username,
       isAdmin: user.isAdmin,
       roles: user.roles.map((item) => item.name),
@@ -155,7 +155,7 @@ export class AuthService {
     // 生成 AccessToken
     const accessToken = this.jwtService.sign(
       {
-        userId: vo.id,
+        userId: vo.user_id,
         username: vo.username,
       },
       {
@@ -166,7 +166,7 @@ export class AuthService {
     // 生成 RefreshToken
     const refreshToken = this.jwtService.sign(
       {
-        userId: vo.id,
+        userId: vo.user_id,
       },
       {
         expiresIn: this.configService.get('jwt_refresh_token_expires_time'),

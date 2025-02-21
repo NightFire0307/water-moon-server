@@ -15,7 +15,7 @@ import { Exclude } from 'class-transformer';
 })
 export class User {
   @PrimaryGeneratedColumn()
-  id: number;
+  user_id: number;
 
   @Column({
     length: 50,

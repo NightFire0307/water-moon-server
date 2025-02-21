@@ -34,7 +34,7 @@ import { BullModule } from '@nestjs/bullmq';
 @Module({
   imports: [
     AuthModule,
-    TypeOrmModule.forFeature([Permission]),
+    TypeOrmModule.forFeature([Permission, User]),
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: ['src/.env.development'],
