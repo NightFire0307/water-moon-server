@@ -7,6 +7,8 @@ import {
   Inject,
   Post,
   Query,
+  Req,
+  Res,
   UseInterceptors,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
@@ -14,6 +16,7 @@ import { LoginUserDto } from './dto/login-user.dto';
 import { JwtService } from '@nestjs/jwt';
 import { RequireLogin } from '../common/custom.decorator';
 import { UnloginException } from '../unlogin.filter';
+import { Response, Request } from 'express';
 
 interface RefreshTokenPayload {
   userId: number;
@@ -46,14 +49,20 @@ export class AuthController {
   @Post('admin/login')
   @HttpCode(200)
   @UseInterceptors(ClassSerializerInterceptor)
-  async adminLogin(@Body() loginUser: LoginUserDto) {
+  async adminLogin(
+    @Body() loginUser: LoginUserDto,
+    @Res({ passthrough: true }) response: Response,
+  ) {
     const user = await this.userService.login(loginUser, true);
     const { accessToken, refreshToken } = this.userService.generateToken(user);
+    response.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+    });
+
     return {
       data: {
         user,
         accessToken,
-        refreshToken,
       },
     };
   }
@@ -70,11 +79,25 @@ export class AuthController {
   }
 
   @Get('admin/refresh')
-  async adminRefresh(@Query('refreshToken') refreshToken: string) {
+  async adminRefresh(
+    @Req() request: Request,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    console.log(request.cookies);
+    const { refreshToken } = request.cookies;
     const { userId } =
       this.jwtService.verify<RefreshTokenPayload>(refreshToken);
-    const data = await this.userService.refreshToken(userId, true);
-    return { data, message: '刷新成功' };
+    const { access_token, refresh_token } = await this.userService.refreshToken(
+      userId,
+      true,
+    );
+
+    // 更新 refreshToken
+    response.cookie('refreshToken', refresh_token, {
+      httpOnly: true,
+    });
+
+    return { data: { access_token }, message: '刷新成功' };
   }
 
   @Get('admin/oss-token')

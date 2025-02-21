@@ -8,9 +8,11 @@ import { UnloginFilter } from './unlogin.filter';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { DatabaseExceptionFilter } from './common/database-exception.filter';
 import { RedisExceptionFilter } from './common/redis-exception.filter';
+import * as cookieParser from 'cookie-parser';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  app.use(cookieParser());
   app.enableCors();
 
   app.useGlobalPipes(
