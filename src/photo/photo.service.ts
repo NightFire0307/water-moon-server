@@ -14,6 +14,7 @@ import { Redis } from 'ioredis';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { PhotoJobName } from './compress-photo.processor';
+import { MinioService } from '../minio/minio.service';
 
 @Injectable()
 export class PhotoService {
@@ -24,6 +25,9 @@ export class PhotoService {
 
   @InjectRepository(Photo)
   private readonly photoRepository: Repository<Photo>;
+
+  @Inject(MinioService)
+  private readonly minioService: MinioService;
 
   @Inject('REDIS_CLIENT')
   private readonly redisClient: Redis;
@@ -45,6 +49,7 @@ export class PhotoService {
     return foundOrder;
   }
 
+  // 获取订单照片
   async getPhotosByOrderId(orderId: number, pagination: PaginationQuery) {
     const order = await this.getOrderById(orderId);
 
@@ -59,7 +64,36 @@ export class PhotoService {
 
     const oss_lists = Object.entries(oss_all_lists)
       .slice(start, end)
-      .map(([key, value]) => ({ id: Number(key), ...JSON.parse(value) }));
+      .map(([key, value]) => ({
+        id: Number(key),
+        ...JSON.parse(value),
+      }));
+
+    // 判断链接是否过期，如果过期则重新生成链接
+    const now = Math.floor(Date.now() / 1000);
+    for (const photo of oss_lists) {
+      if (photo.expires < now) {
+        photo.thumbnail_url = await this.minioService.generateGetUrl(
+          `${order.order_number}/thumbnail_${photo.file_name}`,
+        );
+        photo.original_url = await this.minioService.generateGetUrl(
+          `${order.order_number}/${photo.file_name}`,
+        );
+
+        // 更新 Redis 中照片 URL
+        await this.redisClient.hset(
+          `photos_url:${order.order_number}`,
+          photo.id,
+          JSON.stringify({
+            file_name: photo.file_name,
+            thumbnail_url: photo.thumbnail_url,
+            original_url: photo.original_url,
+            is_recommend: photo.is_recommend,
+            expires: photo.expires,
+          }),
+        );
+      }
+    }
 
     return {
       data: {

@@ -120,7 +120,7 @@ export class CompressPhotoProcessor extends WorkerHost {
           file_name,
           thumbnail_url,
           original_url,
-          expires,
+          expires: Math.floor(Date.now() / 1000) + expires,
           is_recommend,
         }),
       );
