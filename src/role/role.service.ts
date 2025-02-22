@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Role } from '../auth/entities/role.entity';
 import { In, Repository } from 'typeorm';
@@ -6,6 +6,11 @@ import { PaginationQuery } from '../common/custom.decorator';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto, UpdateRolePermissionsDto } from './dto/update-role.dto';
 import { Permission } from '../auth/entities/permissions.entity';
+import {
+  DatabaseErrorType,
+  DatabaseException,
+} from '../common/database-exception.filter';
+import { Redis } from 'ioredis';
 
 @Injectable()
 export class RoleService {
@@ -14,6 +19,9 @@ export class RoleService {
 
   @InjectRepository(Permission)
   private readonly permissionRepository: Repository<Permission>;
+
+  @Inject('REDIS_CLIENT')
+  private readonly redisClient: Redis;
 
   async getRoles(pagination: PaginationQuery) {
     const [data, total] = await this.roleRepository.findAndCount({
@@ -66,6 +74,7 @@ export class RoleService {
   async updateRolePermissions(
     id: number,
     updateRolePermissionsDto: UpdateRolePermissionsDto,
+    userId: number,
   ) {
     const { permissionsIds } = updateRolePermissionsDto;
     const role_permissions = await this.roleRepository.findOne({
@@ -77,16 +86,29 @@ export class RoleService {
       },
     });
 
-    if (!role_permissions) return '角色不存在';
+    if (!role_permissions)
+      throw new DatabaseException(
+        DatabaseErrorType.DATA_NOT_FOUND,
+        '角色不存在',
+      );
 
-    const permissions = await this.permissionRepository.find({
+    role_permissions.permissions = await this.permissionRepository.find({
       where: {
         id: In(permissionsIds),
       },
     });
 
-    role_permissions.permissions = permissions;
-    await this.roleRepository.save(role_permissions);
+    const saveResult = await this.roleRepository.save(role_permissions);
+    const permissions = saveResult.permissions.map(
+      (permission) => permission.name,
+    );
+
+    // 更新Redis缓存
+    const pipeline = this.redisClient.pipeline();
+    pipeline.del(`permissions:${userId}`);
+    pipeline.lpush(`permissions:${userId}`, ...permissions);
+    pipeline.expire(`permissions:${userId}`, 60 * 60 * 24);
+    await pipeline.exec();
 
     return 'done';
   }

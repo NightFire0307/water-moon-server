@@ -12,6 +12,8 @@ import {
   Pagination,
   PaginationQuery,
   RequireLogin,
+  RequirePermission,
+  UserInfo,
 } from '../common/custom.decorator';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto, UpdateRolePermissionsDto } from './dto/update-role.dto';
@@ -32,25 +34,28 @@ export class RoleController {
     return this.roleService.createRole(createRoleDto);
   }
 
-  @Put(':id/permissions')
+  @Put('/:roleId/permissions')
   @RequireLogin()
+  @RequirePermission('role_permission', '更新角色权限')
   async updateRolePermissions(
-    @Param('id') id: string,
+    @Param('roleId') roleId: string,
     @Body() updateRolePermissionsDto: UpdateRolePermissionsDto,
+    @UserInfo('userId') userId: number,
   ) {
     return await this.roleService.updateRolePermissions(
-      +id,
+      +roleId,
       updateRolePermissionsDto,
+      userId,
     );
   }
 
-  @Delete(':id')
+  @Delete('/:id')
   @RequireLogin()
   async deleteRole(@Param('id') id: string) {
     return await this.roleService.removeRole(+id);
   }
 
-  @Put(':id')
+  @Put('/:id')
   @RequireLogin()
   updateRole(@Param('id') id: string, @Body() updateRoleDto: UpdateRoleDto) {
     return this.roleService.updateRole(+id, updateRoleDto);

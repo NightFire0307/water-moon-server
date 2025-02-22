@@ -79,43 +79,46 @@ export class AuthService {
   }
 
   async login(loginUserDto: LoginUserDto, isAdmin: boolean) {
-    const user = await this.userRepository.findOne({
-      where: {
-        username: loginUserDto.username,
-        isAdmin,
-      },
-      relations: ['roles', 'roles.permissions'],
-    });
+    const userInfo = await this.userRepository
+      .createQueryBuilder('user')
+      .where('user.username = :username', { username: loginUserDto.username })
+      .leftJoinAndSelect('user.roles', 'roles')
+      .leftJoinAndSelect('roles.permissions', 'permissions')
+      .select([
+        'user.user_id',
+        'user.username',
+        'user.nickname',
+        'user.isAdmin',
+        'user.isFrozen',
+        'user.password',
+        'roles.role_id',
+        'roles.name',
+        'permissions.name',
+        'permissions.action',
+        'permissions.description',
+      ])
+      .cache(60000)
+      .getOne();
 
-    if (!user) {
+    if (!userInfo) {
       throw new HttpException('用户不存在', HttpStatus.BAD_REQUEST);
     }
 
-    compare(loginUserDto.password, user.password).then((result) => {
+    compare(loginUserDto.password, userInfo.password).then((result) => {
       if (!result) {
         throw new HttpException('密码错误', HttpStatus.BAD_REQUEST);
       }
     });
-    console.log(user);
 
-    // 合并角色权限
-    const permissions = user.roles.reduce((arr, item) => {
-      item.permissions.forEach((permission) => {
-        if (arr.indexOf(permission) === -1) {
-          arr.push(permission);
-        }
-      });
-      return arr;
-    }, []);
+    const result = this.flattenUserPermissions(userInfo);
+
     // 缓存用户权限(24小时)
-    this.redisClient.set(
-      `permissions:${user.user_id}`,
-      JSON.stringify(permissions),
-      'EX',
-      60 * 60 * 24,
-    );
+    const pipeline = this.redisClient.pipeline();
+    pipeline.lpush(`permissions:${result.user_id}`, ...result.permissions);
+    pipeline.expire(`permissions:${result.user_id}`, 60 * 60 * 24);
+    await pipeline.exec();
 
-    return user;
+    return result;
   }
 
   async findUserById(userId: number, isAdmin: boolean) {
@@ -246,6 +249,39 @@ export class AuthService {
     return {
       postURL,
       formData,
+    };
+  }
+
+  // 拍平用户权限
+  flattenUserPermissions(userInfo: User) {
+    return {
+      ...userInfo,
+      roles: userInfo.roles.map((role) => ({
+        ...role,
+        permissions: undefined,
+      })),
+      permissions: userInfo.roles.flatMap((role) =>
+        role.permissions.map((permission) => {
+          let action: string;
+          switch (permission.action) {
+            case 'GET':
+              action = 'read';
+              break;
+            case 'POST':
+              action = 'create';
+              break;
+            case 'PUT':
+              action = 'update';
+              break;
+            case 'DELETE':
+              action = 'delete';
+              break;
+            default:
+              action = 'unknown';
+          }
+          return `${permission.name}:${action}`;
+        }),
+      ),
     };
   }
 }

@@ -16,5 +16,6 @@ import { MinioModule } from '../minio/minio.module';
   ],
   controllers: [AuthController],
   providers: [AuthService],
+  exports: [AuthService],
 })
 export class AuthModule {}

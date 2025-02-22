@@ -10,6 +10,7 @@ import { Redis } from 'ioredis';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from '../auth/entities/user.entity';
 import { Repository } from 'typeorm';
+import { AuthService } from '../auth/auth.service';
 
 @Injectable()
 export class PermissionGuard implements CanActivate {
@@ -22,31 +23,59 @@ export class PermissionGuard implements CanActivate {
   @InjectRepository(User)
   private readonly userRepository: Repository<User>;
 
+  @Inject(AuthService)
+  private readonly authService: AuthService;
+
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request: Request = context.switchToHttp().getRequest();
     if (!request.user) return true;
 
-    // 先获取缓存中的权限
-    const permissions = await this.redisClient.get(
-      `permissions:${request.user.userId}`,
-    );
-
-    // 如果缓存中没有权限，则从数据库中获取，并存入缓存
-    if (!permissions) {
-      // TODO 从数据库中获取用户权限
-      debugger;
-    }
-
-    // TODO 比对用户权限和接口权限
-
     // 获取接口上定义的权限
-    const requiredPermissions = this.reflector.getAllAndOverride<string[]>(
+    const requiredPermissions = this.reflector.getAllAndOverride<string>(
       'require-permission',
       [context.getClass(), context.getHandler()],
     );
 
-    console.log(requiredPermissions);
+    // 先获取缓存中的权限
+    const permissions = await this.redisClient.lrange(
+      `permissions:${request.user.userId}`,
+      0,
+      -1,
+    );
 
-    return true;
+    // 如果缓存中没有权限，则从数据库中获取，并存入缓存
+    if (permissions.length === 0) {
+      const userInfo = await this.userRepository
+        .createQueryBuilder('user')
+        .where('user.user_id = :userId', { userId: request.user.userId })
+        .leftJoinAndSelect('user.roles', 'role')
+        .leftJoinAndSelect('role.permissions', 'permission')
+        .select([
+          'user.user_id',
+          'role.role_id',
+          'role.name',
+          'permission.name',
+        ])
+        .cache(600)
+        .getOne();
+
+      const result = {
+        ...userInfo,
+        permissions: userInfo.roles.flatMap((role) =>
+          role.permissions.map((permission) => permission.name),
+        ),
+      };
+
+      // 缓存用户权限(24小时)
+      const pipeline = this.redisClient.pipeline();
+      pipeline.lpush(`permissions:${result.user_id}`, ...result.permissions);
+      pipeline.expire(`permissions:${result.user_id}`, 60 * 60 * 24);
+      await pipeline.exec();
+
+      // 比对用户权限
+      return result.permissions.includes(requiredPermissions);
+    }
+
+    return permissions.includes(requiredPermissions);
   }
 }
