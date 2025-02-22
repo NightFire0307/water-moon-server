@@ -78,7 +78,7 @@ export class AuthService {
     await this.roleRepository.save([role, role2, role3]);
   }
 
-  async login(loginUserDto: LoginUserDto, isAdmin: boolean) {
+  async login(loginUserDto: LoginUserDto) {
     const userInfo = await this.userRepository
       .createQueryBuilder('user')
       .where('user.username = :username', { username: loginUserDto.username })
@@ -114,6 +114,8 @@ export class AuthService {
 
     // 缓存用户权限(24小时)
     const pipeline = this.redisClient.pipeline();
+    // 移除旧权限
+    pipeline.del(`permissions:${result.user_id}`);
     pipeline.lpush(`permissions:${result.user_id}`, ...result.permissions);
     pipeline.expire(`permissions:${result.user_id}`, 60 * 60 * 24);
     await pipeline.exec();
@@ -160,6 +162,7 @@ export class AuthService {
       {
         userId: vo.user_id,
         username: vo.username,
+        isAdmin: vo.isAdmin,
       },
       {
         expiresIn: this.configService.get('jwt_access_token_expires_time'),
@@ -260,28 +263,30 @@ export class AuthService {
         ...role,
         permissions: undefined,
       })),
-      permissions: userInfo.roles.flatMap((role) =>
-        role.permissions.map((permission) => {
-          let action: string;
-          switch (permission.action) {
-            case 'GET':
-              action = 'read';
-              break;
-            case 'POST':
-              action = 'create';
-              break;
-            case 'PUT':
-              action = 'update';
-              break;
-            case 'DELETE':
-              action = 'delete';
-              break;
-            default:
-              action = 'unknown';
-          }
-          return `${permission.name}:${action}`;
-        }),
-      ),
+      permissions: userInfo.isAdmin
+        ? ['*:*']
+        : userInfo.roles.flatMap((role) =>
+            role.permissions.map((permission) => {
+              let action: string;
+              switch (permission.action) {
+                case 'GET':
+                  action = 'read';
+                  break;
+                case 'POST':
+                  action = 'create';
+                  break;
+                case 'PUT':
+                  action = 'update';
+                  break;
+                case 'DELETE':
+                  action = 'delete';
+                  break;
+                default:
+                  action = 'unknown';
+              }
+              return `${permission.name}:${action}`;
+            }),
+          ),
     };
   }
 }

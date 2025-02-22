@@ -30,6 +30,9 @@ export class PermissionGuard implements CanActivate {
     const request: Request = context.switchToHttp().getRequest();
     if (!request.user) return true;
 
+    // 如果是管理员，直接返回 true
+    if (request.user.isAdmin) return true;
+
     // 获取接口上定义的权限
     const requiredPermissions = this.reflector.getAllAndOverride<string>(
       'require-permission',

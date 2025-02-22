@@ -34,7 +34,7 @@ export class AuthController {
 
   @Post('login')
   async userLogin(@Body() loginUser: LoginUserDto) {
-    const user = await this.userService.login(loginUser, false);
+    const user = await this.userService.login(loginUser);
     const { accessToken, refreshToken } = this.userService.generateToken(user);
 
     return {
@@ -53,7 +53,7 @@ export class AuthController {
     @Body() loginUser: LoginUserDto,
     @Res({ passthrough: true }) response: Response,
   ) {
-    const userInfo = await this.userService.login(loginUser, true);
+    const userInfo = await this.userService.login(loginUser);
     const { accessToken, refreshToken } =
       this.userService.generateToken(userInfo);
     response.cookie('refreshToken', refreshToken, {
