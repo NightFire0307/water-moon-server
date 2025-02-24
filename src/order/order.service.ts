@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Order } from './entities/order.entity';
+import { Order, OrderStatus } from './entities/order.entity';
 import { In, Repository } from 'typeorm';
 import { Product } from '../product/entities/product.entity';
 import { PaginationQuery } from '../common/custom.decorator';
@@ -13,6 +13,7 @@ import {
 import { UpdateOrderDto } from './dto/update-order.dto';
 import { instanceToPlain } from 'class-transformer';
 import { GetOrderListDto } from './dto/get-order-list.dto';
+import { ResetOrderStatusDto } from './dto/reset-order-status.dto';
 
 interface OrderProductCount {
   orderId: number;
@@ -278,5 +279,36 @@ export class OrderService {
       order.total_photos -= photoCount;
     }
     await this.orderRepository.save(order);
+  }
+
+  // 重置订单状态
+  async resetOrderStatus(
+    orderId: number,
+    resetOrderStatusDto: ResetOrderStatusDto,
+  ) {
+    if (resetOrderStatusDto.status) return '状态不正确';
+
+    const order = await this.orderRepository.findOneBy({ id: orderId });
+    if (!order)
+      throw new DatabaseException(
+        DatabaseErrorType.DATA_NOT_FOUND,
+        '订单不存在',
+      );
+
+    if (order.status === OrderStatus.SUBMITTED) {
+      order.status = OrderStatus.NOT_STARTED;
+      await this.orderRepository.save(order);
+
+      // TODO 重置订单状态后，需要删除选片结果
+      return {
+        data: order.id,
+        msg: '订单状态重置成功',
+      };
+    } else {
+      return {
+        data: order.id,
+        msg: '用户必须提交选片结果之后才能重置订单状态',
+      };
+    }
   }
 }

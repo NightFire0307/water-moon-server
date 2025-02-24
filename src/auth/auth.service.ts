@@ -112,6 +112,9 @@ export class AuthService {
 
     const result = this.flattenUserPermissions(userInfo);
 
+    // 移除密码
+    delete result.password;
+
     // 缓存用户权限(24小时)
     const pipeline = this.redisClient.pipeline();
     // 移除旧权限

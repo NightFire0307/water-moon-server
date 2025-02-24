@@ -6,6 +6,7 @@ import {
   Delete,
   Get,
   Param,
+  Patch,
   Post,
   Put,
   Query,
@@ -22,6 +23,7 @@ import {
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
 import { GetOrderListDto } from './dto/get-order-list.dto';
+import { ResetOrderStatusDto } from './dto/reset-order-status.dto';
 
 @Controller('admin/orders')
 export class OrderController {
@@ -38,7 +40,7 @@ export class OrderController {
     return await this.orderService.getOrderList(query, pagination, is_admin);
   }
 
-  @Get(':id')
+  @Get('/:id')
   @RequireLogin()
   @UseInterceptors(ClassSerializerInterceptor)
   async getOrderDetail(@Param('id') id: string) {
@@ -56,16 +58,29 @@ export class OrderController {
     return await this.orderService.createOrder(createOrderDto);
   }
 
-  @Put(':id')
+  @Put('/:orderId')
   @RequireLogin()
   async updateOrder(
-    @Param('id') id: string,
+    @Param('orderId') orderId: string,
     @Body(new ValidationPipe()) updateOrderDto: UpdateOrderDto,
   ) {
-    if (Number.isNaN(+id)) {
+    if (Number.isNaN(+orderId)) {
       throw new BadRequestException('Id必须是一个数字');
     }
-    return await this.orderService.updateOrder(+id, updateOrderDto);
+    return await this.orderService.updateOrder(+orderId, updateOrderDto);
+  }
+
+  // 重置订单状态
+  @Patch('/:orderId')
+  @RequireLogin()
+  resetOrderStatus(
+    @Param('orderId') orderId: string,
+    @Body(new ValidationPipe()) resetOrderStatusDto: ResetOrderStatusDto,
+  ) {
+    if (Number.isNaN(+orderId)) {
+      throw new BadRequestException('Id必须是一个数字');
+    }
+    return this.orderService.resetOrderStatus(+orderId, resetOrderStatusDto);
   }
 
   @Delete(':id')

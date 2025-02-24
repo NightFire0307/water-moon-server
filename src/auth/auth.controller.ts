@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   ClassSerializerInterceptor,
   Controller,
@@ -84,8 +85,8 @@ export class AuthController {
     @Req() request: Request,
     @Res({ passthrough: true }) response: Response,
   ) {
-    console.log(request.cookies);
     const { refreshToken } = request.cookies;
+    if (!refreshToken) throw new BadRequestException('请先登录');
     const { userId } =
       this.jwtService.verify<RefreshTokenPayload>(refreshToken);
     const { access_token, refresh_token } = await this.userService.refreshToken(
