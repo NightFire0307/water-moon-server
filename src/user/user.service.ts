@@ -7,8 +7,13 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserPasswordDto } from './dto/update-user-password.dto';
 import { hash } from 'bcrypt';
 import { ConfigService } from '@nestjs/config';
-import { UpdateUseDto } from './dto/update-use.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
 import { Role } from '../auth/entities/role.entity';
+import { ResetUserPasswordDto } from './dto/reset-user-password.dto';
+import {
+  OperatorErrorType,
+  OperatorException,
+} from '../common/operator-exception.filter';
 
 @Injectable()
 export class UserService {
@@ -35,18 +40,26 @@ export class UserService {
       skip: (current - 1) * pageSize,
       take: pageSize,
       where: condition,
+      relations: ['roles'],
     });
 
     return {
-      data,
-      current,
-      pageSize,
-      total,
+      data: {
+        list: data,
+        current,
+        pageSize,
+        total,
+      },
     };
   }
 
   async findUserDetailById(userId: number) {
-    return await this.userRepository.findOneBy({ user_id: userId });
+    return await this.userRepository.findOne({
+      where: {
+        user_id: userId,
+      },
+      relations: ['roles'],
+    });
   }
 
   async createUser(createUserDto: CreateUserDto) {
@@ -58,7 +71,7 @@ export class UserService {
     }
   }
 
-  async updateUser(userId: number, updateUserDto: UpdateUseDto) {
+  async updateUser(userId: number, updateUserDto: UpdateUserDto) {
     const result = await this.userRepository.update(userId, updateUserDto);
     if (result.affected === 0) return '未查询到该用户';
     return '更新成功';
@@ -104,5 +117,29 @@ export class UserService {
     await this.userRepository.save(foundUser);
 
     return '角色更新成功';
+  }
+
+  async resetPassword(
+    resetPasswordDto: ResetUserPasswordDto,
+    curUserId: number,
+    isAdmin: boolean,
+  ) {
+    const { userId, password } = resetPasswordDto;
+    if (userId !== curUserId && !isAdmin)
+      throw new OperatorException(
+        OperatorErrorType.NO_PERMISSION,
+        '无权限操作',
+      );
+
+    const foundUser = await this.userRepository.findOneBy({ user_id: userId });
+    const saltRounds: string = this.configService.get('hash_salt_rounds');
+    foundUser.password = await hash(password, parseInt(saltRounds));
+
+    try {
+      await this.userRepository.save(foundUser);
+      return { data: foundUser.user_id, msg: '密码重置成功' };
+    } catch (e) {
+      return { data: foundUser.user_id, msg: '密码重置失败' };
+    }
   }
 }

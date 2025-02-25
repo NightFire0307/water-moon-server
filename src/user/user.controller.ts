@@ -1,5 +1,6 @@
 import {
   Body,
+  ClassSerializerInterceptor,
   Controller,
   Delete,
   Get,
@@ -7,6 +8,7 @@ import {
   Post,
   Put,
   Query,
+  UseInterceptors,
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import {
@@ -19,8 +21,9 @@ import {
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserPasswordDto } from './dto/update-user-password.dto';
 import { UserDetailVo } from './vo/user-detail.vo';
-import { UpdateUseDto } from './dto/update-use.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
 import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { ResetUserPasswordDto } from './dto/reset-user-password.dto';
 
 @ApiTags('用户管理模块')
 @ApiBearerAuth()
@@ -41,6 +44,7 @@ export class UserController {
     description: '昵称',
   })
   @RequirePermission('user_view', '查看用户列表')
+  @UseInterceptors(ClassSerializerInterceptor)
   async findAllUsers(
     @Pagination() pagination: PaginationQuery,
     @Query('username') username?: string,
@@ -83,10 +87,10 @@ export class UserController {
 
   @Put('/:id')
   @RequireLogin()
-  @RequirePermission('user_update', '更新用户信息')
+  @RequirePermission('user_update', '更新用户')
   async updateUser(
     @Param('id') userId: string,
-    @Body() updateUserDto: UpdateUseDto,
+    @Body() updateUserDto: UpdateUserDto,
   ) {
     await this.adminService.updateUser(parseInt(userId), updateUserDto);
     return 'done';
@@ -111,11 +115,22 @@ export class UserController {
 
   @Post('update_password')
   @RequireLogin()
-  @RequirePermission('user_update', '更新用户密码')
+  @RequirePermission('user_update_pwd', '更新用户密码')
   async updatePassword(
     @UserInfo('userId') userId: number,
     @Body() passwordDto: UpdateUserPasswordDto,
   ) {
     return await this.adminService.updatePassword(userId, passwordDto);
+  }
+
+  @Post('reset_password')
+  @RequireLogin()
+  @RequirePermission('user_reset_pwd', '重置用户密码')
+  async resetPassword(
+    @UserInfo('userId') userId: number,
+    @UserInfo('isAdmin') isAdmin: boolean,
+    @Body() passwordDto: ResetUserPasswordDto,
+  ) {
+    return await this.adminService.resetPassword(passwordDto, userId, isAdmin);
   }
 }

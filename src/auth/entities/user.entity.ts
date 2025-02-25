@@ -31,6 +31,13 @@ export class User {
   nickname: string;
 
   @Column({
+    name: 'phone',
+    length: 11,
+    comment: '手机号',
+  })
+  phone: string;
+
+  @Column({
     length: 150,
     comment: '密码',
   })
@@ -54,11 +61,9 @@ export class User {
   isDelete: boolean;
 
   @CreateDateColumn()
-  @Exclude()
   createTime: Date;
 
   @UpdateDateColumn()
-  @Exclude()
   updateTime: Date;
 
   @ManyToMany(() => Role)
