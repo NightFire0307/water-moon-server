@@ -10,4 +10,7 @@ export class CreateLinkDto {
 
   @IsNotEmpty()
   expired_at: number;
+
+  @IsOptional()
+  access_limit?: number;
 }

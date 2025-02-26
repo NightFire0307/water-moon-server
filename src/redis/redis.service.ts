@@ -55,6 +55,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     orderNumber: string,
     shareLink: string,
     password: string,
+    access_limit: number,
     ttl: number | null,
   ) {
     const hashKey = `share_link:${orderNumber}`;
@@ -65,7 +66,11 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
       const expireAt = this.getExpireTime(ttl);
       pipeline.zadd(zsetKey, expireAt, shareLink);
     }
-    pipeline.hset(hashKey, shareLink, password);
+    pipeline.hset(
+      hashKey,
+      shareLink,
+      JSON.stringify({ password, access_limit }),
+    );
     await pipeline.exec();
   }
 

@@ -13,7 +13,6 @@ export class FormatResponseInterceptor implements NestInterceptor {
     const response: Response = context.switchToHttp().getResponse();
     return next.handle().pipe(
       map(({ data, msg }) => {
-        console.log(data);
         return {
           code: response.statusCode,
           msg: msg || '请求成功',

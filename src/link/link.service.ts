@@ -28,7 +28,7 @@ export class LinkService {
   private readonly orderRepository: Repository<Order>;
 
   async generateShareUrl(createLinkDto: CreateLinkDto) {
-    const { password, expired_at, order_id } = createLinkDto;
+    const { password, expired_at, order_id, access_limit } = createLinkDto;
     const order = await this.orderRepository.findOneBy({ id: order_id });
     if (!order)
       throw new DatabaseException(
@@ -37,6 +37,7 @@ export class LinkService {
       );
 
     const cur_time = new Date().getTime();
+    // 生成短链接
     const buffer = Buffer.from(`${order.id}_${cur_time}`, 'utf-8');
     const short_url = bs62.encode(buffer);
 
@@ -51,12 +52,11 @@ export class LinkService {
 
     const result = await this.linkRepository.save(link);
 
-    delete result.order;
-
     await this.redisService.addShareLink(
       order.order_number,
       link.share_url,
       link.share_password,
+      access_limit ?? 0,
       expired_at,
     );
 
