@@ -42,8 +42,8 @@ export class LinkService {
 
     const link = new Link();
     link.order = order;
-    link.short_url = short_url;
-    link.password = password ?? generatePassword(4);
+    link.share_url = short_url;
+    link.share_password = password ?? generatePassword(4);
     link.status = LinkStatus.ACTIVE;
     // 传递过来的时间戳是秒所以需要乘以1000
     link.expired_at = expired_at !== 0 ? new Date(expired_at * 1000) : null;
@@ -51,19 +51,17 @@ export class LinkService {
 
     const result = await this.linkRepository.save(link);
 
+    delete result.order;
+
     await this.redisService.addShareLink(
       order.order_number,
-      short_url,
-      link.password,
+      link.share_url,
+      link.share_password,
       expired_at,
     );
 
     return {
-      data: {
-        ...result,
-        share_url: result.short_url,
-        share_password: result.password,
-      },
+      data: result,
     };
   }
 

@@ -5,8 +5,8 @@ export class CreateLinkDto {
   order_id: number;
 
   @IsOptional()
-  @Length(6, 6)
-  password: string;
+  @Length(4, 6)
+  password?: string;
 
   @IsNotEmpty()
   expired_at: number;

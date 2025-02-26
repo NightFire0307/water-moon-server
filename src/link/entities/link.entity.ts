@@ -23,11 +23,11 @@ export class Link {
   @Column({
     unique: true,
   })
-  short_url: string;
+  share_url: string;
 
   // 动态链接密码
   @Column()
-  password: string;
+  share_password: string;
 
   @ManyToOne(() => Order, (order) => order.links)
   @JoinColumn({ name: 'order_id' })
