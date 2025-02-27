@@ -38,7 +38,10 @@ export class LinkService {
 
     const cur_time = new Date().getTime();
     // 生成短链接
-    const buffer = Buffer.from(`${order.id}_${cur_time}`, 'utf-8');
+    const buffer = Buffer.from(
+      `${order.id}_${order.order_number}_${cur_time}`,
+      'utf-8',
+    );
     const short_url = bs62.encode(buffer);
 
     const link = new Link();

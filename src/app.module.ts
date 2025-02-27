@@ -30,6 +30,7 @@ import { RedisModule } from './redis/redis.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { MinioModule } from './minio/minio.module';
 import { BullModule } from '@nestjs/bullmq';
+import { SelectionModule } from './selection/selection.module';
 
 @Module({
   imports: [
@@ -98,6 +99,7 @@ import { BullModule } from '@nestjs/bullmq';
     LinkModule,
     RedisModule,
     MinioModule,
+    SelectionModule,
   ],
   controllers: [AppController],
   providers: [
