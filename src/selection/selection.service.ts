@@ -75,4 +75,18 @@ export class SelectionService {
       throw new Error('Invalid short URL');
     }
   }
+
+  // 获取选片订单产品
+  async getSelectedProducts(orderId: number) {
+    const order = await this.orderRepository.findOne({
+      where: {
+        id: orderId,
+      },
+      relations: ['order_products'],
+    });
+
+    return {
+      data: order,
+    };
+  }
 }

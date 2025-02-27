@@ -4,9 +4,11 @@ import { SelectionController } from './selection.controller';
 import { RedisModule } from '../redis/redis.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Order } from '../order/entities/order.entity';
+import { Product } from '../product/entities/product.entity';
+import { Photo } from '../photo/entities/photo.entity';
 
 @Module({
-  imports: [RedisModule, TypeOrmModule.forFeature([Order])],
+  imports: [RedisModule, TypeOrmModule.forFeature([Order, Product, Photo])],
   controllers: [SelectionController],
   providers: [SelectionService],
 })

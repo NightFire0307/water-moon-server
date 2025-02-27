@@ -30,6 +30,17 @@ export const UserInfo = createParamDecorator(
   },
 );
 
+// 从Token中获取选片订单信息
+export const OrderInfo = createParamDecorator(
+  (data: string, ctx: ExecutionContext) => {
+    const request: Request = ctx.switchToHttp().getRequest();
+
+    if (!request.orderInfo) return null;
+
+    return data ? request.orderInfo[data] : request.orderInfo;
+  },
+);
+
 export interface PaginationQuery {
   current: number;
   pageSize: number;
