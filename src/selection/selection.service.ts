@@ -78,12 +78,13 @@ export class SelectionService {
 
   // 获取选片订单产品
   async getSelectedProducts(orderId: number) {
-    const order = await this.orderRepository.findOne({
-      where: {
-        id: orderId,
-      },
-      relations: ['order_products'],
-    });
+    const order = await this.orderRepository
+      .createQueryBuilder('order')
+      .leftJoinAndSelect('order.order_products', 'order_products')
+      .leftJoinAndSelect('order_products.product', 'product')
+      .leftJoinAndSelect('order_products.selected_photos', 'selected_photos')
+      .where('order.id = :orderId', { orderId })
+      .getOne();
 
     return {
       data: order,

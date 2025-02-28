@@ -17,7 +17,7 @@ import { OrderInfo } from '../common/custom.decorator';
 export class SelectionController {
   constructor(private readonly selectionService: SelectionService) {}
 
-  @Post('validate')
+  @Post('login')
   async validateSelection(
     @Body() selectionDto: SelectionDto,
     @Res({ passthrough: true })
