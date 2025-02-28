@@ -34,7 +34,7 @@ export class Photo {
   // 产品关联照片
   @ManyToMany(() => Product, (product) => product.id, { nullable: true })
   @JoinTable({ name: 'photo_marked_products' })
-  marked_products: Product[]; // 标记制作的产品，可为空
+  marked_products: Product[];
 
   @Column({ default: false })
   is_selected: boolean; // 是否被选中

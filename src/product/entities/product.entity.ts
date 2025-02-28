@@ -7,6 +7,8 @@ import {
   UpdateDateColumn,
   OneToMany,
   ManyToMany,
+  JoinColumn,
+  JoinTable,
 } from 'typeorm';
 import { ProductType } from './productType.entity';
 import { OrderProduct } from '../../order/entities/orderProduct.entity';
@@ -23,17 +25,21 @@ export class Product {
 
   // 关联产品类型
   @ManyToOne(() => ProductType)
-  type: ProductType;
+  product_type: ProductType;
 
   // 关联订单产品
   @OneToMany(() => OrderProduct, (orderProduct) => orderProduct.product, {
     cascade: true,
   })
+  @JoinColumn({ name: 'order_products' })
   order_products: OrderProduct[];
 
   // 关联照片
   @ManyToMany(() => Photo, (photo) => photo.marked_products)
-  photos: Photo[];
+  @JoinTable({
+    name: 'photo_marked_products',
+  })
+  select_photos: Photo[];
 
   @CreateDateColumn()
   createdAt: Date;

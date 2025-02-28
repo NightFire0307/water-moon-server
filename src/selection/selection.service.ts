@@ -82,12 +82,34 @@ export class SelectionService {
       .createQueryBuilder('order')
       .leftJoinAndSelect('order.order_products', 'order_products')
       .leftJoinAndSelect('order_products.product', 'product')
-      .leftJoinAndSelect('order_products.selected_photos', 'selected_photos')
+      .leftJoinAndSelect('product.select_photos', 'select_photos')
       .where('order.id = :orderId', { orderId })
+      .select([
+        'order.id',
+        'order.order_number',
+        'order.customer_name',
+        'order.customer_phone',
+        'order.status',
+        'order_products',
+        'product.id',
+        'product.name',
+        'select_photos.id',
+      ])
       .getOne();
 
     return {
-      data: order,
+      data: {
+        ...order,
+        order_products: order.order_products.map((orderProduct) => ({
+          ...orderProduct,
+          product: {
+            ...orderProduct.product,
+            select_photos: orderProduct.product.select_photos.map(
+              (photo) => photo.id,
+            ), // 提取 select_photos 的 id
+          },
+        })),
+      },
     };
   }
 }

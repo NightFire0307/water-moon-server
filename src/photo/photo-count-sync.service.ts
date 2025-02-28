@@ -25,12 +25,12 @@ export class PhotoCountSyncService {
       const order = await this.orderRepository.findOne({
         where: { order_number },
       });
-      if (order) {
-        await this.orderRepository.update(
-          { order_number },
-          { total_photos: order.total_photos + Number(count) },
-        );
-      }
+      // if (order) {
+      //   await this.orderRepository.update(
+      //     { order_number },
+      //     { total_photos: order.total_photos + Number(count) },
+      //   );
+      // }
 
       await this.redisClient.del(key);
       console.log('同步订单号为', order_number, '的照片数量为', count);

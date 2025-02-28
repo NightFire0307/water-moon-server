@@ -258,28 +258,28 @@ export class OrderService {
     return '订单删除成功';
   }
 
-  async updateOrderPhotoCount(
-    orderId: number,
-    photoCount: number,
-    operation: 'add' | 'subtract',
-  ) {
-    const order = await this.orderRepository.findOneBy({ id: orderId });
-
-    if (!order)
-      throw new DatabaseException(
-        DatabaseErrorType.DATA_NOT_FOUND,
-        '订单不存在',
-      );
-
-    if (operation === 'add') order.total_photos += photoCount;
-    else if (operation === 'subtract') {
-      if (order.total_photos < photoCount) {
-        order.total_photos = 0;
-      }
-      order.total_photos -= photoCount;
-    }
-    await this.orderRepository.save(order);
-  }
+  // async updateOrderPhotoCount(
+  //   orderId: number,
+  //   photoCount: number,
+  //   operation: 'add' | 'subtract',
+  // ) {
+  //   const order = await this.orderRepository.findOneBy({ id: orderId });
+  //
+  //   if (!order)
+  //     throw new DatabaseException(
+  //       DatabaseErrorType.DATA_NOT_FOUND,
+  //       '订单不存在',
+  //     );
+  //
+  //   if (operation === 'add') order.total_photos += photoCount;
+  //   else if (operation === 'subtract') {
+  //     if (order.total_photos < photoCount) {
+  //       order.total_photos = 0;
+  //     }
+  //     order.total_photos -= photoCount;
+  //   }
+  //   await this.orderRepository.save(order);
+  // }
 
   // 重置订单状态
   async resetOrderStatus(

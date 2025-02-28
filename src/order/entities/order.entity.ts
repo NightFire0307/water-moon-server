@@ -29,14 +29,16 @@ export class Order {
   @Column()
   order_number: string;
 
+  // 客户姓名
   @Column()
   customer_name: string;
 
+  // 客户电话
   @Column()
   customer_phone: string;
 
   @OneToMany(() => Photo, (photo) => photo.order)
-  @JoinColumn()
+  @JoinColumn({ name: 'order_photos' })
   photos: Photo[];
 
   @OneToMany(() => OrderProduct, (orderProduct) => orderProduct.order, {
@@ -45,19 +47,13 @@ export class Order {
   order_products: OrderProduct[];
 
   @Column({ type: 'int', default: 0 })
-  select_photos: number; // 已选照片数
-
-  @Column({ type: 'int', default: 0 })
-  total_photos: number; // 总照片数
-
-  @Column({ type: 'int', default: 0 })
   max_select_photos: number; // 最多可选照片数
 
   @Column({ type: 'float', default: 0 })
   extra_photo_price: number; // 超出照片的单张价格
 
-  @Column({ type: 'int', default: 0 })
-  status: number; // 订单状态，如：未开始、进行中、已完成
+  @Column({ type: 'enum', enum: OrderStatus, default: OrderStatus.NOT_STARTED })
+  status: OrderStatus; // 订单状态，如：未开始、进行中、已完成
 
   // 订单外链
   @OneToMany(() => Link, (link) => link.order, {

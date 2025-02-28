@@ -34,7 +34,7 @@ export class ProductService {
       where: whereCondition,
       skip: (pagination.current - 1) * pagination.pageSize,
       take: pagination.pageSize,
-      relations: ['type'],
+      relations: ['product_type'],
     });
 
     return {
@@ -63,13 +63,13 @@ export class ProductService {
   async createProduct(createProductDto: CreateProductDto) {
     const product = new Product();
     product.name = createProductDto.name;
-    product.type = await this.productTypeRepository.findOne({
+    product.product_type = await this.productTypeRepository.findOne({
       where: {
         id: createProductDto.productTypeId,
       },
     });
 
-    if (!product.type) return '产品类型不存在';
+    if (!product.product_type) return '产品类型不存在';
     return this.productRepository.save(product);
   }
 
@@ -83,13 +83,13 @@ export class ProductService {
     if (!product) return '产品不存在';
 
     product.name = updateProductDto.name;
-    product.type = await this.productTypeRepository.findOne({
+    product.product_type = await this.productTypeRepository.findOne({
       where: {
         id: updateProductDto.productTypeId,
       },
     });
 
-    if (!product.type) return '产品类型不存在';
+    if (!product.product_type) return '产品类型不存在';
 
     try {
       await this.productRepository.save(product);

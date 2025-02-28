@@ -18,7 +18,7 @@ export class ProductType {
   name: string;
 
   // 产品类型下的产品
-  @OneToMany(() => Product, (product) => product.type, {
+  @OneToMany(() => Product, (product) => product.product_type, {
     cascade: true,
   })
   products: Product[];
