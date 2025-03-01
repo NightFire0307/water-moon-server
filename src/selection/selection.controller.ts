@@ -3,7 +3,9 @@ import {
   Body,
   Controller,
   Get,
+  Param,
   Post,
+  Put,
   Res,
   UseGuards,
 } from '@nestjs/common';
@@ -12,13 +14,13 @@ import { SelectionLoginDto } from './dto/selection-login.dto';
 import { Response } from 'express';
 import { SelectTokenGuard } from '../common/select-token.guard';
 import { OrderInfo } from '../common/custom.decorator';
-import { SelectionCheckLoginDto } from './dto/selection-check-login.dto';
 
 @Controller('selection')
 export class SelectionController {
   constructor(private readonly selectionService: SelectionService) {}
 
-  @Post('login')
+  // 校验短链和密码
+  @Post('validate')
   async validateSelection(
     @Body() selectionLogin: SelectionLoginDto,
     @Res({ passthrough: true })
@@ -45,18 +47,42 @@ export class SelectionController {
     };
   }
 
-  @Post('check-login')
+  @Get(':short_url')
   @UseGuards(SelectTokenGuard)
-  async checkLogin(@Body() checkLoginDto: SelectionCheckLoginDto) {
-    const { short_url } = checkLoginDto;
-    // TODO 校验短链是否有效
-    this.selectionService.verifyShortUrl(short_url);
-    return { data: 'ok' };
-  }
+  async getSelectedProducts(
+    @Param('short_url') short_url: string,
+    @OrderInfo('orderId') orderId: number,
+  ) {
+    this.validateShortUrl(short_url, orderId);
 
-  @Get('products')
-  @UseGuards(SelectTokenGuard)
-  async getSelectedProducts(@OrderInfo('orderId') orderId: number) {
     return await this.selectionService.getSelectedProducts(orderId);
   }
+
+  @Get('photos/:short_url')
+  @UseGuards(SelectTokenGuard)
+  async getSelectedPhotos(
+    @Param('short_url') short_url: string,
+    @OrderInfo('orderId') orderId: number,
+  ) {
+    this.validateShortUrl(short_url, orderId);
+    return await this.selectionService.getSelectedPhotos(orderId);
+  }
+
+  // 校验短链和订单号是否匹配
+  private validateShortUrl(short_url: string, orderId: number) {
+    const decodedOrderId = this.selectionService.decodeOrderId(short_url);
+    if (decodedOrderId !== orderId.toString()) {
+      throw new BadRequestException('无效的短链');
+    }
+  }
+
+  // 更新照片选择
+  @Put('photos/:short_url')
+  @UseGuards(SelectTokenGuard)
+  updateSelectedPhotos() {}
+
+  // 提交选片结果
+  @Post('submit/:short_url')
+  @UseGuards(SelectTokenGuard)
+  submitSelection() {}
 }

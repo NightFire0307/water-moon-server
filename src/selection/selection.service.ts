@@ -37,7 +37,7 @@ export class SelectionService {
         '订单不存在',
       );
 
-    // 校验Redis
+    // 校验Redis中的链接密码
     const sharedLink = await this.redisClient.hget(
       `share_link:${order.order_number}`,
       short_url,
@@ -61,7 +61,11 @@ export class SelectionService {
     };
   }
 
-  // 解码短链获取订单ID
+  /**
+   * 解码短链
+   * @param short_url
+   * @return 订单号
+   */
   decodeOrderId(short_url: string): string {
     const BASE62 =
       '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
@@ -113,9 +117,6 @@ export class SelectionService {
     };
   }
 
-  // 校验短链
-  verifyShortUrl(short_url: string) {
-    const orderId = this.decodeOrderId(short_url);
-    if (isNaN(Number(orderId))) throw new BadRequestException('无效的短链');
-  }
+  // 获取选片订单照片
+  async getSelectedPhotos(orderId: number) {}
 }
