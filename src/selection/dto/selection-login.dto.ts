@@ -1,6 +1,6 @@
 import { IsString } from 'class-validator';
 
-export class SelectionDto {
+export class SelectionLoginDto {
   @IsString()
   short_url: string;
 

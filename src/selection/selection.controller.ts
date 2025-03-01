@@ -8,10 +8,11 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { SelectionService } from './selection.service';
-import { SelectionDto } from './dto/selection.dto';
+import { SelectionLoginDto } from './dto/selection-login.dto';
 import { Response } from 'express';
 import { SelectTokenGuard } from '../common/select-token.guard';
 import { OrderInfo } from '../common/custom.decorator';
+import { SelectionCheckLoginDto } from './dto/selection-check-login.dto';
 
 @Controller('selection')
 export class SelectionController {
@@ -19,17 +20,19 @@ export class SelectionController {
 
   @Post('login')
   async validateSelection(
-    @Body() selectionDto: SelectionDto,
+    @Body() selectionLogin: SelectionLoginDto,
     @Res({ passthrough: true })
     response: Response,
   ) {
-    const orderId = this.selectionService.decodeOrderId(selectionDto.short_url);
+    const orderId = this.selectionService.decodeOrderId(
+      selectionLogin.short_url,
+    );
     if (isNaN(Number(orderId))) throw new BadRequestException('无效的短链');
 
     const { access_token, refresh_token } =
       await this.selectionService.validateLinkAndPassword(
         +orderId,
-        selectionDto,
+        selectionLogin,
       );
 
     response.cookie('selection_refresh_token', refresh_token, {
@@ -40,6 +43,15 @@ export class SelectionController {
         access_token,
       },
     };
+  }
+
+  @Post('check-login')
+  @UseGuards(SelectTokenGuard)
+  async checkLogin(@Body() checkLoginDto: SelectionCheckLoginDto) {
+    const { short_url } = checkLoginDto;
+    // TODO 校验短链是否有效
+    this.selectionService.verifyShortUrl(short_url);
+    return { data: 'ok' };
   }
 
   @Get('products')

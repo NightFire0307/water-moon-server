@@ -8,7 +8,7 @@ import {
   DatabaseErrorType,
   DatabaseException,
 } from '../common/database-exception.filter';
-import { SelectionDto } from './dto/selection.dto';
+import { SelectionLoginDto } from './dto/selection-login.dto';
 import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
@@ -25,7 +25,7 @@ export class SelectionService {
   // 校验短链和密码
   async validateLinkAndPassword(
     orderId: number,
-    { short_url, password }: SelectionDto,
+    { short_url, password }: SelectionLoginDto,
   ) {
     const order = await this.orderRepository.findOne({
       where: { id: orderId },
@@ -111,5 +111,11 @@ export class SelectionService {
         })),
       },
     };
+  }
+
+  // 校验短链
+  verifyShortUrl(short_url: string) {
+    const orderId = this.decodeOrderId(short_url);
+    if (isNaN(Number(orderId))) throw new BadRequestException('无效的短链');
   }
 }
