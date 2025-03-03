@@ -3,7 +3,6 @@ import {
   Body,
   Controller,
   Get,
-  Param,
   Post,
   Put,
   Res,
@@ -12,8 +11,8 @@ import {
 import { SelectionService } from './selection.service';
 import { SelectionLoginDto } from './dto/selection-login.dto';
 import { Response } from 'express';
-import { SelectTokenGuard } from '../common/select-token.guard';
 import { OrderInfo } from '../common/custom.decorator';
+import { ValidLinkAndToken } from './validLinkAndToken.guard';
 
 @Controller('selection')
 export class SelectionController {
@@ -47,42 +46,23 @@ export class SelectionController {
     };
   }
 
-  @Get(':short_url')
-  @UseGuards(SelectTokenGuard)
-  async getSelectedProducts(
-    @Param('short_url') short_url: string,
-    @OrderInfo('orderId') orderId: number,
-  ) {
-    this.validateShortUrl(short_url, orderId);
-
+  @Get('products/:short_url')
+  @UseGuards(ValidLinkAndToken)
+  async getSelectedProducts(@OrderInfo('orderId') orderId: number) {
     return await this.selectionService.getSelectedProducts(orderId);
   }
 
   @Get('photos/:short_url')
-  @UseGuards(SelectTokenGuard)
-  async getSelectedPhotos(
-    @Param('short_url') short_url: string,
-    @OrderInfo('orderId') orderId: number,
-  ) {
-    this.validateShortUrl(short_url, orderId);
+  @UseGuards(ValidLinkAndToken)
+  async getSelectedPhotos(@OrderInfo('orderId') orderId: number) {
     return await this.selectionService.getSelectedPhotos(orderId);
-  }
-
-  // 校验短链和订单号是否匹配
-  private validateShortUrl(short_url: string, orderId: number) {
-    const decodedOrderId = this.selectionService.decodeOrderId(short_url);
-    if (decodedOrderId !== orderId.toString()) {
-      throw new BadRequestException('无效的短链');
-    }
   }
 
   // 更新照片选择
   @Put('photos/:short_url')
-  @UseGuards(SelectTokenGuard)
   updateSelectedPhotos() {}
 
   // 提交选片结果
   @Post('submit/:short_url')
-  @UseGuards(SelectTokenGuard)
   submitSelection() {}
 }

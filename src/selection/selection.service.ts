@@ -101,6 +101,12 @@ export class SelectionService {
       ])
       .getOne();
 
+    if (!order)
+      throw new DatabaseException(
+        DatabaseErrorType.DATA_NOT_FOUND,
+        '订单不存在',
+      );
+
     return {
       data: {
         ...order,
