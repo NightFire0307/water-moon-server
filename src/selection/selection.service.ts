@@ -10,6 +10,7 @@ import {
 } from '../common/database-exception.filter';
 import { SelectionLoginDto } from './dto/selection-login.dto';
 import { JwtService } from '@nestjs/jwt';
+import { SelectionPhotosUpdate } from './dto/selection-photos-update.dto';
 
 @Injectable()
 export class SelectionService {
@@ -123,6 +124,9 @@ export class SelectionService {
     };
   }
 
-  // 获取选片订单照片
+  // 获取选片订单所有照片
   async getSelectedPhotos(orderId: number) {}
+
+  // 更新产品照片
+  async updateSelectedPhotos(selectedPhotos: SelectionPhotosUpdate) {}
 }

@@ -15,6 +15,7 @@ import { Response } from 'express';
 import { OrderInfo } from '../common/custom.decorator';
 import { CustomLogin } from './guard/custom-login.guard';
 import { VerifySurl } from './guard/verify-surl.guard';
+import { SelectionPhotosUpdate } from './dto/selection-photos-update.dto';
 
 @Controller('selection')
 export class SelectionController {
@@ -71,7 +72,11 @@ export class SelectionController {
 
   // 更新照片选择
   @Put('photos/:short_url')
-  updateSelectedPhotos() {}
+  @UseGuards(CustomLogin, VerifySurl)
+  async updateSelectedPhotos(@Body() selectedPhotos: SelectionPhotosUpdate) {
+    await this.selectionService.updateSelectedPhotos(selectedPhotos);
+    return { data: 'done' };
+  }
 
   // 提交选片结果
   @Post('submit/:short_url')
