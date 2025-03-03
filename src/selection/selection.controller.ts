@@ -3,6 +3,7 @@ import {
   Body,
   Controller,
   Get,
+  HttpCode,
   Post,
   Put,
   Res,
@@ -12,7 +13,8 @@ import { SelectionService } from './selection.service';
 import { SelectionLoginDto } from './dto/selection-login.dto';
 import { Response } from 'express';
 import { OrderInfo } from '../common/custom.decorator';
-import { ValidLinkAndToken } from './validLinkAndToken.guard';
+import { CustomLogin } from './guard/custom-login.guard';
+import { VerifySurl } from './guard/verify-surl.guard';
 
 @Controller('selection')
 export class SelectionController {
@@ -20,6 +22,7 @@ export class SelectionController {
 
   // 校验短链和密码
   @Post('validate')
+  @HttpCode(200)
   async validateSelection(
     @Body() selectionLogin: SelectionLoginDto,
     @Res({ passthrough: true })
@@ -38,7 +41,9 @@ export class SelectionController {
 
     response.cookie('selection_refresh_token', refresh_token, {
       maxAge: 30 * 24 * 60 * 60 * 1000,
+      httpOnly: true,
     });
+
     return {
       data: {
         access_token,
@@ -46,14 +51,20 @@ export class SelectionController {
     };
   }
 
+  @Post('verify/:short_url')
+  @UseGuards(CustomLogin, VerifySurl)
+  @HttpCode(200)
+  verifyShortLinkAndToken(@OrderInfo('orderId') orderId: number) {
+    return { data: { orderId } };
+  }
+
   @Get('products/:short_url')
-  @UseGuards(ValidLinkAndToken)
+  @UseGuards(CustomLogin, VerifySurl)
   async getSelectedProducts(@OrderInfo('orderId') orderId: number) {
     return await this.selectionService.getSelectedProducts(orderId);
   }
 
   @Get('photos/:short_url')
-  @UseGuards(ValidLinkAndToken)
   async getSelectedPhotos(@OrderInfo('orderId') orderId: number) {
     return await this.selectionService.getSelectedPhotos(orderId);
   }
