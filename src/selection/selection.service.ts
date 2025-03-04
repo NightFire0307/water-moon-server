@@ -125,8 +125,56 @@ export class SelectionService {
   }
 
   // 获取选片订单所有照片
-  async getSelectedPhotos(orderId: number) {}
+  async getSelectedPhotos(orderId: number) {
+    const order = await this.findOrderById(orderId);
+    const result = [];
+
+    const photos = await this.redisClient.hgetall(
+      `photos_url:${order.order_number}`,
+    );
+
+    for (const key in photos) {
+      const value = photos[key];
+      result.push({
+        id: Number(key),
+        ...JSON.parse(value),
+      });
+    }
+
+    return {
+      data: result,
+    };
+  }
 
   // 更新产品照片
   async updateSelectedPhotos(selectedPhotos: SelectionPhotosUpdate) {}
+
+  // 刷新access_token
+  async refreshToken(refreshToken: string, surl: string) {
+    console.log(refreshToken);
+    try {
+      const data = await this.jwtService.verifyAsync(refreshToken);
+      return {
+        data: {
+          access_token: await this.jwtService.signAsync(
+            { orderId: data.orderId, short_url: surl },
+            { expiresIn: '2h' },
+          ),
+        },
+      };
+    } catch {
+      throw new BadRequestException('无效的 refresh token');
+    }
+  }
+
+  // 查找订单
+  private async findOrderById(id: number) {
+    const order = await this.orderRepository.findOneBy({ id });
+    if (!order)
+      throw new DatabaseException(
+        DatabaseErrorType.DATA_NOT_FOUND,
+        '订单不存在',
+      );
+    return order;
+  }
 }
