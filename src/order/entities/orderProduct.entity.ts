@@ -31,4 +31,8 @@ export class OrderProduct {
   // 是否可以超过指定照片数量
   @Column({ type: 'boolean', default: false })
   allow_extra_photos: boolean;
+
+  // 备注
+  @Column({ type: 'text', nullable: true })
+  remark: string;
 }

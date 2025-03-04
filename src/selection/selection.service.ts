@@ -87,6 +87,7 @@ export class SelectionService {
       .createQueryBuilder('order')
       .leftJoinAndSelect('order.order_products', 'order_products')
       .leftJoinAndSelect('order_products.product', 'product')
+      .leftJoinAndSelect('product.product_type', 'product_type')
       .leftJoinAndSelect('product.select_photos', 'select_photos')
       .where('order.id = :orderId', { orderId })
       .select([
@@ -98,8 +99,10 @@ export class SelectionService {
         'order_products',
         'product.id',
         'product.name',
+        'product_type.name',
         'select_photos.id',
       ])
+      .cache(true)
       .getOne();
 
     if (!order)
