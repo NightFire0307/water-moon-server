@@ -5,8 +5,8 @@ import {
   Get,
   HttpCode,
   Param,
+  Patch,
   Post,
-  Put,
   Req,
   Res,
   UseGuards,
@@ -24,7 +24,7 @@ export class SelectionController {
   constructor(private readonly selectionService: SelectionService) {}
 
   // 校验短链和密码
-  @Post('validate')
+  @Post('auth')
   @HttpCode(200)
   async validateSelection(
     @Body() selectionLogin: SelectionLoginDto,
@@ -54,44 +54,47 @@ export class SelectionController {
     };
   }
 
-  @Post('verify/:short_url')
+  @Post('auth/verify/:short_url')
   @UseGuards(CustomLogin, VerifySurl)
   @HttpCode(200)
-  verifyShortLinkAndToken(@OrderInfo('orderId') orderId: number) {
+  verifyToken(@OrderInfo('orderId') orderId: number) {
     return { data: { orderId } };
   }
 
-  @Get('products/:short_url')
-  @UseGuards(CustomLogin, VerifySurl)
-  async getSelectedProducts(@OrderInfo('orderId') orderId: number) {
-    return await this.selectionService.getSelectedProducts(orderId);
-  }
-
-  // 获取选片照片
-  @Get('photos')
-  @UseGuards(CustomLogin)
-  async getSelectedPhotos(@OrderInfo('orderId') orderId: number) {
-    return await this.selectionService.getSelectedPhotos(orderId);
-  }
-
-  // 更新照片选择
-  @Put('photos')
-  @UseGuards(CustomLogin, VerifySurl)
-  async updateSelectedPhotos(@Body() selectedPhotos: SelectionPhotosUpdate) {
-    await this.selectionService.updateSelectedPhotos(selectedPhotos);
-    return { data: 'done' };
-  }
-
-  // 提交选片结果
-  @Post('submit/:short_url')
-  submitSelection() {}
-
   // 刷新access_token
-  @Post('refresh/:short_url')
+  @Post('auth/refresh/:short_url')
   async refreshToken(@Param() surl: string, @Req() request: Request) {
     const refreshToken: string | undefined =
       request.cookies['selection_refresh_token'];
     if (!refreshToken) throw new BadRequestException('无效的 refresh token');
     return await this.selectionService.refreshToken(refreshToken, surl);
   }
+
+  @Get(':short_url/products')
+  @UseGuards(CustomLogin, VerifySurl)
+  async getProducts(@OrderInfo('orderId') orderId: number) {
+    return await this.selectionService.getSelectedProducts(orderId);
+  }
+
+  // 获取选片照片
+  @Get('photos')
+  @UseGuards(CustomLogin)
+  async getPhotos(@OrderInfo('orderId') orderId: number) {
+    return await this.selectionService.getSelectedPhotos(orderId);
+  }
+
+  // 更新照片选择
+  @Patch('photos')
+  @UseGuards(CustomLogin)
+  async updatePhotos(
+    @OrderInfo('orderId') orderId: number,
+    @Body() selectedPhotos: SelectionPhotosUpdate,
+  ) {
+    await this.selectionService.updateSelectedPhotos(orderId, selectedPhotos);
+    return { data: 'done' };
+  }
+
+  // 提交选片结果
+  @Post(':short_url/submit')
+  submitSelection() {}
 }

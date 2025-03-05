@@ -35,7 +35,9 @@ export class Product {
   order_products: OrderProduct[];
 
   // 关联照片
-  @ManyToMany(() => Photo, (photo) => photo.marked_products)
+  @ManyToMany(() => Photo, (photo) => photo.marked_products, {
+    cascade: true,
+  })
   @JoinTable({
     name: 'photo_marked_products',
   })

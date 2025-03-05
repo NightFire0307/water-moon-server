@@ -3,7 +3,7 @@ import basex from 'base-x';
 import { Redis } from 'ioredis';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Order } from '../order/entities/order.entity';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import {
   DatabaseErrorType,
   DatabaseException,
@@ -11,6 +11,8 @@ import {
 import { SelectionLoginDto } from './dto/selection-login.dto';
 import { JwtService } from '@nestjs/jwt';
 import { SelectionPhotosUpdate } from './dto/selection-photos-update.dto';
+import { Photo } from '../photo/entities/photo.entity';
+import { Product } from '../product/entities/product.entity';
 
 @Injectable()
 export class SelectionService {
@@ -22,6 +24,12 @@ export class SelectionService {
 
   @InjectRepository(Order)
   private readonly orderRepository: Repository<Order>;
+
+  @InjectRepository(Product)
+  private readonly productRepository: Repository<Product>;
+
+  @InjectRepository(Photo)
+  private readonly photoRepository: Repository<Photo>;
 
   // 校验短链和密码
   async validateLinkAndPassword(
@@ -150,7 +158,40 @@ export class SelectionService {
   }
 
   // 更新产品照片
-  async updateSelectedPhotos(selectedPhotos: SelectionPhotosUpdate) {}
+  async updateSelectedPhotos(
+    orderId: number,
+    selectedPhotos: SelectionPhotosUpdate,
+  ) {
+    const { productId, photoIds } = selectedPhotos;
+
+    // 1️⃣ 查询 Order 及其关联的 OrderProduct -> Product -> select_photos
+    const order = await this.orderRepository.findOne({
+      where: { id: orderId },
+      relations: [
+        'order_products',
+        'order_products.product',
+        'order_products.product.select_photos',
+      ],
+    });
+
+    if (!order) throw new Error('Order not found');
+
+    // 2️⃣ 查找需要关联的 Photo 实体
+    const photoEntities = await this.photoRepository.find({
+      where: { id: In(photoIds) },
+    });
+
+    // 3️⃣ 遍历 OrderProduct，找到匹配的 Product 进行更新
+    for (const orderProduct of order.order_products) {
+      if (orderProduct.product.id === productId) {
+        orderProduct.product.select_photos = photoEntities;
+        await this.productRepository.save(orderProduct.product); // 直接保存 Product
+        break;
+      }
+    }
+
+    return 'ok';
+  }
 
   // 刷新access_token
   async refreshToken(refreshToken: string, surl: string) {

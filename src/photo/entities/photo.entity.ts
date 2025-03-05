@@ -32,7 +32,9 @@ export class Photo {
   order: Order;
 
   // 产品关联照片
-  @ManyToMany(() => Product, (product) => product.id, { nullable: true })
+  @ManyToMany(() => Product, (product) => product.id, {
+    nullable: true,
+  })
   @JoinTable({ name: 'photo_marked_products' })
   marked_products: Product[];
 
@@ -44,6 +46,9 @@ export class Photo {
 
   @Column({ type: 'boolean', default: false })
   is_deleted: boolean; // 是否删除
+
+  @Column({ default: '' })
+  remark: string;
 
   @CreateDateColumn()
   created_at: Date;
