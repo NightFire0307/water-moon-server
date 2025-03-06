@@ -2,7 +2,7 @@ import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import basex from 'base-x';
 import { Redis } from 'ioredis';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Order } from '../order/entities/order.entity';
+import { Order, OrderStatus } from '../order/entities/order.entity';
 import { In, Repository } from 'typeorm';
 import {
   DatabaseErrorType,
@@ -10,10 +10,10 @@ import {
 } from '../common/database-exception.filter';
 import { SelectionLoginDto } from './dto/selection-login.dto';
 import { JwtService } from '@nestjs/jwt';
-import { SelectionPhotosUpdate } from './dto/selection-photos-update.dto';
 import { Photo } from '../photo/entities/photo.entity';
 import { Product } from '../product/entities/product.entity';
 import { OrderProduct } from '../order/entities/orderProduct.entity';
+import { ProductPhotoSelectionDto } from './dto/selection-photos-update.dto';
 
 @Injectable()
 export class SelectionService {
@@ -88,7 +88,7 @@ export class SelectionService {
       const decodedUrl = bs62.decode(short_url);
       const textDecoder = new TextDecoder('utf-8');
       return textDecoder.decode(decodedUrl).split('_')[0];
-    } catch (e) {
+    } catch {
       throw new Error('Invalid short URL');
     }
   }
@@ -161,16 +161,21 @@ export class SelectionService {
     };
   }
 
-  // 更新产品照片
+  // 批量更新产品照片
   async updateSelectedPhotos(
     orderId: number,
-    selectedPhotos: SelectionPhotosUpdate,
+    selectedPhotos: ProductPhotoSelectionDto[],
   ) {
-    const { orderProductId, photoIds } = selectedPhotos;
+    // 验证订单存在
+    await this.findOrderById(orderId);
 
-    const orderProduct = await this.orderProductRepository.findOne({
+    // 获取所有需要更新的产品ID列表
+    const orderProductIds = selectedPhotos.map((item) => item.orderProductId);
+
+    // 批量获取所有的订单产品
+    const orderProducts = await this.orderProductRepository.find({
       where: {
-        id: orderProductId,
+        id: In(orderProductIds),
         order: {
           id: orderId,
         },
@@ -178,46 +183,82 @@ export class SelectionService {
       relations: ['product'],
     });
 
-    if (!orderProduct)
+    if (orderProducts.length !== orderProductIds.length) {
       throw new DatabaseException(
         DatabaseErrorType.DATA_NOT_FOUND,
-        '订单产品不存在',
+        '部分订单产品不存在',
       );
-
-    const product = await this.productRepository.findOne({
-      where: {
-        id: orderProduct.product.id,
-      },
-      relations: ['select_photos'],
-      select: ['id', 'name', 'select_photos'],
-    });
-
-    if (!product)
-      throw new DatabaseException(
-        DatabaseErrorType.DATA_NOT_FOUND,
-        '产品不存在',
-      );
-
-    const photos = await this.photoRepository.find({
-      where: {
-        id: In(photoIds),
-      },
-    });
-
-    if (photos.length !== photoIds.length) {
-      throw new BadRequestException('部分照片ID无');
     }
 
-    product.select_photos = photos;
+    // 创建产品ID到orderProduct的映射，方便快速查找
+    const orderProductMap = new Map(
+      orderProducts.map((orderProduct) => [orderProduct.id, orderProduct]),
+    );
 
-    await this.productRepository.save(product);
+    // 收集所有照片ID用于批量查询
+    const allPhotoIds = selectedPhotos.reduce((ids, item) => {
+      return [...ids, ...item.photoIds];
+    }, []);
 
-    return {
-      data: {
-        ...product,
-        select_photos: product.select_photos.map((photo) => photo.id),
+    // 批量获取所有照片
+    const allPhotos = await this.photoRepository.find({
+      where: {
+        id: In(allPhotoIds),
       },
-    };
+    });
+
+    if (allPhotos.length !== new Set(allPhotoIds).size) {
+      throw new BadRequestException('部分照片ID不存在');
+    }
+
+    // 创建照片ID到照片实体的映射
+    const photoMap = new Map(allPhotos.map((photo) => [photo.id, photo]));
+
+    // 使用事务来确保数据一致性
+    return this.productRepository.manager.transaction(
+      async (transactionalEntityManager) => {
+        // 批量更新结果
+        const results = [];
+
+        // 逐个处理每个产品的照片更新
+        for (const item of selectedPhotos) {
+          const orderProduct = orderProductMap.get(item.orderProductId);
+
+          const product = await transactionalEntityManager.findOne(Product, {
+            where: {
+              id: orderProduct.product.id,
+            },
+            relations: ['select_photos'],
+            select: ['id', 'name', 'select_photos'],
+          });
+
+          if (!product) {
+            throw new DatabaseException(
+              DatabaseErrorType.DATA_NOT_FOUND,
+              `产品ID ${orderProduct.product.id} 不存在`,
+            );
+          }
+
+          // 映射照片ID到照片实体
+          const photos = item.photoIds.map((id) => photoMap.get(id));
+
+          // 更新产品关联的照片
+          product.select_photos = photos;
+
+          // 保存更新后的产品
+          await transactionalEntityManager.save(product);
+
+          results.push({
+            ...product,
+            select_photos: product.select_photos.map((photo) => photo.id),
+          });
+        }
+
+        return {
+          data: results,
+        };
+      },
+    );
   }
 
   // 刷新access_token
@@ -247,5 +288,22 @@ export class SelectionService {
         '订单不存在',
       );
     return order;
+  }
+
+  // 锁定选片结果
+  async submitOrder(orderId: number) {
+    const order = await this.findOrderById(orderId);
+
+    if (order.status === OrderStatus.IN_PROGRESS) {
+      order.status = OrderStatus.SUBMITTED;
+      await this.orderRepository.save(order);
+      return {
+        data: {
+          ...order,
+        },
+      };
+    }
+
+    throw new BadRequestException('当前订单状态不允许锁定');
   }
 }

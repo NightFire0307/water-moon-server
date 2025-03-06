@@ -296,7 +296,7 @@ export class OrderService {
       );
 
     if (order.status === OrderStatus.SUBMITTED) {
-      order.status = OrderStatus.NOT_STARTED;
+      order.status = OrderStatus.PENDING;
       await this.orderRepository.save(order);
 
       // TODO 重置订单状态后，需要删除选片结果
