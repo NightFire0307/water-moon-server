@@ -95,48 +95,48 @@ export class SelectionService {
 
   // 获取选片订单产品
   async getSelectedProducts(orderId: number) {
-    const order = await this.orderRepository
-      .createQueryBuilder('order')
-      .leftJoinAndSelect('order.order_products', 'order_products')
-      .leftJoinAndSelect('order_products.product', 'product')
-      .leftJoinAndSelect('product.product_type', 'product_type')
-      .leftJoinAndSelect('product.select_photos', 'select_photos')
-      .where('order.id = :orderId', { orderId })
-      .select([
-        'order.id',
-        'order.order_number',
-        'order.customer_name',
-        'order.customer_phone',
-        'order.status',
-        'order_products',
-        'product.id',
-        'product.name',
-        'product_type.name',
-        'select_photos.id',
-      ])
-      .cache(true)
-      .getOne();
-
-    if (!order)
-      throw new DatabaseException(
-        DatabaseErrorType.DATA_NOT_FOUND,
-        '订单不存在',
-      );
-
-    return {
-      data: {
-        ...order,
-        order_products: order.order_products.map((orderProduct) => ({
-          ...orderProduct,
-          product: {
-            ...orderProduct.product,
-            select_photos: orderProduct.product.select_photos.map(
-              (photo) => photo.id,
-            ), // 提取 select_photos 的 id
-          },
-        })),
-      },
-    };
+    // const order = await this.orderRepository
+    //   .createQueryBuilder('order')
+    //   .leftJoinAndSelect('order.order_products', 'order_products')
+    //   .leftJoinAndSelect('order_products.product', 'product')
+    //   .leftJoinAndSelect('product.product_type', 'product_type')
+    //   .leftJoinAndSelect('product.select_photos', 'select_photos')
+    //   .where('order.id = :orderId', { orderId })
+    //   .select([
+    //     'order.id',
+    //     'order.order_number',
+    //     'order.customer_name',
+    //     'order.customer_phone',
+    //     'order.status',
+    //     'order_products',
+    //     'product.id',
+    //     'product.name',
+    //     'product_type.name',
+    //     'select_photos.id',
+    //   ])
+    //   .cache(true)
+    //   .getOne();
+    //
+    // if (!order)
+    //   throw new DatabaseException(
+    //     DatabaseErrorType.DATA_NOT_FOUND,
+    //     '订单不存在',
+    //   );
+    //
+    // return {
+    //   data: {
+    //     ...order,
+    //     order_products: order.order_products.map((orderProduct) => ({
+    //       ...orderProduct,
+    //       product: {
+    //         ...orderProduct.product,
+    //         select_photos: orderProduct.product.select_photos.map(
+    //           (photo) => photo.id,
+    //         ), // 提取 select_photos 的 id
+    //       },
+    //     })),
+    //   },
+    // };
   }
 
   // 获取选片订单所有照片
@@ -167,98 +167,98 @@ export class SelectionService {
     selectedPhotos: ProductPhotoSelectionDto[],
   ) {
     // 验证订单存在
-    await this.findOrderById(orderId);
-
-    // 获取所有需要更新的产品ID列表
-    const orderProductIds = selectedPhotos.map((item) => item.orderProductId);
-
-    // 批量获取所有的订单产品
-    const orderProducts = await this.orderProductRepository.find({
-      where: {
-        id: In(orderProductIds),
-        order: {
-          id: orderId,
-        },
-      },
-      relations: ['product'],
-    });
-
-    if (orderProducts.length !== orderProductIds.length) {
-      throw new DatabaseException(
-        DatabaseErrorType.DATA_NOT_FOUND,
-        '部分订单产品不存在',
-      );
-    }
-
-    // 创建产品ID到orderProduct的映射，方便快速查找
-    const orderProductMap = new Map(
-      orderProducts.map((orderProduct) => [orderProduct.id, orderProduct]),
-    );
-
-    // 收集所有照片ID用于批量查询
-    const allPhotoIds = selectedPhotos.reduce((ids, item) => {
-      return [...ids, ...item.photoIds];
-    }, []);
-
-    // 批量获取所有照片
-    const allPhotos = await this.photoRepository.find({
-      where: {
-        id: In(allPhotoIds),
-      },
-    });
-
-    if (allPhotos.length !== new Set(allPhotoIds).size) {
-      throw new BadRequestException('部分照片ID不存在');
-    }
-
-    // 创建照片ID到照片实体的映射
-    const photoMap = new Map(allPhotos.map((photo) => [photo.id, photo]));
-
-    // 使用事务来确保数据一致性
-    return this.productRepository.manager.transaction(
-      async (transactionalEntityManager) => {
-        // 批量更新结果
-        const results = [];
-
-        // 逐个处理每个产品的照片更新
-        for (const item of selectedPhotos) {
-          const orderProduct = orderProductMap.get(item.orderProductId);
-
-          const product = await transactionalEntityManager.findOne(Product, {
-            where: {
-              id: orderProduct.product.id,
-            },
-            relations: ['select_photos'],
-            select: ['id', 'name', 'select_photos'],
-          });
-
-          if (!product) {
-            throw new DatabaseException(
-              DatabaseErrorType.DATA_NOT_FOUND,
-              `产品ID ${orderProduct.product.id} 不存在`,
-            );
-          }
-
-          // 映射照片ID到照片实体
-          const photos = item.photoIds.map((id) => photoMap.get(id));
-
-          // 更新产品关联的照片
-          product.select_photos = photos;
-
-          // 保存更新后的产品
-          await transactionalEntityManager.save(product);
-
-          results.push({
-            ...product,
-            select_photos: product.select_photos.map((photo) => photo.id),
-          });
-        }
-
-        return {
-          data: results,
-        };
-      },
-    );
+    // await this.findOrderById(orderId);
+    //
+    // // 获取所有需要更新的产品ID列表
+    // const orderProductIds = selectedPhotos.map((item) => item.orderProductId);
+    //
+    // // 批量获取所有的订单产品
+    // const orderProducts = await this.orderProductRepository.find({
+    //   where: {
+    //     id: In(orderProductIds),
+    //     order: {
+    //       id: orderId,
+    //     },
+    //   },
+    //   relations: ['product'],
+    // });
+    //
+    // if (orderProducts.length !== orderProductIds.length) {
+    //   throw new DatabaseException(
+    //     DatabaseErrorType.DATA_NOT_FOUND,
+    //     '部分订单产品不存在',
+    //   );
+    // }
+    //
+    // // 创建产品ID到orderProduct的映射，方便快速查找
+    // const orderProductMap = new Map(
+    //   orderProducts.map((orderProduct) => [orderProduct.id, orderProduct]),
+    // );
+    //
+    // // 收集所有照片ID用于批量查询
+    // const allPhotoIds = selectedPhotos.reduce((ids, item) => {
+    //   return [...ids, ...item.photoIds];
+    // }, []);
+    //
+    // // 批量获取所有照片
+    // const allPhotos = await this.photoRepository.find({
+    //   where: {
+    //     id: In(allPhotoIds),
+    //   },
+    // });
+    //
+    // if (allPhotos.length !== new Set(allPhotoIds).size) {
+    //   throw new BadRequestException('部分照片ID不存在');
+    // }
+    //
+    // // 创建照片ID到照片实体的映射
+    // const photoMap = new Map(allPhotos.map((photo) => [photo.id, photo]));
+    //
+    // // 使用事务来确保数据一致性
+    // return this.productRepository.manager.transaction(
+    //   async (transactionalEntityManager) => {
+    //     // 批量更新结果
+    //     const results = [];
+    //
+    //     // 逐个处理每个产品的照片更新
+    //     for (const item of selectedPhotos) {
+    //       const orderProduct = orderProductMap.get(item.orderProductId);
+    //
+    //       const product = await transactionalEntityManager.findOne(Product, {
+    //         where: {
+    //           id: orderProduct.product.id,
+    //         },
+    //         relations: ['select_photos'],
+    //         select: ['id', 'name', 'select_photos'],
+    //       });
+    //
+    //       if (!product) {
+    //         throw new DatabaseException(
+    //           DatabaseErrorType.DATA_NOT_FOUND,
+    //           `产品ID ${orderProduct.product.id} 不存在`,
+    //         );
+    //       }
+    //
+    //       // 映射照片ID到照片实体
+    //       const photos = item.photoIds.map((id) => photoMap.get(id));
+    //
+    //       // 更新产品关联的照片
+    //       product.select_photos = photos;
+    //
+    //       // 保存更新后的产品
+    //       await transactionalEntityManager.save(product);
+    //
+    //       results.push({
+    //         ...product,
+    //         select_photos: product.select_photos.map((photo) => photo.id),
+    //       });
+    //     }
+    //
+    //     return {
+    //       data: results,
+    //     };
+    //   },
+    // );
   }
 
   // 刷新access_token

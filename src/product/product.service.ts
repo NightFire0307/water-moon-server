@@ -37,9 +37,25 @@ export class ProductService {
       relations: ['product_type'],
     });
 
+    const reducedList = list.reduce((acc, cur) => {
+      return [
+        ...acc,
+        {
+          id: cur.id,
+          name: cur.name,
+          product_type: {
+            id: cur.product_type.id,
+            name: cur.product_type.name,
+          },
+          createdAt: cur.createdAt,
+          updatedAt: cur.updatedAt,
+        },
+      ];
+    }, []);
+
     return {
       data: {
-        list,
+        list: reducedList,
         total,
         ...pagination,
       },
@@ -51,7 +67,7 @@ export class ProductService {
       where: {
         id,
       },
-      relations: ['type'],
+      relations: ['product_type'],
     });
 
     if (!product) return '产品不存在';
@@ -70,7 +86,11 @@ export class ProductService {
     });
 
     if (!product.product_type) return '产品类型不存在';
-    return this.productRepository.save(product);
+    const data = await this.productRepository.save(product);
+    return {
+      data,
+      msg: '创建成功',
+    };
   }
 
   async updateProduct(id: number, updateProductDto: UpdateProductDto) {
@@ -113,7 +133,7 @@ export class ProductService {
       );
 
     await this.productRepository.remove(product);
-    return { data: '', message: '删除成功' };
+    return { data: product.id, message: '删除成功' };
   }
 
   async getProductTypes(pagination: PaginationQuery, name?: string) {

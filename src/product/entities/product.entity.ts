@@ -6,13 +6,10 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   OneToMany,
-  ManyToMany,
   JoinColumn,
-  JoinTable,
 } from 'typeorm';
 import { ProductType } from './productType.entity';
 import { OrderProduct } from '../../order/entities/orderProduct.entity';
-import { Photo } from '../../photo/entities/photo.entity';
 
 @Entity('products')
 export class Product {
@@ -33,15 +30,6 @@ export class Product {
   })
   @JoinColumn({ name: 'order_products' })
   order_products: OrderProduct[];
-
-  // 关联照片
-  @ManyToMany(() => Photo, (photo) => photo.marked_products, {
-    cascade: true,
-  })
-  @JoinTable({
-    name: 'photo_marked_products',
-  })
-  select_photos: Photo[];
 
   @CreateDateColumn()
   createdAt: Date;

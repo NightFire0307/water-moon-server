@@ -5,12 +5,10 @@ import {
   ManyToOne,
   CreateDateColumn,
   JoinColumn,
-  ManyToMany,
-  JoinTable,
   UpdateDateColumn,
 } from 'typeorm';
 import { Order } from '../../order/entities/order.entity';
-import { Product } from '../../product/entities/product.entity'; // 产品类型实体
+import { OrderProduct } from '../../order/entities/orderProduct.entity'; // 产品类型实体
 
 @Entity('photos')
 export class Photo {
@@ -32,11 +30,9 @@ export class Photo {
   order: Order;
 
   // 产品关联照片
-  @ManyToMany(() => Product, (product) => product.id, {
-    nullable: true,
-  })
-  @JoinTable({ name: 'photo_marked_products' })
-  marked_products: Product[];
+  @ManyToOne(() => OrderProduct, (orderProduct) => orderProduct.selected_photos)
+  @JoinColumn({ name: 'order_product_id' })
+  order_product: OrderProduct;
 
   @Column({ default: false })
   is_selected: boolean; // 是否被选中

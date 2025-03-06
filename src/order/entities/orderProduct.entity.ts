@@ -1,7 +1,14 @@
-import { Entity, PrimaryGeneratedColumn, ManyToOne, Column } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  ManyToOne,
+  Column,
+  OneToMany,
+} from 'typeorm';
 import { Product } from '../../product/entities/product.entity';
 import { Order } from './order.entity';
 import { Exclude } from 'class-transformer';
+import { Photo } from '../../photo/entities/photo.entity';
 
 @Entity('order_products')
 export class OrderProduct {
@@ -19,6 +26,12 @@ export class OrderProduct {
     onDelete: 'CASCADE',
   })
   product: Product;
+
+  // 选择的照片
+  @OneToMany(() => Photo, (photo) => photo.id, {
+    cascade: true,
+  })
+  selected_photos: Photo[];
 
   // 制作数量
   @Column({ type: 'int', default: 1 })
