@@ -6,6 +6,7 @@ import {
   CreateDateColumn,
   JoinColumn,
   UpdateDateColumn,
+  ManyToMany,
 } from 'typeorm';
 import { Order } from '../../order/entities/order.entity';
 import { OrderProduct } from '../../order/entities/orderProduct.entity'; // 产品类型实体
@@ -30,8 +31,10 @@ export class Photo {
   order: Order;
 
   // 产品关联照片
-  @ManyToOne(() => OrderProduct, (orderProduct) => orderProduct.selected_photos)
-  @JoinColumn({ name: 'order_product_id' })
+  @ManyToMany(
+    () => OrderProduct,
+    (orderProduct) => orderProduct.selected_photos,
+  )
   order_product: OrderProduct;
 
   @Column({ default: false })

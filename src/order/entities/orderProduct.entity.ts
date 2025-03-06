@@ -4,6 +4,8 @@ import {
   ManyToOne,
   Column,
   OneToMany,
+  ManyToMany,
+  JoinTable,
 } from 'typeorm';
 import { Product } from '../../product/entities/product.entity';
 import { Order } from './order.entity';
@@ -28,9 +30,10 @@ export class OrderProduct {
   product: Product;
 
   // 选择的照片
-  @OneToMany(() => Photo, (photo) => photo.id, {
+  @ManyToMany(() => Photo, (photo) => photo.id, {
     cascade: true,
   })
+  @JoinTable({ name: 'order_product_photos' })
   selected_photos: Photo[];
 
   // 制作数量
