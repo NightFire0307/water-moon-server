@@ -13,6 +13,7 @@ import { JwtService } from '@nestjs/jwt';
 import { SelectionPhotosUpdate } from './dto/selection-photos-update.dto';
 import { Photo } from '../photo/entities/photo.entity';
 import { Product } from '../product/entities/product.entity';
+import { OrderProduct } from '../order/entities/orderProduct.entity';
 
 @Injectable()
 export class SelectionService {
@@ -24,6 +25,9 @@ export class SelectionService {
 
   @InjectRepository(Order)
   private readonly orderRepository: Repository<Order>;
+
+  @InjectRepository(OrderProduct)
+  private readonly orderProductRepository: Repository<OrderProduct>;
 
   @InjectRepository(Product)
   private readonly productRepository: Repository<Product>;
@@ -162,35 +166,58 @@ export class SelectionService {
     orderId: number,
     selectedPhotos: SelectionPhotosUpdate,
   ) {
-    const { productId, photoIds } = selectedPhotos;
+    const { orderProductId, photoIds } = selectedPhotos;
 
-    // 1️⃣ 查询 Order 及其关联的 OrderProduct -> Product -> select_photos
-    const order = await this.orderRepository.findOne({
-      where: { id: orderId },
-      relations: [
-        'order_products',
-        'order_products.product',
-        'order_products.product.select_photos',
-      ],
+    const orderProduct = await this.orderProductRepository.findOne({
+      where: {
+        id: orderProductId,
+        order: {
+          id: orderId,
+        },
+      },
+      relations: ['product'],
     });
 
-    if (!order) throw new Error('Order not found');
+    if (!orderProduct)
+      throw new DatabaseException(
+        DatabaseErrorType.DATA_NOT_FOUND,
+        '订单产品不存在',
+      );
 
-    // 2️⃣ 查找需要关联的 Photo 实体
-    const photoEntities = await this.photoRepository.find({
-      where: { id: In(photoIds) },
+    const product = await this.productRepository.findOne({
+      where: {
+        id: orderProduct.product.id,
+      },
+      relations: ['select_photos'],
+      select: ['id', 'name', 'select_photos'],
     });
 
-    // 3️⃣ 遍历 OrderProduct，找到匹配的 Product 进行更新
-    for (const orderProduct of order.order_products) {
-      if (orderProduct.product.id === productId) {
-        orderProduct.product.select_photos = photoEntities;
-        await this.productRepository.save(orderProduct.product); // 直接保存 Product
-        break;
-      }
+    if (!product)
+      throw new DatabaseException(
+        DatabaseErrorType.DATA_NOT_FOUND,
+        '产品不存在',
+      );
+
+    const photos = await this.photoRepository.find({
+      where: {
+        id: In(photoIds),
+      },
+    });
+
+    if (photos.length !== photoIds.length) {
+      throw new BadRequestException('部分照片ID无');
     }
 
-    return 'ok';
+    product.select_photos = photos;
+
+    await this.productRepository.save(product);
+
+    return {
+      data: {
+        ...product,
+        select_photos: product.select_photos.map((photo) => photo.id),
+      },
+    };
   }
 
   // 刷新access_token

@@ -90,8 +90,10 @@ export class SelectionController {
     @OrderInfo('orderId') orderId: number,
     @Body() selectedPhotos: SelectionPhotosUpdate,
   ) {
-    await this.selectionService.updateSelectedPhotos(orderId, selectedPhotos);
-    return { data: 'done' };
+    return await this.selectionService.updateSelectedPhotos(
+      orderId,
+      selectedPhotos,
+    );
   }
 
   // 提交选片结果

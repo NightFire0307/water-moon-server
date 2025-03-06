@@ -6,9 +6,13 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Order } from '../order/entities/order.entity';
 import { Product } from '../product/entities/product.entity';
 import { Photo } from '../photo/entities/photo.entity';
+import { OrderProduct } from '../order/entities/orderProduct.entity';
 
 @Module({
-  imports: [RedisModule, TypeOrmModule.forFeature([Order, Product, Photo])],
+  imports: [
+    RedisModule,
+    TypeOrmModule.forFeature([Order, OrderProduct, Product, Photo]),
+  ],
   controllers: [SelectionController],
   providers: [SelectionService],
 })

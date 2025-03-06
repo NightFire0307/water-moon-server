@@ -32,7 +32,7 @@ export class Order {
   // 客户姓名
   @Column()
   customer_name: string;
-  
+
   @Column()
   customer_phone: string;
 

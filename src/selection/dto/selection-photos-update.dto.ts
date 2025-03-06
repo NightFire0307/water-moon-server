@@ -16,5 +16,5 @@ export class SelectionPhotosUpdate {
 
   @IsInt()
   @IsNotEmpty()
-  readonly productId: number;
+  readonly orderProductId: number;
 }
