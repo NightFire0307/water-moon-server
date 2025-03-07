@@ -11,6 +11,7 @@ export enum DatabaseErrorType {
   DATA_NOT_FOUND = 'DATA_NOT_FOUND',
   DEFAULT = 'DEFAULT',
   DATA_INVALID = 'DATA_INVALID',
+  DATA_CANNOT_DELETE = 'DATA_CANNOT_DELETE',
 }
 
 export class DatabaseException extends Error {
@@ -41,6 +42,14 @@ export class DatabaseExceptionFilter implements ExceptionFilter {
       case DatabaseErrorType.DATA_NOT_FOUND:
         return response.json({
           code: HttpStatus.NOT_FOUND,
+          msg: exception.message,
+          data: '数据库操作失败',
+        });
+
+      case DatabaseErrorType.DATA_CANNOT_DELETE:
+        response.status(HttpStatus.BAD_REQUEST);
+        return response.json({
+          code: HttpStatus.BAD_REQUEST,
           msg: exception.message,
           data: '数据库操作失败',
         });

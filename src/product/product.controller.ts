@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -18,6 +19,7 @@ import { CreateProductDto } from './dto/create-product.dto';
 import { CreateProductTypeDto } from './dto/create-productType.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { UpdateProductTypeDto } from './dto/update-productType.dto';
+import { BatchDeleteProductType } from './dto/batch-delete-productType.dto';
 
 @Controller('admin/product')
 export class ProductController {
@@ -76,6 +78,12 @@ export class ProductController {
   @RequireLogin()
   async deleteProductType(@Param('id') id: string) {
     return await this.productService.deleteProductType(+id);
+  }
+
+  @Delete('/type')
+  @RequireLogin()
+  batchDeleteProductType(@Body() body: BatchDeleteProductType) {
+    return this.productService.batchDeleteProductType(body.ids);
   }
 
   @Get(':id')

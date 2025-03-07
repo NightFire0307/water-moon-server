@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ProductType } from './entities/productType.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Product } from './entities/product.entity';
-import { Like, Repository } from 'typeorm';
+import { In, Like, Repository } from 'typeorm';
 import { PaginationQuery } from '../common/custom.decorator';
 import { CreateProductDto } from './dto/create-product.dto';
 import { CreateProductTypeDto } from './dto/create-productType.dto';
@@ -222,9 +222,38 @@ export class ProductService {
         '数据不存在',
       );
 
-    await this.productTypeRepository.remove(productType);
+    try {
+      await this.productTypeRepository.remove(productType);
+      return {
+        data: '',
+        message: '删除成功',
+      };
+    } catch (e) {
+      // 当有产品使用了这个类型时，删除会失败
+      throw new DatabaseException(
+        DatabaseErrorType.DATA_CANNOT_DELETE,
+        '请先删除产品',
+      );
+    }
+  }
+
+  async batchDeleteProductType(ids: number[]) {
+    const productTypes = await this.productTypeRepository.find({
+      where: {
+        id: In(ids),
+      },
+    });
+
+    if (productTypes.length !== ids.length) {
+      throw new DatabaseException(
+        DatabaseErrorType.DATA_NOT_FOUND,
+        '部分数据不存在',
+      );
+    }
+
+    await this.productTypeRepository.remove(productTypes);
     return {
-      data: '',
+      data: ids,
       message: '删除成功',
     };
   }
