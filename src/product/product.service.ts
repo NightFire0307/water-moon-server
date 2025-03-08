@@ -43,10 +43,7 @@ export class ProductService {
         {
           id: cur.id,
           name: cur.name,
-          product_type: {
-            id: cur.product_type.id,
-            name: cur.product_type.name,
-          },
+          type: cur.product_type.name,
           createdAt: cur.createdAt,
           updatedAt: cur.updatedAt,
         },
