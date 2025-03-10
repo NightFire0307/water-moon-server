@@ -15,22 +15,20 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { PhotoJobName } from './compress-photo.processor';
 import { MinioService } from '../minio/minio.service';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class PhotoService {
-  constructor(@InjectQueue('photo') private photoQueue: Queue) {}
-
-  @InjectRepository(Order)
-  private readonly orderRepository: Repository<Order>;
-
-  @InjectRepository(Photo)
-  private readonly photoRepository: Repository<Photo>;
-
-  @Inject(MinioService)
-  private readonly minioService: MinioService;
-
-  @Inject('REDIS_CLIENT')
-  private readonly redisClient: Redis;
+  constructor(
+    @InjectQueue('photo') private readonly photoQueue: Queue,
+    @InjectRepository(Order)
+    private readonly orderRepository: Repository<Order>,
+    @InjectRepository(Photo)
+    private readonly photoRepository: Repository<Photo>,
+    @Inject(MinioService) private readonly minioService: MinioService,
+    @Inject('REDIS_CLIENT') private readonly redisClient: Redis,
+    @Inject(ConfigService) private readonly configService: ConfigService,
+  ) {}
 
   // 获取订单信息
   async getOrderById(orderId: number) {
@@ -189,6 +187,7 @@ export class PhotoService {
     file: Express.Multer.File,
     uid: string,
   ) {
+    const delay: string = this.configService.get('minio_expire_time');
     const order = await this.getOrderById(orderId);
 
     if (!order) {
@@ -216,7 +215,7 @@ export class PhotoService {
     }
 
     // 推送压缩图片并上传任务队列
-    const job = await this.photoQueue.add(PhotoJobName.CompressImage, {
+    const compressJob = await this.photoQueue.add(PhotoJobName.CompressImage, {
       id: photo.id,
       uid,
       file_buffer: file.buffer,
@@ -225,13 +224,23 @@ export class PhotoService {
       file_name,
     });
 
+    // 推送刷新 OSS URL 任务队列
+    await this.photoQueue.add(
+      PhotoJobName.UrlRefresh,
+      {
+        photoId: photo.id,
+        orderId: order.id,
+      },
+      { delay: (Number(delay) - 1) * 24 * 3600 * 1000 },
+    );
+
     return {
       data: {
         id: photo.id,
         fileName: file_name,
         fileSize: file.size,
         fileType: file.mimetype,
-        taskId: job.id,
+        taskId: compressJob.id,
       },
     };
   }

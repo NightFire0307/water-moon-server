@@ -14,7 +14,7 @@ export class PhotoCountSyncService {
   private orderRepository: Repository<Order>;
 
   // 定时任务，每30秒同步一次照片数量
-  @Cron('*/30 * * * * *')
+  // @Cron('*/30 * * * * *')
   async syncPhotoCount() {
     // 获取所有照片数量
     const keys = await this.redisClient.keys('photos_count:*');

@@ -12,6 +12,7 @@ import {
   DatabaseErrorType,
   DatabaseException,
 } from '../common/database-exception.filter';
+import { Order } from '../order/entities/order.entity';
 
 export interface CompressPhotoJobData {
   id: number;
@@ -31,14 +32,21 @@ export interface UpdatePhotoRecommendJobData {
   isRecommended?: boolean;
 }
 
+export interface UrlRefreshJobData {
+  orderId: number;
+  photoId: number;
+}
+
 export enum PhotoJobName {
   UpdateRecommend = 'update-recommend',
   CompressImage = 'compress-image',
+  UrlRefresh = 'url-refresh',
 }
 
 type JobDataMap = {
   [PhotoJobName.UpdateRecommend]: UpdatePhotoRecommendJobData;
   [PhotoJobName.CompressImage]: CompressPhotoJobData;
+  [PhotoJobName.UrlRefresh]: UrlRefreshJobData;
 };
 
 type JobData<Name extends PhotoJobName> = JobDataMap[Name];
@@ -48,6 +56,9 @@ type JobData<Name extends PhotoJobName> = JobDataMap[Name];
 export class CompressPhotoProcessor extends WorkerHost {
   @InjectRepository(Photo)
   private readonly photoRepository: Repository<Photo>;
+
+  @InjectRepository(Order)
+  private readonly orderRepository: Repository<Order>;
 
   @Inject(MinioService)
   private readonly minioService: MinioService;
@@ -141,6 +152,53 @@ export class CompressPhotoProcessor extends WorkerHost {
     }
   }
 
+  // 异步刷新图片链接
+  async urlRefreshJob({ orderId, photoId }: UrlRefreshJobData) {
+    console.log('刷新图片链接', orderId, photoId);
+    try {
+      const order = await this.orderRepository.findOne({
+        where: { id: orderId, is_deleted: false },
+      });
+
+      if (!order) return;
+
+      const photo = await this.photoRepository.findOne({
+        where: { id: photoId, order: { id: orderId }, is_deleted: false },
+      });
+
+      if (!photo) return;
+
+      // 设置图片过期时间
+      const expires = 24 * 60 * 60 * 7;
+
+      // 重新创建链接
+      const thumbnail_url = await this.minioService.generateGetUrl(
+        `${order.order_number}/thumbnail_${photo.name}`,
+        expires,
+      );
+      const original_url = await this.minioService.generateGetUrl(
+        `${order.order_number}/${photo.name}`,
+        expires,
+      );
+
+      // 更新 Redis 中照片 URL
+      await this.redisClient.hset(
+        `photos_url:${order.order_number}`,
+        photo.id,
+        JSON.stringify({
+          file_name: photo.name,
+          thumbnail_url,
+          original_url,
+          is_recommend: photo.is_recommended,
+          expires: Math.floor(Date.now() / 1000) + expires,
+        }),
+      );
+    } catch (e) {
+      console.log('刷新图片链接失败', e);
+    }
+  }
+
+  // 处理任务
   async process(job: Job<any, any, PhotoJobName>): Promise<any> {
     switch (job.name) {
       case PhotoJobName.CompressImage:
@@ -152,6 +210,9 @@ export class CompressPhotoProcessor extends WorkerHost {
         await this.updatePhotoRecommend(
           job.data as JobData<PhotoJobName.UpdateRecommend>,
         );
+        break;
+      case PhotoJobName.UrlRefresh:
+        await this.urlRefreshJob(job.data as JobData<PhotoJobName.UrlRefresh>);
         break;
       default:
         break;

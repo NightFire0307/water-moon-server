@@ -12,6 +12,7 @@ export enum DatabaseErrorType {
   DEFAULT = 'DEFAULT',
   DATA_INVALID = 'DATA_INVALID',
   DATA_CANNOT_DELETE = 'DATA_CANNOT_DELETE',
+  INVALID_PARAMS = 'INVALID_PARAMS',
 }
 
 export class DatabaseException extends Error {
@@ -52,6 +53,13 @@ export class DatabaseExceptionFilter implements ExceptionFilter {
           code: HttpStatus.BAD_REQUEST,
           msg: exception.message,
           data: '数据库操作失败',
+        });
+
+      case DatabaseErrorType.INVALID_PARAMS:
+        return response.json({
+          code: HttpStatus.BAD_REQUEST,
+          msg: exception.message,
+          data: '操作失败',
         });
 
       default:
