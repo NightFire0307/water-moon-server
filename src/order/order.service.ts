@@ -19,6 +19,7 @@ interface OrderProductCount {
   orderId: number;
   product_count: string;
   order_link_count: string;
+  total_photos: string;
 }
 
 @Injectable()
@@ -37,65 +38,84 @@ export class OrderService {
     pagination: PaginationQuery,
     is_admin: boolean = false,
   ) {
-    const { order_number, customer_name, customer_phone, status } = query;
+    try {
+      const { order_number, customer_name, customer_phone, status } = query;
 
-    // 构建查询条件或调用数据库查询逻辑
-    const where: any = {};
-    if (order_number) where.order_number = order_number;
-    if (customer_name) where.customer_name = customer_name;
-    if (customer_phone) where.customer_phone = customer_phone;
-    if (status) where.status = status;
+      // 构建查询条件
+      const where: any = {};
+      if (order_number) where.order_number = order_number;
+      if (customer_name) where.customer_name = customer_name;
+      if (customer_phone) where.customer_phone = customer_phone;
+      if (status !== undefined) where.status = status;
+      if (!is_admin) where.is_deleted = false;
 
-    if (!is_admin) where.is_deleted = false;
+      const [orders, total] = await this.orderRepository.findAndCount({
+        where,
+        take: pagination.pageSize,
+        skip: (pagination.current - 1) * pagination.pageSize,
+        order: { created_at: 'DESC' },
+      });
 
-    const [orders, total] = await this.orderRepository.findAndCount({
-      where,
-      take: pagination.pageSize,
-      skip: (pagination.current - 1) * pagination.pageSize,
-    });
+      // Exit early if no orders found
+      if (!orders.length) {
+        return {
+          data: {
+            list: [],
+            total: 0,
+            ...pagination,
+          },
+        };
+      }
 
-    const order_counts: OrderProductCount[] = await this.orderRepository
-      .createQueryBuilder('order')
-      .where('order.is_deleted = :is_deleted', { is_deleted: is_admin })
-      .leftJoinAndSelect('order.order_products', 'order_products')
-      .leftJoinAndSelect('order.links', 'link')
-      .select('order.id', 'orderId')
-      .addSelect('COUNT(DISTINCT order_products.id)', 'product_count')
-      .addSelect('COUNT(DISTINCT link.id)', 'order_link_count')
-      .groupBy('order.id')
-      .getRawMany();
+      // Get order IDs for the second query
+      const orderIds = orders.map((order) => order.id);
 
-    const order_map = orders.map((order) => {
-      const count_item = order_counts.find((item) => item.orderId === order.id);
+      const orderCountsQuery = this.orderRepository
+        .createQueryBuilder('order')
+        .where('order.id IN (:...orderIds)', { orderIds })
+        .leftJoinAndSelect('order.photos', 'photos')
+        .leftJoinAndSelect('order.order_products', 'order_products')
+        .leftJoinAndSelect('order.links', 'link')
+        .select('order.id', 'orderId')
+        .addSelect('COUNT(DISTINCT photos.id)', 'total_photos')
+        .addSelect('COUNT(DISTINCT order_products.id)', 'product_count')
+        .addSelect('COUNT(DISTINCT link.id)', 'order_link_count')
+        .groupBy('order.id')
+        .cache(300);
+
+      const order_counts: OrderProductCount[] =
+        await orderCountsQuery.getRawMany();
+
+      const order_map = orders.map((order) => {
+        const count_item = order_counts.find(
+          (item) => item.orderId === order.id,
+        ) || {
+          total_photos: '0',
+          product_count: '0',
+          order_link_count: '0',
+        };
+
+        return {
+          ...order,
+          total_photos: +count_item.total_photos,
+          product_count: +count_item.product_count,
+          link_status: +count_item.order_link_count > 0,
+        };
+      });
+
       return {
-        ...order,
-        product_count: +count_item.product_count,
-        link_status: +count_item.order_link_count > 0,
+        data: {
+          list: order_map,
+          total,
+          ...pagination,
+        },
       };
-    });
-
-    return {
-      data: {
-        list: order_map,
-        total,
-        ...pagination,
-      },
-    };
-  }
-
-  async getOrderDetail(id: number) {
-    const orderDetail = await this.orderRepository
-      .createQueryBuilder('order')
-      .where('order.id = :orderId', { orderId: id })
-      .leftJoinAndSelect('order.order_products', 'order_products')
-      .leftJoinAndSelect('order_products.product', 'product')
-      .leftJoinAndSelect('order.links', 'links')
-      .getOne();
-
-    return {
-      data: orderDetail,
-      msg: '获取订单详情成功',
-    };
+    } catch (error) {
+      throw new DatabaseException(
+        DatabaseErrorType.DEFAULT,
+        `获取订单列表失败: ${error.message}`,
+      );
+    }
   }
 
   async createOrder(createOrderDto: CreateOrderDto) {
@@ -184,6 +204,8 @@ export class OrderService {
       await queryRunner.release();
     }
   }
+
+  async getOrderDetail(id: number) {}
 
   async updateOrder(id: number, updateOrderDto: UpdateOrderDto) {
     const foundOrder = await this.orderRepository.findOneBy({ id });
