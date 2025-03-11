@@ -6,12 +6,6 @@ import {
   IsNotEmpty,
 } from 'class-validator';
 
-export class SelectionPhotosUpdateDto {
-  @IsArray()
-  @IsNotEmpty()
-  readonly mapping: ProductPhotoSelectionDto[];
-}
-
 export class ProductPhotoSelectionDto {
   @IsArray()
   @IsNotEmpty()

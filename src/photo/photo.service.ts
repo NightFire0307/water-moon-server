@@ -102,7 +102,7 @@ export class PhotoService {
   }
 
   async deletePhotos(orderId: number, deletePhotosDto: DeletePhotosDto) {
-    // 删除照片的批量操作，每次最多删除50张
+    // 删除照片的批量操作，每次最多删除100张
     const batchSize = 100;
     const { photoIds } = deletePhotosDto;
     const order = await this.getOrderById(orderId);
@@ -116,8 +116,6 @@ export class PhotoService {
         redisPipeline.hdel(photoUrlsRedisKey, photoId);
       }
     }
-
-    redisPipeline.incrby(`photo_count:${order.order_number}`, -photoIds.length);
 
     await redisPipeline.exec();
 

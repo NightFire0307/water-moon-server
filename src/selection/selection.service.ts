@@ -166,112 +166,73 @@ export class SelectionService {
     };
   }
 
-  // 批量更新产品照片
+  // 更新产品照片
   async updateSelectedPhotos(
     orderId: number,
-    selectedPhotos: ProductPhotoSelectionDto[],
+    productPhotoSelection: ProductPhotoSelectionDto,
   ) {
-    // 验证请求数据
-    if (!selectedPhotos || selectedPhotos.length === 0) {
-      throw new BadRequestException('未提供选择的照片数据');
-    }
+    const { orderProductId, photoIds } = productPhotoSelection;
 
     // 验证订单存在
     await this.findOrderById(orderId);
 
-    // 获取所有需要更新的产品ID列表
-    const orderProductIds = selectedPhotos.map((item) => item.orderProductId);
-
-    // 批量获取所有的订单产品
-    const orderProducts = await this.orderProductRepository.find({
+    // 获取订单产品
+    const orderProduct = await this.orderProductRepository.findOne({
       where: {
-        id: In(orderProductIds),
-        order: {
-          id: orderId,
-        },
+        order: { id: orderId },
+        id: orderProductId,
       },
+      relations: ['selected_photos'],
       select: ['id', 'selected_photos'],
     });
 
-    if (orderProducts.length !== orderProductIds.length) {
+    if (!orderProduct) {
       throw new DatabaseException(
         DatabaseErrorType.DATA_NOT_FOUND,
-        '部分订单产品不存在',
+        '订单产品不存在',
       );
     }
 
-    // 创建产品ID到orderProduct的映射，方便快速查找
-    const orderProductMap = new Map(
-      orderProducts.map((orderProduct) => [orderProduct.id, orderProduct]),
-    );
-
-    // 收集所有照片ID用于批量查询
-    const allPhotoIds = selectedPhotos.reduce((ids, item) => {
-      // 确保每个项目的photoIds是数组且不为空
-      if (
-        !item.photoIds ||
-        !Array.isArray(item.photoIds) ||
-        item.photoIds.length === 0
-      ) {
-        throw new BadRequestException(
-          `订单产品ID ${item.orderProductId} 没有提供有效的照片ID列表`,
-        );
-      }
-      return [...ids, ...item.photoIds];
-    }, []);
-
-    // 不检查全局的照片ID重复性，而是在每个产品内部确保没有重复选择
-    for (const item of selectedPhotos) {
-      const uniqueProductPhotoIds = new Set(item.photoIds);
-      if (item.photoIds.length !== uniqueProductPhotoIds.size) {
-        throw new BadRequestException(
-          `订单产品ID ${item.orderProductId} 包含重复的照片ID`,
-        );
-      }
+    // 确保没有重复的照片ID
+    const uniquePhotoIds = new Set(photoIds);
+    if (photoIds.length !== uniquePhotoIds.size) {
+      throw new BadRequestException('包含重复的照片ID');
     }
 
-    // 收集所有照片ID用于批量查询
-    const uniquePhotoIds = new Set(allPhotoIds);
+    // 当产品不允许额外照片时，检查选择的照片数量
+    if (
+      !orderProduct.allow_extra_photos &&
+      photoIds.length > orderProduct.quantity
+    ) {
+      throw new BadRequestException(
+        `产品不允许选择超过 ${orderProduct.quantity} 张照片`,
+      );
+    }
 
     // 批量获取所有照片
-    const allPhotos = await this.photoRepository.find({
+    const photos = await this.photoRepository.find({
       where: {
         id: In([...uniquePhotoIds]),
       },
     });
 
-    if (allPhotos.length !== uniquePhotoIds.size) {
+    if (photos.length !== uniquePhotoIds.size) {
       throw new BadRequestException('部分照片ID不存在');
     }
 
-    // 创建照片ID到照片实体的映射
-    const photoMap = new Map(allPhotos.map((photo) => [photo.id, photo]));
-
     return this.orderProductRepository.manager.transaction(
       async (transactionalEntityManager) => {
-        const entitiesToSave = [];
-        const results = [];
+        // 更新订单产品的选择照片
+        orderProduct.selected_photos = photos;
 
-        for (const item of selectedPhotos) {
-          const orderProduct = orderProductMap.get(item.orderProductId);
-          orderProduct.selected_photos = item.photoIds.map((id) =>
-            photoMap.get(id),
-          );
-
-          // 收集实体用于批量保存
-          entitiesToSave.push(orderProduct);
-
-          results.push({
-            ...orderProduct,
-            selected_photos: item.photoIds, // 直接使用原始photoIds作为结果
-          });
-        }
-
-        // 批量保存所有修改
-        await transactionalEntityManager.save(entitiesToSave);
+        // 保存更新
+        await transactionalEntityManager.save(orderProduct);
 
         return {
-          data: results,
+          data: {
+            orderProductId: orderProduct.id,
+            selected_photos: photoIds, // 直接使用原始photoIds作为结果
+          },
         };
       },
     );

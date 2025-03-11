@@ -17,7 +17,7 @@ import { Request, Response } from 'express';
 import { OrderInfo } from '../common/custom.decorator';
 import { CustomLogin } from './guard/custom-login.guard';
 import { VerifySurl } from './guard/verify-surl.guard';
-import { SelectionPhotosUpdateDto } from './dto/selection-photos-update.dto';
+import { ProductPhotoSelectionDto } from './dto/selection-photos-update.dto';
 
 @Controller('selection')
 export class SelectionController {
@@ -88,11 +88,11 @@ export class SelectionController {
   @UseGuards(CustomLogin)
   async updatePhotos(
     @OrderInfo('orderId') orderId: number,
-    @Body() selectedPhotos: SelectionPhotosUpdateDto,
+    @Body() selectedPhotos: ProductPhotoSelectionDto,
   ) {
     return await this.selectionService.updateSelectedPhotos(
       orderId,
-      selectedPhotos.mapping,
+      selectedPhotos,
     );
   }
 

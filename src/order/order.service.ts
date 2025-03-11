@@ -14,6 +14,7 @@ import { UpdateOrderDto } from './dto/update-order.dto';
 import { instanceToPlain } from 'class-transformer';
 import { GetOrderListDto } from './dto/get-order-list.dto';
 import { ResetOrderStatusDto } from './dto/reset-order-status.dto';
+import { Photo } from '../photo/entities/photo.entity';
 
 interface OrderProductCount {
   orderId: number;
@@ -26,6 +27,9 @@ interface OrderProductCount {
 export class OrderService {
   @InjectRepository(Order)
   private orderRepository: Repository<Order>;
+
+  @InjectRepository(Photo)
+  private photoRepository: Repository<Photo>;
 
   @InjectRepository(OrderProduct)
   private orderProductRepository: Repository<OrderProduct>;
@@ -205,7 +209,29 @@ export class OrderService {
     }
   }
 
-  async getOrderDetail(id: number) {}
+  async getOrderDetail(id: number) {
+    const order = await this.orderRepository.findOne({
+      where: { id },
+      relations: ['links', 'order_products', 'order_products.product'],
+    });
+
+    if (!order)
+      throw new DatabaseException(
+        DatabaseErrorType.DATA_NOT_FOUND,
+        '订单不存在',
+      );
+
+    const [_, total_photos] = await this.photoRepository.findAndCount({
+      where: { order: { id: order.id }, is_deleted: false },
+    });
+
+    return {
+      data: {
+        ...order,
+        total_photos,
+      },
+    };
+  }
 
   async updateOrder(id: number, updateOrderDto: UpdateOrderDto) {
     const foundOrder = await this.orderRepository.findOneBy({ id });
@@ -279,29 +305,6 @@ export class OrderService {
 
     return '订单删除成功';
   }
-
-  // async updateOrderPhotoCount(
-  //   orderId: number,
-  //   photoCount: number,
-  //   operation: 'add' | 'subtract',
-  // ) {
-  //   const order = await this.orderRepository.findOneBy({ id: orderId });
-  //
-  //   if (!order)
-  //     throw new DatabaseException(
-  //       DatabaseErrorType.DATA_NOT_FOUND,
-  //       '订单不存在',
-  //     );
-  //
-  //   if (operation === 'add') order.total_photos += photoCount;
-  //   else if (operation === 'subtract') {
-  //     if (order.total_photos < photoCount) {
-  //       order.total_photos = 0;
-  //     }
-  //     order.total_photos -= photoCount;
-  //   }
-  //   await this.orderRepository.save(order);
-  // }
 
   // 重置订单状态
   async resetOrderStatus(
