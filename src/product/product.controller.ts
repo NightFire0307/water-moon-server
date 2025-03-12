@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -23,7 +22,7 @@ import { BatchDeleteProductType } from './dto/batch-delete-productType.dto';
 
 @Controller('admin/product')
 export class ProductController {
-  constructor(private readonly productService: ProductService) {}
+  constructor(private readonly productService: ProductService) { }
 
   @Get()
   @RequireLogin()

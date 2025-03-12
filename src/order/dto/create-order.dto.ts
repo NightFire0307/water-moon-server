@@ -1,10 +1,9 @@
 import {
   IsArray,
-  IsBoolean,
-  IsInt,
   IsNotEmpty,
   IsNumber,
   IsOptional,
+  IsString,
   MinLength,
 } from 'class-validator';
 
@@ -14,15 +13,11 @@ export class OrderProductDto {
 
   @IsNotEmpty()
   @IsNumber()
-  quantity: number;
+  count: number;
 
-  @IsNotEmpty()
-  @IsNumber()
-  custom_photo_limit: number;
-
-  @IsNotEmpty()
-  @IsBoolean()
-  allow_extra_photos: boolean;
+  @IsString()
+  @IsOptional()
+  remark: string;
 }
 
 export class CreateOrderDto {
@@ -59,6 +54,6 @@ export class CreateOrderDto {
   max_select_photos: number;
 
   @IsNumber({ maxDecimalPlaces: 2 })
-  @IsOptional()
-  extra_photo_price?: number;
+  @IsNotEmpty()
+  extra_photo_price: number;
 }

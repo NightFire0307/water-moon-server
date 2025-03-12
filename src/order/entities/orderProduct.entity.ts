@@ -3,7 +3,6 @@ import {
   PrimaryGeneratedColumn,
   ManyToOne,
   Column,
-  OneToMany,
   ManyToMany,
   JoinTable,
 } from 'typeorm';
@@ -36,17 +35,9 @@ export class OrderProduct {
   @JoinTable({ name: 'order_product_photos' })
   selected_photos: Photo[];
 
-  // 制作数量
+  // 数量
   @Column({ type: 'int', default: 1 })
-  quantity: number;
-
-  // 可选照片数
-  @Column({ type: 'int', default: 0 })
-  custom_photo_limit: number;
-
-  // 是否可以超过指定照片数量
-  @Column({ type: 'boolean', default: false })
-  allow_extra_photos: boolean;
+  count: number;
 
   // 备注
   @Column({ type: 'text', nullable: true })

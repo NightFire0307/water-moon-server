@@ -31,6 +31,14 @@ export class Product {
   @JoinColumn({ name: 'order_products' })
   order_products: OrderProduct[];
 
+  // 照片数量限制
+  @Column({ type: 'int', default: 0 })
+  photo_limit: number;
+
+  // 是否上架
+  @Column({ type: 'boolean', default: true })
+  is_published: boolean;
+
   @CreateDateColumn()
   createdAt: Date;
 

@@ -185,9 +185,8 @@ export class OrderService {
       return this.orderProductRepository.create({
         order,
         product,
-        quantity: item.quantity,
-        custom_photo_limit: item.custom_photo_limit,
-        allow_extra_photos: item.allow_extra_photos,
+        count: item.count,
+        remark: item.remark,
       });
     });
     try {
@@ -270,9 +269,8 @@ export class OrderService {
         return this.orderProductRepository.create({
           order: foundOrder,
           product,
-          quantity: item.quantity,
-          custom_photo_limit: item.custom_photo_limit,
-          allow_extra_photos: item.allow_extra_photos,
+          count: item.count,
+          remark: item.remark,
         });
       });
       await this.orderProductRepository.delete({ order: foundOrder });

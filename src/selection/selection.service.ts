@@ -183,7 +183,7 @@ export class SelectionService {
         id: orderProductId,
       },
       relations: ['selected_photos'],
-      select: ['id', 'selected_photos'],
+      select: ['id', 'selected_photos', 'product'],
     });
 
     if (!orderProduct) {
@@ -200,14 +200,7 @@ export class SelectionService {
     }
 
     // 当产品不允许额外照片时，检查选择的照片数量
-    if (
-      !orderProduct.allow_extra_photos &&
-      photoIds.length > orderProduct.quantity
-    ) {
-      throw new BadRequestException(
-        `产品不允许选择超过 ${orderProduct.quantity} 张照片`,
-      );
-    }
+    // TODO
 
     // 批量获取所有照片
     const photos = await this.photoRepository.find({

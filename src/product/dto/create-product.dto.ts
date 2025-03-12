@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsNumber, IsString } from 'class-validator';
+import { IsBoolean, IsNotEmpty, IsNumber, IsString } from 'class-validator';
 
 export class CreateProductDto {
   @IsNotEmpty({
@@ -8,8 +8,17 @@ export class CreateProductDto {
   name: string;
 
   @IsNotEmpty({
+    message: '照片数量限制不能为空',
+  })
+  @IsNumber()
+  photoLimit: number;
+
+  @IsNotEmpty({
     message: '产品类型不能为空',
   })
   @IsNumber()
   productTypeId: number;
+
+  @IsBoolean()
+  isPublished: boolean;
 }

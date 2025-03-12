@@ -43,9 +43,10 @@ export class ProductService {
         {
           id: cur.id,
           name: cur.name,
+          photoLimit: cur.photo_limit,
+          isPublished: cur.is_published,
           type: cur.product_type.name,
           createdAt: cur.createdAt,
-          updatedAt: cur.updatedAt,
         },
       ];
     }, []);
@@ -76,6 +77,7 @@ export class ProductService {
   async createProduct(createProductDto: CreateProductDto) {
     const product = new Product();
     product.name = createProductDto.name;
+    product.photo_limit = createProductDto.photoLimit;
     product.product_type = await this.productTypeRepository.findOne({
       where: {
         id: createProductDto.productTypeId,
