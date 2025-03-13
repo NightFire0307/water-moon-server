@@ -26,16 +26,16 @@ interface OrderProductCount {
 @Injectable()
 export class OrderService {
   @InjectRepository(Order)
-  private orderRepository: Repository<Order>;
+  private readonly orderRepository: Repository<Order>;
 
   @InjectRepository(Photo)
-  private photoRepository: Repository<Photo>;
+  private readonly photoRepository: Repository<Photo>;
 
   @InjectRepository(OrderProduct)
-  private orderProductRepository: Repository<OrderProduct>;
+  private readonly orderProductRepository: Repository<OrderProduct>;
 
   @InjectRepository(Product)
-  private productRepository: Repository<Product>;
+  private readonly productRepository: Repository<Product>;
 
   async getOrderList(
     query: GetOrderListDto,
@@ -211,7 +211,12 @@ export class OrderService {
   async getOrderDetail(id: number) {
     const order = await this.orderRepository.findOne({
       where: { id },
-      relations: ['links', 'order_products', 'order_products.product'],
+      relations: [
+        'links',
+        'order_products',
+        'order_products.product',
+        'order_products.product.product_type',
+      ],
     });
 
     if (!order)
@@ -227,6 +232,16 @@ export class OrderService {
     return {
       data: {
         ...order,
+        order_products: order.order_products.map((item) => {
+          const { product } = item;
+          const { product_type, ...rest } = product;
+          return {
+            id: item.id,
+            count: item.count,
+            type: product_type.name,
+            ...rest,
+          };
+        }),
         total_photos,
       },
     };
@@ -281,7 +296,7 @@ export class OrderService {
       await queryRunner.commitTransaction();
 
       return {
-        data: '',
+        data: id,
         msg: '订单更新成功',
       };
     } catch (e) {

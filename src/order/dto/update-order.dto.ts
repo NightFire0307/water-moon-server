@@ -5,7 +5,4 @@ export class UpdateOrderDto extends OmitType(CreateOrderDto, [
   'order_number',
   'customer_name',
   'customer_phone',
-]) {
-  access_link: string;
-  access_password: string;
-}
+]) { }
