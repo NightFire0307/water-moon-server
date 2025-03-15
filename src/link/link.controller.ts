@@ -27,7 +27,7 @@ export class LinkController {
     @Param('orderId') orderId: string,
     @Pagination() pagination: PaginationQuery,
   ) {
-    return this.linkService.getShareUrlByOrderId(+orderId);
+    return this.linkService.getShareUrlByOrderId(+orderId, pagination);
   }
 
   @Delete(':id')

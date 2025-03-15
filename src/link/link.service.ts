@@ -10,7 +10,7 @@ import {
   DatabaseException,
 } from '../common/database-exception.filter';
 import { generatePassword } from '../utils/generatePassword';
-import { PaginationQuery } from '../common/custom.decorator';
+import { PaginationQuery, Pagination } from '../common/custom.decorator';
 import { RedisService } from '../redis/redis.service';
 
 const BASE62 = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
@@ -68,7 +68,8 @@ export class LinkService {
     };
   }
 
-  async getShareUrlByOrderId(orderId: number) {
+  async getShareUrlByOrderId(orderId: number, pagination: PaginationQuery) {
+    const { current, pageSize } = pagination;
     const order = await this.orderRepository.findOneBy({ id: orderId });
     if (!order)
       throw new DatabaseException(
@@ -76,12 +77,19 @@ export class LinkService {
         '订单不存在',
       );
 
-    const links = await this.linkRepository.find({
+    const [links, total] = await this.linkRepository.findAndCount({
       where: { order: { id: orderId } },
+      take: pageSize,
+      skip: (current - 1) * pageSize,
     });
 
     return {
-      data: links,
+      data: {
+        list: links,
+        total,
+        current,
+        pageSize,
+      },
     };
   }
 
