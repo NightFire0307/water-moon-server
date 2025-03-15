@@ -14,7 +14,7 @@ import { Pagination, PaginationQuery } from '../common/custom.decorator';
 
 @Controller('/admin/order/link')
 export class LinkController {
-  constructor(private readonly linkService: LinkService) {}
+  constructor(private readonly linkService: LinkService) { }
 
   @Post()
   @UseInterceptors(ClassSerializerInterceptor)
@@ -22,9 +22,12 @@ export class LinkController {
     return this.linkService.generateShareUrl(createLinkDto);
   }
 
-  @Get()
-  findAll(@Pagination() pagination: PaginationQuery) {
-    return this.linkService.findAll(pagination);
+  @Get(':orderId')
+  getShareUrlByOrderId(
+    @Param('orderId') orderId: string,
+    @Pagination() pagination: PaginationQuery,
+  ) {
+    return this.linkService.getShareUrlByOrderId(+orderId);
   }
 
   @Delete(':id')

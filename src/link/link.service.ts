@@ -50,7 +50,7 @@ export class LinkService {
     link.share_password = password ?? generatePassword(4);
     link.status = LinkStatus.ACTIVE;
     // 传递过来的时间戳是秒所以需要乘以1000
-    link.expired_at = expired_at !== 0 ? new Date(expired_at * 1000) : null;
+    link.expired_at = expired_at !== null ? new Date(expired_at * 1000) : null;
     link.created_by = 1;
 
     const result = await this.linkRepository.save(link);
@@ -68,19 +68,20 @@ export class LinkService {
     };
   }
 
-  async findAll(pagination: PaginationQuery) {
-    const { current, pageSize } = pagination;
-    const [links, count] = await this.linkRepository.findAndCount({
-      skip: (current - 1) * pageSize,
-      take: pageSize,
+  async getShareUrlByOrderId(orderId: number) {
+    const order = await this.orderRepository.findOneBy({ id: orderId });
+    if (!order)
+      throw new DatabaseException(
+        DatabaseErrorType.DATA_NOT_FOUND,
+        '订单不存在',
+      );
+
+    const links = await this.linkRepository.find({
+      where: { order: { id: orderId } },
     });
+
     return {
-      data: {
-        list: links,
-        total: count,
-        current,
-        pageSize,
-      },
+      data: links,
     };
   }
 
