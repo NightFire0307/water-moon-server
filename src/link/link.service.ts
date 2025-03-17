@@ -65,6 +65,7 @@ export class LinkService {
 
     return {
       data: result,
+      msg: '创建成功',
     };
   }
 
@@ -78,6 +79,9 @@ export class LinkService {
       );
 
     const [links, total] = await this.linkRepository.findAndCount({
+      order: {
+        created_at: 'DESC',
+      },
       where: { order: { id: orderId } },
       take: pageSize,
       skip: (current - 1) * pageSize,
@@ -93,7 +97,7 @@ export class LinkService {
     };
   }
 
-  async remove(id: number) {
+  async removeShareLinkByOrderId(id: number) {
     const link = await this.linkRepository.findOneBy({ id });
 
     if (!link)
@@ -103,6 +107,9 @@ export class LinkService {
       );
     await this.linkRepository.remove(link);
 
-    return `This action removes a #${id} link`;
+    return {
+      data: id,
+      msg: '删除成功',
+    };
   }
 }

@@ -31,7 +31,7 @@ export class LinkController {
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.linkService.remove(+id);
+  removeShareLink(@Param('id') id: string) {
+    return this.linkService.removeShareLinkByOrderId(+id);
   }
 }
