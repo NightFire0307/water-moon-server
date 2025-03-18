@@ -106,6 +106,8 @@ export class SelectionService {
       .where('order.id = :orderId', { orderId })
       .select([
         'order.id',
+        'order.max_select_photos',
+        'order.extra_photo_price',
         'order.order_number',
         'order.customer_name',
         'order.customer_phone',
@@ -113,11 +115,18 @@ export class SelectionService {
         'order_products',
         'product.id',
         'product.name',
+        'product.photo_limit',
         'product_type.name',
         'select_photos.id',
       ])
       .cache(true)
       .getOne();
+
+    const [, total_photos] = await this.photoRepository.findAndCount({
+      where: {
+        order: { id: orderId },
+      },
+    });
 
     if (!order)
       throw new DatabaseException(
@@ -140,6 +149,7 @@ export class SelectionService {
             ),
           };
         }),
+        total_photos,
       },
     };
   }
