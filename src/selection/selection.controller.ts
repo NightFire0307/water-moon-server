@@ -21,7 +21,7 @@ import { ProductPhotoSelectionDto } from './dto/selection-photos-update.dto';
 
 @Controller('selection')
 export class SelectionController {
-  constructor(private readonly selectionService: SelectionService) {}
+  constructor(private readonly selectionService: SelectionService) { }
 
   // 校验短链和密码
   @Post('auth')
@@ -94,6 +94,16 @@ export class SelectionController {
       orderId,
       selectedPhotos,
     );
+  }
+
+  // 移除照片下所有的标记
+  @Patch('photos/:photoId/remove-all-tag')
+  @UseGuards(CustomLogin)
+  async removeAllTags(
+    @OrderInfo('orderId') orderId: number,
+    @Param('photoId') photoId: number,
+  ) {
+    return await this.selectionService.removeAllTags(orderId, photoId);
   }
 
   // 锁定选片结果

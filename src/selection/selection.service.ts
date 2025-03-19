@@ -270,6 +270,38 @@ export class SelectionService {
     return order;
   }
 
+  // 移除照片所有的产品标记
+  async removeAllTags(orderId: number, photoId: number) {
+    const orderProducts = await this.orderProductRepository.find({
+      where: {
+        order: { id: orderId },
+      },
+      relations: ['selected_photos'],
+    });
+
+    if (orderProducts.length === 0) {
+      throw new BadRequestException('没有找到与该照片关联的订单产品');
+    }
+
+    console.log(orderProducts[0].selected_photos);
+
+    await this.orderProductRepository.manager.transaction(
+      async (transactionalEntityManager) => {
+        for (const orderProduct of orderProducts) {
+          orderProduct.selected_photos = orderProduct.selected_photos.filter(
+            (photo) => photo.id !== photoId,
+          );
+          console.log(orderProduct.selected_photos);
+          await transactionalEntityManager.save(orderProduct);
+        }
+      },
+    );
+
+    return {
+      msg: '成功移除所有与该照片关联的订单产品',
+    };
+  }
+
   // 锁定选片结果
   async submitOrder(orderId: number) {
     const order = await this.findOrderById(orderId);
