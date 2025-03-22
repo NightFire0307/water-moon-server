@@ -21,7 +21,7 @@ import { ProductPhotoSelectionDto } from './dto/selection-photos-update.dto';
 
 @Controller('selection')
 export class SelectionController {
-  constructor(private readonly selectionService: SelectionService) { }
+  constructor(private readonly selectionService: SelectionService) {}
 
   // 校验短链和密码
   @Post('auth')
@@ -62,12 +62,12 @@ export class SelectionController {
   }
 
   // 刷新access_token
-  @Post('auth/refresh/:short_url')
-  async refreshToken(@Param() surl: string, @Req() request: Request) {
+  @Post('auth/refresh')
+  async refreshToken(@Req() request: Request) {
     const refreshToken: string | undefined =
       request.cookies['selection_refresh_token'];
     if (!refreshToken) throw new BadRequestException('无效的 refresh token');
-    return await this.selectionService.refreshToken(refreshToken, surl);
+    return await this.selectionService.refreshToken(refreshToken);
   }
 
   @Get(':short_url/products')

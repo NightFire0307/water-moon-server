@@ -242,14 +242,14 @@ export class SelectionService {
   }
 
   // 刷新access_token
-  async refreshToken(refreshToken: string, surl: string) {
+  async refreshToken(refreshToken: string) {
     console.log(refreshToken);
     try {
       const data = await this.jwtService.verifyAsync(refreshToken);
       return {
         data: {
           access_token: await this.jwtService.signAsync(
-            { orderId: data.orderId, short_url: surl },
+            { orderId: data.orderId, short_url: data.surl },
             { expiresIn: '2h' },
           ),
         },
