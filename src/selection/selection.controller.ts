@@ -9,6 +9,7 @@ import {
   Post,
   Req,
   Res,
+  UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
 import { SelectionService } from './selection.service';
@@ -21,7 +22,7 @@ import { ProductPhotoSelectionDto } from './dto/selection-photos-update.dto';
 
 @Controller('selection')
 export class SelectionController {
-  constructor(private readonly selectionService: SelectionService) {}
+  constructor(private readonly selectionService: SelectionService) { }
 
   // 校验短链和密码
   @Post('auth')
@@ -55,10 +56,9 @@ export class SelectionController {
   }
 
   @Post('auth/verify/:short_url')
-  @UseGuards(CustomLogin, VerifySurl)
   @HttpCode(200)
-  verifyToken(@OrderInfo('orderId') orderId: number) {
-    return { data: { orderId } };
+  async verifyToken(@Param('short_url') shortUrl: string) {
+    return this.selectionService.verifyToken(shortUrl);
   }
 
   // 刷新access_token
@@ -66,7 +66,7 @@ export class SelectionController {
   async refreshToken(@Req() request: Request) {
     const refreshToken: string | undefined =
       request.cookies['selection_refresh_token'];
-    if (!refreshToken) throw new BadRequestException('无效的 refresh token');
+    if (!refreshToken) throw new UnauthorizedException('无效的 refresh token');
     return await this.selectionService.refreshToken(refreshToken);
   }
 

@@ -35,6 +35,17 @@ export class SelectionService {
   @InjectRepository(Photo)
   private readonly photoRepository: Repository<Photo>;
 
+  // 校验短链是否存在
+  async verifyToken(shortUrl: string) {
+    const decodedOrderId = this.decodeOrderId(shortUrl);
+
+    const order = await this.findOrderById(+decodedOrderId);
+
+    return {
+      data: order.id,
+    };
+  }
+
   // 校验短链和密码
   async validateLinkAndPassword(
     orderId: number,
