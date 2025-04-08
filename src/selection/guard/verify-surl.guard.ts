@@ -4,6 +4,7 @@ import {
   ExecutionContext,
   Inject,
   Injectable,
+  NotFoundException,
 } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { Request } from 'express';
@@ -28,7 +29,7 @@ export class VerifySurl implements CanActivate {
     const decodedOrderId = this.selectionService.decodeOrderId(short_url);
 
     if (orderId !== +decodedOrderId) {
-      throw new BadRequestException('订单号不匹配');
+      throw new NotFoundException('未找到订单');
     }
 
     return true;

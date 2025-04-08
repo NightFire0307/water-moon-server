@@ -19,10 +19,11 @@ import { OrderInfo } from '../common/custom.decorator';
 import { CustomLogin } from './guard/custom-login.guard';
 import { VerifySurl } from './guard/verify-surl.guard';
 import { ProductPhotoSelectionDto } from './dto/selection-photos-update.dto';
+import { SelectionRemarkUpdateDto } from './dto/selection-remark-update.dto';
 
 @Controller('selection')
 export class SelectionController {
-  constructor(private readonly selectionService: SelectionService) { }
+  constructor(private readonly selectionService: SelectionService) {}
 
   // 校验短链和密码
   @Post('auth')
@@ -94,6 +95,13 @@ export class SelectionController {
       orderId,
       selectedPhotos,
     );
+  }
+
+  // 更新照片备注
+  @Patch('photos/remark')
+  @UseGuards(CustomLogin)
+  async updatePhotoRemark(@Body() remarkUpdateDto: SelectionRemarkUpdateDto) {
+    return await this.selectionService.updatePhotoRemark(remarkUpdateDto);
   }
 
   // 移除照片下所有的标记

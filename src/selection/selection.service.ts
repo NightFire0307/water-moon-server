@@ -14,6 +14,7 @@ import { Photo } from '../photo/entities/photo.entity';
 import { Product } from '../product/entities/product.entity';
 import { OrderProduct } from '../order/entities/orderProduct.entity';
 import { ProductPhotoSelectionDto } from './dto/selection-photos-update.dto';
+import { SelectionRemarkUpdateDto } from './dto/selection-remark-update.dto';
 
 @Injectable()
 export class SelectionService {
@@ -328,5 +329,27 @@ export class SelectionService {
     }
 
     throw new BadRequestException('当前订单状态不允许锁定');
+  }
+
+  async updatePhotoRemark({ photoId, remark }: SelectionRemarkUpdateDto) {
+    const photo = await this.photoRepository.findOne({
+      where: {
+        id: photoId,
+      },
+    });
+
+    if (!photo) {
+      throw new DatabaseException(
+        DatabaseErrorType.DATA_NOT_FOUND,
+        '照片不存在',
+      );
+    }
+
+    photo.remark = remark;
+    await this.photoRepository.save(photo);
+    return {
+      data: photoId,
+      msg: '更新备注成功',
+    };
   }
 }
