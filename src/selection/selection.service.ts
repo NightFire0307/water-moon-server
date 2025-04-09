@@ -15,6 +15,7 @@ import { Product } from '../product/entities/product.entity';
 import { OrderProduct } from '../order/entities/orderProduct.entity';
 import { ProductPhotoSelectionDto } from './dto/selection-photos-update.dto';
 import { SelectionRemarkUpdateDto } from './dto/selection-remark-update.dto';
+import { PaginationQuery } from '../common/custom.decorator';
 
 @Injectable()
 export class SelectionService {
@@ -166,28 +167,6 @@ export class SelectionService {
     };
   }
 
-  // 获取选片订单所有照片
-  async getSelectedPhotos(orderId: number) {
-    const order = await this.findOrderById(orderId);
-    const result = [];
-
-    const photos = await this.redisClient.hgetall(
-      `photos_url:${order.order_number}`,
-    );
-
-    for (const key in photos) {
-      const value = photos[key];
-      result.push({
-        id: Number(key),
-        ...JSON.parse(value),
-      });
-    }
-
-    return {
-      data: result,
-    };
-  }
-
   // 更新产品照片
   async updateSelectedPhotos(
     orderId: number,
@@ -332,6 +311,28 @@ export class SelectionService {
   }
 
   async updatePhotoRemark({ photoId, remark }: SelectionRemarkUpdateDto) {
+    const photo = await this.getPhotoById(photoId);
+
+    photo.remark = remark;
+    await this.photoRepository.save(photo);
+    return {
+      data: photoId,
+      msg: '更新备注成功',
+    };
+  }
+
+  async getPhotoRemarkById(photoId: number) {
+    const photo = await this.getPhotoById(photoId);
+
+    return {
+      data: {
+        id: photo.id,
+        remark: photo.remark,
+      },
+    };
+  }
+
+  private async getPhotoById(photoId: number) {
     const photo = await this.photoRepository.findOne({
       where: {
         id: photoId,
@@ -345,11 +346,6 @@ export class SelectionService {
       );
     }
 
-    photo.remark = remark;
-    await this.photoRepository.save(photo);
-    return {
-      data: photoId,
-      msg: '更新备注成功',
-    };
+    return photo;
   }
 }

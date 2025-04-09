@@ -15,15 +15,23 @@ import {
 import { SelectionService } from './selection.service';
 import { SelectionLoginDto } from './dto/selection-login.dto';
 import { Request, Response } from 'express';
-import { OrderInfo } from '../common/custom.decorator';
+import {
+  OrderInfo,
+  Pagination,
+  PaginationQuery,
+} from '../common/custom.decorator';
 import { CustomLogin } from './guard/custom-login.guard';
 import { VerifySurl } from './guard/verify-surl.guard';
 import { ProductPhotoSelectionDto } from './dto/selection-photos-update.dto';
 import { SelectionRemarkUpdateDto } from './dto/selection-remark-update.dto';
+import { PhotoService } from '../photo/photo.service';
 
 @Controller('selection')
 export class SelectionController {
-  constructor(private readonly selectionService: SelectionService) {}
+  constructor(
+    private readonly selectionService: SelectionService,
+    private readonly photoService: PhotoService,
+  ) {}
 
   // 校验短链和密码
   @Post('auth')
@@ -80,8 +88,11 @@ export class SelectionController {
   // 获取选片照片
   @Get('photos')
   @UseGuards(CustomLogin)
-  async getPhotos(@OrderInfo('orderId') orderId: number) {
-    return await this.selectionService.getSelectedPhotos(orderId);
+  async getPhotos(
+    @OrderInfo('orderId') orderId: number,
+    @Pagination() pagination: PaginationQuery,
+  ) {
+    return await this.photoService.getPhotosByOrderId(orderId, pagination);
   }
 
   // 更新照片选择
@@ -102,6 +113,13 @@ export class SelectionController {
   @UseGuards(CustomLogin)
   async updatePhotoRemark(@Body() remarkUpdateDto: SelectionRemarkUpdateDto) {
     return await this.selectionService.updatePhotoRemark(remarkUpdateDto);
+  }
+
+  // 获取照片备注
+  @Get('photos/:photoId/remark/')
+  @UseGuards(CustomLogin)
+  async getPhotoRemarkById(@Param('photoId') photoId: number) {
+    return await this.selectionService.getPhotoRemarkById(photoId);
   }
 
   // 移除照片下所有的标记

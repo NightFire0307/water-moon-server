@@ -13,6 +13,7 @@ import {
   DatabaseException,
 } from '../common/database-exception.filter';
 import { Order } from '../order/entities/order.entity';
+import * as dayjs from 'dayjs';
 
 export interface CompressPhotoJobData {
   id: number;
@@ -24,6 +25,7 @@ export interface CompressPhotoJobData {
   thumbnail_url?: string;
   original_url?: string;
   expires?: number;
+  remark?: string;
 }
 
 export interface UpdatePhotoRecommendJobData {
@@ -83,8 +85,15 @@ export class CompressPhotoProcessor extends WorkerHost {
 
   // 异步压缩图片
   async compressPhotoJob(data: CompressPhotoJobData) {
-    const { id, uid, file_name, file_buffer, order_number, is_recommend } =
-      data;
+    const {
+      id,
+      uid,
+      file_name,
+      file_buffer,
+      order_number,
+      is_recommend,
+      remark,
+    } = data;
 
     try {
       // 拷贝图片 Buffer
@@ -131,8 +140,9 @@ export class CompressPhotoProcessor extends WorkerHost {
           file_name,
           thumbnail_url,
           original_url,
-          expires: Math.floor(Date.now() / 1000) + expires,
+          expires: dayjs().add(6, 'd').valueOf(),
           is_recommend,
+          remark,
         }),
       );
 
@@ -154,7 +164,6 @@ export class CompressPhotoProcessor extends WorkerHost {
 
   // 异步刷新图片链接
   async urlRefreshJob({ orderId, photoId }: UrlRefreshJobData) {
-    console.log('刷新图片链接', orderId, photoId);
     try {
       const order = await this.orderRepository.findOne({
         where: { id: orderId, is_deleted: false },
@@ -190,7 +199,8 @@ export class CompressPhotoProcessor extends WorkerHost {
           thumbnail_url,
           original_url,
           is_recommend: photo.is_recommended,
-          expires: Math.floor(Date.now() / 1000) + expires,
+          expires: dayjs().add(30, 's').valueOf(),
+          remark: '',
         }),
       );
     } catch (e) {

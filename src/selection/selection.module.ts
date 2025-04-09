@@ -7,10 +7,12 @@ import { Order } from '../order/entities/order.entity';
 import { Product } from '../product/entities/product.entity';
 import { Photo } from '../photo/entities/photo.entity';
 import { OrderProduct } from '../order/entities/orderProduct.entity';
+import { PhotoModule } from '../photo/photo.module';
 
 @Module({
   imports: [
     RedisModule,
+    PhotoModule,
     TypeOrmModule.forFeature([Order, OrderProduct, Product, Photo]),
   ],
   controllers: [SelectionController],

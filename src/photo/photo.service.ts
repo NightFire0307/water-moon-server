@@ -16,6 +16,7 @@ import { Queue } from 'bullmq';
 import { PhotoJobName } from './compress-photo.processor';
 import { MinioService } from '../minio/minio.service';
 import { ConfigService } from '@nestjs/config';
+import * as dayjs from 'dayjs';
 
 @Injectable()
 export class PhotoService {
@@ -68,9 +69,11 @@ export class PhotoService {
       }));
 
     // 判断链接是否过期，如果过期则重新生成链接
-    const now = Math.floor(Date.now() / 1000);
     for (const photo of oss_lists) {
-      if (photo.expires < now) {
+      const now = dayjs();
+      const expireAt = dayjs(photo.expires);
+      if (expireAt.diff(now, 's') <= 10) {
+        console.log('链接过期，重新生成链接');
         photo.thumbnail_url = await this.minioService.generateGetUrl(
           `${order.order_number}/thumbnail_${photo.file_name}`,
         );
@@ -87,7 +90,8 @@ export class PhotoService {
             thumbnail_url: photo.thumbnail_url,
             original_url: photo.original_url,
             is_recommend: photo.is_recommend,
-            expires: photo.expires,
+            expires: dayjs().add(6, 'd').valueOf(),
+            remark: photo.remark,
           }),
         );
       }
@@ -96,6 +100,8 @@ export class PhotoService {
     return {
       data: {
         list: oss_lists,
+        current: pagination.current,
+        pageSize: pagination.pageSize,
         total,
       },
     };
@@ -220,6 +226,7 @@ export class PhotoService {
       order_number: order.order_number,
       is_recommend: photo.is_recommended,
       file_name,
+      remark: '',
     });
 
     // 推送刷新 OSS URL 任务队列

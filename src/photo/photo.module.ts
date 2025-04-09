@@ -26,5 +26,6 @@ import { CompressPhotoProcessor } from './compress-photo.processor';
   ],
   controllers: [PhotoController],
   providers: [PhotoService, PhotoCountSyncService, CompressPhotoProcessor],
+  exports: [PhotoService],
 })
 export class PhotoModule {}
