@@ -9,9 +9,8 @@ import { generatePassword } from '../utils/generatePassword';
 import { PaginationQuery } from '../common/custom.decorator';
 import { RedisService } from '../redis/redis.service';
 import {
+  CommonErrorCode,
   DatabaseException,
-  LinkErrorCode,
-  OrderErrorCode,
 } from '../common/exceptions/database.exception';
 
 const BASE62 = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
@@ -31,7 +30,8 @@ export class LinkService {
   async generateShareUrl(createLinkDto: CreateLinkDto) {
     const { password, expired_at, order_id, access_limit } = createLinkDto;
     const order = await this.orderRepository.findOneBy({ id: order_id });
-    if (!order) throw new DatabaseException(OrderErrorCode.ORDER_NOT_FOUND);
+    if (!order)
+      throw new DatabaseException(CommonErrorCode.NOT_FOUND, '订单不存在');
 
     const cur_time = new Date().getTime();
     // 生成短链接
@@ -69,7 +69,8 @@ export class LinkService {
   async getShareUrlByOrderId(orderId: number, pagination: PaginationQuery) {
     const { current, pageSize } = pagination;
     const order = await this.orderRepository.findOneBy({ id: orderId });
-    if (!order) throw new DatabaseException(OrderErrorCode.ORDER_NOT_FOUND);
+    if (!order)
+      throw new DatabaseException(CommonErrorCode.NOT_FOUND, '订单不存在');
 
     const [links, total] = await this.linkRepository.findAndCount({
       order: {
@@ -93,7 +94,8 @@ export class LinkService {
   async removeShareLinkByOrderId(id: number) {
     const link = await this.linkRepository.findOneBy({ id });
 
-    if (!link) throw new DatabaseException(LinkErrorCode.LINK_NOT_FOUND);
+    if (!link)
+      throw new DatabaseException(CommonErrorCode.NOT_FOUND, '链接不存在');
     await this.linkRepository.remove(link);
 
     return {
