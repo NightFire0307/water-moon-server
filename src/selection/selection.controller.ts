@@ -9,7 +9,6 @@ import {
   Post,
   Req,
   Res,
-  UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
 import { SelectionService } from './selection.service';
@@ -25,6 +24,10 @@ import { VerifySurl } from './guard/verify-surl.guard';
 import { ProductPhotoSelectionDto } from './dto/selection-photos-update.dto';
 import { SelectionRemarkUpdateDto } from './dto/selection-remark-update.dto';
 import { PhotoService } from '../photo/photo.service';
+import {
+  AuthErrorCode,
+  AuthException,
+} from '../common/exceptions/auth.exception';
 
 @Controller('selection')
 export class SelectionController {
@@ -75,7 +78,7 @@ export class SelectionController {
   async refreshToken(@Req() request: Request) {
     const refreshToken: string | undefined =
       request.cookies['selection_refresh_token'];
-    if (!refreshToken) throw new UnauthorizedException('无效的 refresh token');
+    if (!refreshToken) throw new AuthException(AuthErrorCode.INVALID_TOKEN);
     return await this.selectionService.refreshToken(refreshToken);
   }
 

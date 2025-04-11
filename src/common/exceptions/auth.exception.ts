@@ -5,6 +5,7 @@ export enum AuthErrorCode {
   NOT_LOGIN = 'AUTH_NOT_LOGIN',
   LOGIN_EXPIRED = 'AUTH_LOGIN_EXPIRED',
   PASSWORD_ERROR = 'AUTH_PASSWORD_ERROR',
+  INVALID_TOKEN = 'AUTH_INVALID_TOKEN',
 }
 
 export class AuthException extends BaseBusinessException {
@@ -20,6 +21,10 @@ export class AuthException extends BaseBusinessException {
       },
       [AuthErrorCode.PASSWORD_ERROR]: {
         msg: '密码错误',
+        status: HttpStatus.UNAUTHORIZED,
+      },
+      [AuthErrorCode.INVALID_TOKEN]: {
+        msg: '无效的Token',
         status: HttpStatus.UNAUTHORIZED,
       },
     };
