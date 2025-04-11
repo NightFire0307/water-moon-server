@@ -11,9 +11,9 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { Role } from '../auth/entities/role.entity';
 import { ResetUserPasswordDto } from './dto/reset-user-password.dto';
 import {
-  OperatorErrorType,
-  OperatorException,
-} from '../common/operator-exception.filter';
+  CommonErrorCode,
+  DatabaseException,
+} from '../common/exceptions/database.exception';
 
 @Injectable()
 export class UserService {
@@ -126,10 +126,7 @@ export class UserService {
   ) {
     const { userId, password } = resetPasswordDto;
     if (userId !== curUserId && !isAdmin)
-      throw new OperatorException(
-        OperatorErrorType.NO_PERMISSION,
-        '无权限操作',
-      );
+      throw new DatabaseException(CommonErrorCode.NO_PERMISSION);
 
     const foundUser = await this.userRepository.findOneBy({ user_id: userId });
     const saltRounds: string = this.configService.get('hash_salt_rounds');
@@ -138,7 +135,7 @@ export class UserService {
     try {
       await this.userRepository.save(foundUser);
       return { data: foundUser.user_id, msg: '密码重置成功' };
-    } catch (e) {
+    } catch {
       return { data: foundUser.user_id, msg: '密码重置失败' };
     }
   }

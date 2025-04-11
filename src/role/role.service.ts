@@ -6,11 +6,11 @@ import { PaginationQuery } from '../common/custom.decorator';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto, UpdateRolePermissionsDto } from './dto/update-role.dto';
 import { Permission } from '../auth/entities/permissions.entity';
-import {
-  DatabaseErrorType,
-  DatabaseException,
-} from '../common/database-exception.filter';
 import { Redis } from 'ioredis';
+import {
+  CommonErrorCode,
+  DatabaseException,
+} from '../common/exceptions/database.exception';
 
 @Injectable()
 export class RoleService {
@@ -87,10 +87,7 @@ export class RoleService {
     });
 
     if (!role_permissions)
-      throw new DatabaseException(
-        DatabaseErrorType.DATA_NOT_FOUND,
-        '角色不存在',
-      );
+      throw new DatabaseException(CommonErrorCode.NOT_FOUND, '角色不存在');
 
     role_permissions.permissions = await this.permissionRepository.find({
       where: {

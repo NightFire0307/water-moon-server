@@ -9,9 +9,10 @@ import { CreateProductTypeDto } from './dto/create-productType.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { UpdateProductTypeDto } from './dto/update-productType.dto';
 import {
-  DatabaseErrorType,
+  CommonErrorCode,
   DatabaseException,
-} from '../common/database-exception.filter';
+  ProductErrorCode,
+} from '../common/exceptions/database.exception';
 
 @Injectable()
 export class ProductService {
@@ -114,7 +115,7 @@ export class ProductService {
       await this.productRepository.save(product);
       return { data: '', message: '修改成功' };
     } catch (e) {
-      throw new DatabaseException(DatabaseErrorType.DEFAULT, e);
+      throw new DatabaseException(CommonErrorCode.DATABASE_ERROR, e);
     }
   }
 
@@ -126,10 +127,7 @@ export class ProductService {
     });
 
     if (!product)
-      throw new DatabaseException(
-        DatabaseErrorType.DATA_NOT_FOUND,
-        '数据不存在',
-      );
+      throw new DatabaseException(CommonErrorCode.NOT_FOUND, '数据不存在');
 
     await this.productRepository.remove(product);
     return { data: product.id, message: '删除成功' };
@@ -171,10 +169,7 @@ export class ProductService {
     });
 
     if (foundProductType)
-      throw new DatabaseException(
-        DatabaseErrorType.DATA_ALREADY_EXISTS,
-        '数据已存在',
-      );
+      throw new DatabaseException(ProductErrorCode.PRODUCT_NAME_ALREADY_EXISTS);
 
     try {
       const productType = new ProductType();
@@ -194,17 +189,14 @@ export class ProductService {
     });
 
     if (!productType)
-      throw new DatabaseException(
-        DatabaseErrorType.DATA_NOT_FOUND,
-        '数据不存在',
-      );
+      throw new DatabaseException(CommonErrorCode.NOT_FOUND, '产品类型不存在');
 
     productType.name = updateProductType.name;
     try {
       const data = await this.productTypeRepository.save(productType);
       return { data, message: '修改成功' };
     } catch (e) {
-      throw new DatabaseException(DatabaseErrorType.DEFAULT, e);
+      throw new DatabaseException(CommonErrorCode.DATABASE_ERROR, e);
     }
   }
 
@@ -216,10 +208,7 @@ export class ProductService {
     });
 
     if (!productType)
-      throw new DatabaseException(
-        DatabaseErrorType.DATA_NOT_FOUND,
-        '数据不存在',
-      );
+      throw new DatabaseException(CommonErrorCode.NOT_FOUND, '产品类型不存在');
 
     try {
       await this.productTypeRepository.remove(productType);
@@ -230,7 +219,7 @@ export class ProductService {
     } catch (e) {
       // 当有产品使用了这个类型时，删除会失败
       throw new DatabaseException(
-        DatabaseErrorType.DATA_CANNOT_DELETE,
+        CommonErrorCode.DATABASE_CANNOT_DELETE,
         '请先删除产品',
       );
     }
@@ -244,10 +233,7 @@ export class ProductService {
     });
 
     if (productTypes.length !== ids.length) {
-      throw new DatabaseException(
-        DatabaseErrorType.DATA_NOT_FOUND,
-        '部分数据不存在',
-      );
+      throw new DatabaseException(CommonErrorCode.NOT_FOUND, '部分数据不存在');
     }
 
     await this.productTypeRepository.remove(productTypes);

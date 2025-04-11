@@ -6,15 +6,17 @@ import { In, Repository } from 'typeorm';
 import { Product } from '../product/entities/product.entity';
 import { PaginationQuery } from '../common/custom.decorator';
 import { OrderProduct } from './entities/orderProduct.entity';
-import {
-  DatabaseErrorType,
-  DatabaseException,
-} from '../common/database-exception.filter';
 import { UpdateOrderDto } from './dto/update-order.dto';
 import { instanceToPlain } from 'class-transformer';
 import { GetOrderListDto } from './dto/get-order-list.dto';
 import { ResetOrderStatusDto } from './dto/reset-order-status.dto';
 import { Photo } from '../photo/entities/photo.entity';
+import {
+  CommonErrorCode,
+  DatabaseException,
+  OrderErrorCode,
+  PhotoErrorCode,
+} from '../common/exceptions/database.exception';
 
 interface OrderProductCount {
   orderId: number;
@@ -114,11 +116,8 @@ export class OrderService {
           ...pagination,
         },
       };
-    } catch (error) {
-      throw new DatabaseException(
-        DatabaseErrorType.DEFAULT,
-        `获取订单列表失败: ${error.message}`,
-      );
+    } catch {
+      throw new DatabaseException(PhotoErrorCode.PHOTO_UPDATE_FAILED);
     }
   }
 
@@ -145,10 +144,7 @@ export class OrderService {
     });
 
     if (foundOrder) {
-      throw new DatabaseException(
-        DatabaseErrorType.DATA_ALREADY_EXISTS,
-        '订单号已存在',
-      );
+      throw new DatabaseException(OrderErrorCode.ORDER_NUMBER_ALREADY_EXISTS);
     }
 
     const order = this.orderRepository.create({
@@ -170,10 +166,7 @@ export class OrderService {
     });
 
     if (foundProduct.length !== productIds.length) {
-      throw new DatabaseException(
-        DatabaseErrorType.DATA_NOT_FOUND,
-        '查询不到产品',
-      );
+      throw new DatabaseException(CommonErrorCode.NOT_FOUND, '查询不到产品');
     }
 
     // 保存order_products
@@ -202,7 +195,7 @@ export class OrderService {
       };
     } catch (e) {
       await queryRunner.rollbackTransaction();
-      throw new DatabaseException(DatabaseErrorType[e.type], e.mssage);
+      throw new DatabaseException(CommonErrorCode.DATABASE_ERROR, e);
     } finally {
       await queryRunner.release();
     }
@@ -220,12 +213,9 @@ export class OrderService {
     });
 
     if (!order)
-      throw new DatabaseException(
-        DatabaseErrorType.DATA_NOT_FOUND,
-        '订单不存在',
-      );
+      throw new DatabaseException(CommonErrorCode.NOT_FOUND, '订单不存在');
 
-    const [_, total_photos] = await this.photoRepository.findAndCount({
+    const [, total_photos] = await this.photoRepository.findAndCount({
       where: { order: { id: order.id }, is_deleted: false },
     });
 
@@ -270,10 +260,7 @@ export class OrderService {
       });
 
       if (foundProduct.length !== productIds.length) {
-        return new DatabaseException(
-          DatabaseErrorType.DATA_NOT_FOUND,
-          '查询不到产品',
-        );
+        return new DatabaseException(CommonErrorCode.NOT_FOUND, '查询不到产品');
       }
 
       const order_products_data = order_products.map((item) => {
@@ -301,7 +288,7 @@ export class OrderService {
       };
     } catch (e) {
       await queryRunner.rollbackTransaction();
-      throw new DatabaseException(DatabaseErrorType.DEFAULT, e);
+      throw new DatabaseException(CommonErrorCode.DATABASE_ERROR, e);
     } finally {
       await queryRunner.release();
     }
@@ -328,10 +315,7 @@ export class OrderService {
 
     const order = await this.orderRepository.findOneBy({ id: orderId });
     if (!order)
-      throw new DatabaseException(
-        DatabaseErrorType.DATA_NOT_FOUND,
-        '订单不存在',
-      );
+      throw new DatabaseException(CommonErrorCode.NOT_FOUND, '订单不存在');
 
     if (order.status === OrderStatus.SUBMITTED) {
       order.status = OrderStatus.PENDING;

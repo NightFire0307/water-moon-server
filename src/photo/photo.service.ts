@@ -3,10 +3,6 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Photo } from './entities/photo.entity';
 import { In, Repository } from 'typeorm';
 import { Order } from '../order/entities/order.entity';
-import {
-  DatabaseErrorType,
-  DatabaseException,
-} from '../common/database-exception.filter';
 import { PaginationQuery } from '../common/custom.decorator';
 import { DeletePhotosDto } from './dto/delete-photos.dto';
 import { UpdatePhotoRecommendDto } from './dto/update-photo-recommend.dto';
@@ -17,6 +13,10 @@ import { PhotoJobName } from './compress-photo.processor';
 import { MinioService } from '../minio/minio.service';
 import { ConfigService } from '@nestjs/config';
 import * as dayjs from 'dayjs';
+import {
+  CommonErrorCode,
+  DatabaseException,
+} from '../common/exceptions/database.exception';
 
 @Injectable()
 export class PhotoService {
@@ -39,10 +39,7 @@ export class PhotoService {
       },
     });
     if (!foundOrder) {
-      throw new DatabaseException(
-        DatabaseErrorType.DATA_NOT_FOUND,
-        '订单不存在',
-      );
+      throw new DatabaseException(CommonErrorCode.NOT_FOUND, '订单不存在');
     }
 
     return foundOrder;
@@ -134,7 +131,7 @@ export class PhotoService {
         );
       }
     } catch (e) {
-      throw new DatabaseException(DatabaseErrorType.DEFAULT, e);
+      throw new DatabaseException(CommonErrorCode.DATABASE_ERROR, e);
     }
 
     return { message: '删除照片成功', data: [] };
@@ -148,10 +145,7 @@ export class PhotoService {
     const order = await this.getOrderById(orderId);
 
     if (!order) {
-      throw new DatabaseException(
-        DatabaseErrorType.DATA_NOT_FOUND,
-        '订单不存在',
-      );
+      throw new DatabaseException(CommonErrorCode.NOT_FOUND, '订单不存在');
     }
 
     // 修改 Redis 中照片推荐状态
@@ -195,10 +189,7 @@ export class PhotoService {
     const order = await this.getOrderById(orderId);
 
     if (!order) {
-      throw new DatabaseException(
-        DatabaseErrorType.DATA_NOT_FOUND,
-        '订单不存在',
-      );
+      throw new DatabaseException(CommonErrorCode.NOT_FOUND, '订单不存在');
     }
 
     // 去掉文件后缀名

@@ -5,13 +5,14 @@ import { Link, LinkStatus } from './entities/link.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Order } from '../order/entities/order.entity';
-import {
-  DatabaseErrorType,
-  DatabaseException,
-} from '../common/database-exception.filter';
 import { generatePassword } from '../utils/generatePassword';
-import { PaginationQuery, Pagination } from '../common/custom.decorator';
+import { PaginationQuery } from '../common/custom.decorator';
 import { RedisService } from '../redis/redis.service';
+import {
+  DatabaseException,
+  LinkErrorCode,
+  OrderErrorCode,
+} from '../common/exceptions/database.exception';
 
 const BASE62 = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
 const bs62 = basex(BASE62);
@@ -30,11 +31,7 @@ export class LinkService {
   async generateShareUrl(createLinkDto: CreateLinkDto) {
     const { password, expired_at, order_id, access_limit } = createLinkDto;
     const order = await this.orderRepository.findOneBy({ id: order_id });
-    if (!order)
-      throw new DatabaseException(
-        DatabaseErrorType.DATA_NOT_FOUND,
-        '订单不存在',
-      );
+    if (!order) throw new DatabaseException(OrderErrorCode.ORDER_NOT_FOUND);
 
     const cur_time = new Date().getTime();
     // 生成短链接
@@ -72,11 +69,7 @@ export class LinkService {
   async getShareUrlByOrderId(orderId: number, pagination: PaginationQuery) {
     const { current, pageSize } = pagination;
     const order = await this.orderRepository.findOneBy({ id: orderId });
-    if (!order)
-      throw new DatabaseException(
-        DatabaseErrorType.DATA_NOT_FOUND,
-        '订单不存在',
-      );
+    if (!order) throw new DatabaseException(OrderErrorCode.ORDER_NOT_FOUND);
 
     const [links, total] = await this.linkRepository.findAndCount({
       order: {
@@ -100,11 +93,7 @@ export class LinkService {
   async removeShareLinkByOrderId(id: number) {
     const link = await this.linkRepository.findOneBy({ id });
 
-    if (!link)
-      throw new DatabaseException(
-        DatabaseErrorType.DATA_NOT_FOUND,
-        '数据不存在',
-      );
+    if (!link) throw new DatabaseException(LinkErrorCode.LINK_NOT_FOUND);
     await this.linkRepository.remove(link);
 
     return {

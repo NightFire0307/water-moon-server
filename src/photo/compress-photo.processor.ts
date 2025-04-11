@@ -8,12 +8,12 @@ import { Redis } from 'ioredis';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Photo } from './entities/photo.entity';
 import { In, Repository } from 'typeorm';
-import {
-  DatabaseErrorType,
-  DatabaseException,
-} from '../common/database-exception.filter';
 import { Order } from '../order/entities/order.entity';
 import * as dayjs from 'dayjs';
+import {
+  CommonErrorCode,
+  DatabaseException,
+} from '../common/exceptions/database.exception';
 
 export interface CompressPhotoJobData {
   id: number;
@@ -79,7 +79,7 @@ export class CompressPhotoProcessor extends WorkerHost {
         { is_recommended: isRecommended },
       );
     } catch (e) {
-      throw new DatabaseException(DatabaseErrorType.DEFAULT, e);
+      throw new DatabaseException(CommonErrorCode.DATABASE_ERROR, e);
     }
   }
 

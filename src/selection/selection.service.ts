@@ -4,10 +4,6 @@ import { Redis } from 'ioredis';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Order, OrderStatus } from '../order/entities/order.entity';
 import { In, Repository } from 'typeorm';
-import {
-  DatabaseErrorType,
-  DatabaseException,
-} from '../common/database-exception.filter';
 import { SelectionLoginDto } from './dto/selection-login.dto';
 import { JwtService } from '@nestjs/jwt';
 import { Photo } from '../photo/entities/photo.entity';
@@ -15,7 +11,11 @@ import { Product } from '../product/entities/product.entity';
 import { OrderProduct } from '../order/entities/orderProduct.entity';
 import { ProductPhotoSelectionDto } from './dto/selection-photos-update.dto';
 import { SelectionRemarkUpdateDto } from './dto/selection-remark-update.dto';
-import { PaginationQuery } from '../common/custom.decorator';
+import {
+  CommonErrorCode,
+  DatabaseException,
+  OrderErrorCode,
+} from '../common/exceptions/database.exception';
 
 @Injectable()
 export class SelectionService {
@@ -58,10 +58,7 @@ export class SelectionService {
     });
 
     if (!order)
-      throw new DatabaseException(
-        DatabaseErrorType.DATA_NOT_FOUND,
-        '订单不存在',
-      );
+      throw new DatabaseException(CommonErrorCode.NOT_FOUND, { orderId });
 
     // 校验Redis中的链接密码
     const sharedLink = await this.redisClient.hget(
@@ -73,6 +70,12 @@ export class SelectionService {
 
     if (sharedLinkObj.password !== password) {
       throw new BadRequestException('密码错误');
+    }
+
+    // 更新订单状态
+    if (order.status === OrderStatus.PENDING) {
+      order.status = OrderStatus.IN_PROGRESS;
+      await this.orderRepository.save(order);
     }
 
     return {
@@ -142,10 +145,7 @@ export class SelectionService {
     });
 
     if (!order)
-      throw new DatabaseException(
-        DatabaseErrorType.DATA_NOT_FOUND,
-        '订单不存在',
-      );
+      throw new DatabaseException(CommonErrorCode.NOT_FOUND, { orderId });
 
     return {
       data: {
@@ -175,7 +175,15 @@ export class SelectionService {
     const { orderProductId, photoIds } = productPhotoSelection;
 
     // 验证订单存在
-    await this.findOrderById(orderId);
+    const order = await this.findOrderById(orderId);
+
+    // 验证订单是否已经提交锁定
+    if (order.status === OrderStatus.SUBMITTED) {
+      throw new DatabaseException(
+        OrderErrorCode.ORDER_IS_SUBMIT,
+        '选片结果已锁定，如需更改请联系选片师',
+      );
+    }
 
     // 获取订单产品
     const orderProduct = await this.orderProductRepository.findOne({
@@ -188,10 +196,7 @@ export class SelectionService {
     });
 
     if (!orderProduct) {
-      throw new DatabaseException(
-        DatabaseErrorType.DATA_NOT_FOUND,
-        '订单产品不存在',
-      );
+      throw new DatabaseException(CommonErrorCode.NOT_FOUND, '订单产品不存在');
     }
 
     // 确保没有重复的照片ID
@@ -254,10 +259,7 @@ export class SelectionService {
   private async findOrderById(id: number) {
     const order = await this.orderRepository.findOneBy({ id });
     if (!order)
-      throw new DatabaseException(
-        DatabaseErrorType.DATA_NOT_FOUND,
-        '订单不存在',
-      );
+      throw new DatabaseException(CommonErrorCode.NOT_FOUND, '订单不存在');
     return order;
   }
 
@@ -340,10 +342,7 @@ export class SelectionService {
     });
 
     if (!photo) {
-      throw new DatabaseException(
-        DatabaseErrorType.DATA_NOT_FOUND,
-        '照片不存在',
-      );
+      throw new DatabaseException(CommonErrorCode.NOT_FOUND, '照片不存在');
     }
 
     return photo;

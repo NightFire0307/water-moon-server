@@ -16,8 +16,11 @@ import { AuthService } from './auth.service';
 import { LoginUserDto } from './dto/login-user.dto';
 import { JwtService } from '@nestjs/jwt';
 import { RequireLogin } from '../common/custom.decorator';
-import { UnloginException } from '../unlogin.filter';
-import { Response, Request } from 'express';
+import { Request, Response } from 'express';
+import {
+  AuthErrorCode,
+  AuthException,
+} from '../common/exceptions/auth.exception';
 
 interface RefreshTokenPayload {
   userId: number;
@@ -76,7 +79,7 @@ export class AuthController {
         this.jwtService.verify<RefreshTokenPayload>(refreshToken);
       return await this.userService.refreshToken(userId, false);
     } catch {
-      throw new UnloginException('Token 已失效，请重新登录');
+      throw new AuthException(AuthErrorCode.LOGIN_EXPIRED);
     }
   }
 

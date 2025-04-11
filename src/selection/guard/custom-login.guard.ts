@@ -9,6 +9,10 @@ import { Observable } from 'rxjs';
 import { SelectionService } from '../selection.service';
 import { JwtService } from '@nestjs/jwt';
 import { Request } from 'express';
+import {
+  AuthErrorCode,
+  AuthException,
+} from '../../common/exceptions/auth.exception';
 
 interface JwtSelectData {
   orderId: number;
@@ -42,7 +46,7 @@ export class CustomLogin implements CanActivate {
       const data = this.jwtService.verify<JwtSelectData>(token);
       request.orderInfo = { ...data };
     } catch {
-      throw new BadRequestException('无效的令牌');
+      throw new AuthException(AuthErrorCode.LOGIN_EXPIRED);
     }
 
     return true;

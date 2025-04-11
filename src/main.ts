@@ -1,12 +1,10 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ConfigService } from '@nestjs/config';
-import { FormatResponseInterceptor } from './common/format-response.interceptor';
+import { FormatResponseInterceptor } from './common/interceptor/format-response.interceptor';
 import { InvokeRecordInterceptor } from './common/invoke-record.interceptor';
 import { ValidationPipe } from '@nestjs/common';
-import { UnloginFilter } from './unlogin.filter';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import { DatabaseExceptionFilter } from './common/database-exception.filter';
 import { RedisExceptionFilter } from './common/redis-exception.filter';
 import * as cookieParser from 'cookie-parser';
 
@@ -22,11 +20,7 @@ async function bootstrap() {
   );
   app.useGlobalInterceptors(new FormatResponseInterceptor());
   app.useGlobalInterceptors(new InvokeRecordInterceptor());
-  app.useGlobalFilters(
-    new UnloginFilter(),
-    new DatabaseExceptionFilter(),
-    new RedisExceptionFilter(),
-  );
+  app.useGlobalFilters(new RedisExceptionFilter());
 
   const config = new DocumentBuilder()
     .setTitle('Water_Moon_Server')
