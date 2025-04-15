@@ -136,10 +136,10 @@ export class SelectionController {
   }
 
   // 锁定选片结果
-  @Post(':short_url/submit')
-  @UseGuards(CustomLogin, VerifySurl)
+  @Post(':orderId')
+  @UseGuards(CustomLogin)
   @HttpCode(200)
-  async submitOrder(@OrderInfo('orderId') orderId: number) {
+  async submitOrder(@Param('orderId') orderId: number) {
     return await this.selectionService.submitOrder(orderId);
   }
 }

@@ -304,8 +304,9 @@ export class SelectionService {
       await this.orderRepository.save(order);
       return {
         data: {
-          ...order,
+          orderId: order.id,
         },
+        msg: '锁定成功',
       };
     }
 
