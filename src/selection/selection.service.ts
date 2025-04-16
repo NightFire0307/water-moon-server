@@ -109,8 +109,8 @@ export class SelectionService {
     }
   }
 
-  // 获取选片订单产品
-  async getSelectedProducts(orderId: number) {
+  // 获取选片订单信息
+  async getOrderInfo(orderId: number) {
     console.log(orderId);
 
     const order = await this.orderRepository

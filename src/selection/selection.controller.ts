@@ -82,10 +82,10 @@ export class SelectionController {
     return await this.selectionService.refreshToken(refreshToken);
   }
 
-  @Get(':short_url/products')
+  @Get(':short_url/order_info')
   @UseGuards(CustomLogin, VerifySurl)
-  async getProducts(@OrderInfo('orderId') orderId: number) {
-    return await this.selectionService.getSelectedProducts(orderId);
+  async getOrderInfo(@OrderInfo('orderId') orderId: number) {
+    return await this.selectionService.getOrderInfo(orderId);
   }
 
   // 获取选片照片
