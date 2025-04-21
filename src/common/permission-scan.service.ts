@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import { Reflector, ModulesContainer } from '@nestjs/core';
 import { PERMISSION_KEY } from './custom.decorator';
-import { Permission } from '../auth/entities/permissions.entity';
+import { Permission } from '../modules/auth/entities/permissions.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { OmitType } from '@nestjs/swagger';

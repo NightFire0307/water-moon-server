@@ -9,7 +9,7 @@ import { Observable } from 'rxjs';
 import { JwtService } from '@nestjs/jwt';
 import { Reflector } from '@nestjs/core';
 import { Request } from 'express';
-import { Permission } from '../../auth/entities/permissions.entity';
+import { Permission } from '../../modules/auth/entities/permissions.entity';
 import { AuthErrorCode, AuthException } from '../exceptions/auth.exception';
 
 export interface JwtUserData {

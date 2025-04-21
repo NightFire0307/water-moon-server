@@ -8,9 +8,9 @@ import { Reflector } from '@nestjs/core';
 import { Request } from 'express';
 import { Redis } from 'ioredis';
 import { InjectRepository } from '@nestjs/typeorm';
-import { User } from '../auth/entities/user.entity';
+import { User } from '../modules/auth/entities/user.entity';
 import { Repository } from 'typeorm';
-import { AuthService } from '../auth/auth.service';
+import { AuthService } from '../modules/auth/auth.service';
 
 @Injectable()
 export class PermissionGuard implements CanActivate {
