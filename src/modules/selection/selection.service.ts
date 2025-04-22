@@ -15,6 +15,7 @@ import {
   CommonErrorCode,
   DatabaseException,
   OrderErrorCode,
+  PhotoErrorCode,
 } from '../../common/exceptions/database.exception';
 
 @Injectable()
@@ -191,8 +192,8 @@ export class SelectionService {
         order: { id: orderId },
         id: orderProductId,
       },
-      relations: ['selected_photos'],
-      select: ['id', 'selected_photos', 'product'],
+      relations: ['selected_photos', 'product'],
+      select: ['id', 'selected_photos'],
     });
 
     if (!orderProduct) {
@@ -205,8 +206,15 @@ export class SelectionService {
       throw new BadRequestException('包含重复的照片ID');
     }
 
-    // 当产品不允许额外照片时，检查选择的照片数量
-    // TODO
+    // 校验当前产品的数量是否超过限制
+    if (orderProduct.product.photo_limit !== 0) {
+      if (uniquePhotoIds.size > orderProduct.product.photo_limit) {
+        throw new DatabaseException(
+          PhotoErrorCode.PHOTO_UPDATE_FAILED,
+          '当前产品的照片数量已超过限制',
+        );
+      }
+    }
 
     // 批量获取所有照片
     const photos = await this.photoRepository.find({
