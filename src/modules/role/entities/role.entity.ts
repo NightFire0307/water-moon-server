@@ -37,9 +37,9 @@ export class Role {
 
   @CreateDateColumn()
   @Exclude()
-  created_at: Date;
+  createTime: Date;
 
   @UpdateDateColumn()
   @Exclude()
-  updated_at: Date;
+  updateTime: Date;
 }
