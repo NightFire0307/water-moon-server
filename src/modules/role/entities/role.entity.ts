@@ -7,7 +7,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { Permission } from './permissions.entity';
+import { Permission } from '../../auth/entities/permissions.entity';
 import { Exclude } from 'class-transformer';
 
 @Entity({
@@ -23,6 +23,12 @@ export class Role {
   })
   name: string;
 
+  @Column({
+    length: 255,
+    comment: '角色描述',
+  })
+  description: string;
+
   @ManyToMany(() => Permission)
   @JoinTable({
     name: 'role_permissions',
@@ -31,9 +37,9 @@ export class Role {
 
   @CreateDateColumn()
   @Exclude()
-  createTime: Date;
+  created_at: Date;
 
   @UpdateDateColumn()
   @Exclude()
-  updateTime: Date;
+  updated_at: Date;
 }

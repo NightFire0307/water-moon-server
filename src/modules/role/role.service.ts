@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Role } from '../auth/entities/role.entity';
+import { Role } from './entities/role.entity';
 import { In, Repository } from 'typeorm';
 import { PaginationQuery } from '../../common/custom.decorator';
 import { CreateRoleDto } from './dto/create-role.dto';
@@ -24,15 +24,17 @@ export class RoleService {
   private readonly redisClient: Redis;
 
   async getRoles(pagination: PaginationQuery) {
-    const [data, total] = await this.roleRepository.findAndCount({
+    const [list, total] = await this.roleRepository.findAndCount({
       skip: (pagination.current - 1) * pagination.pageSize,
       take: pagination.pageSize,
     });
     return {
-      data,
-      total,
-      pageSize: pagination.pageSize,
-      current: pagination.current,
+      data: {
+        list,
+        total,
+        pageSize: pagination.pageSize,
+        current: pagination.current,
+      },
     };
   }
 

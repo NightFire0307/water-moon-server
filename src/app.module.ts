@@ -4,7 +4,7 @@ import { AppService } from './app.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from './modules/auth/auth.module';
 import { User } from './modules/auth/entities/user.entity';
-import { Role } from './modules/auth/entities/role.entity';
+import { Role } from './modules/role/entities/role.entity';
 import { Permission } from './modules/auth/entities/permissions.entity';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
@@ -31,6 +31,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { MinioModule } from './minio/minio.module';
 import { BullModule } from '@nestjs/bullmq';
 import { SelectionModule } from './modules/selection/selection.module';
+import { LoggerModule } from './common/logger/logger.module';
 
 @Module({
   imports: [
@@ -100,6 +101,7 @@ import { SelectionModule } from './modules/selection/selection.module';
     RedisModule,
     MinioModule,
     SelectionModule,
+    LoggerModule,
   ],
   controllers: [AppController],
   providers: [
@@ -116,4 +118,4 @@ import { SelectionModule } from './modules/selection/selection.module';
     MinioInitService,
   ],
 })
-export class AppModule {}
+export class AppModule { }

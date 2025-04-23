@@ -8,7 +8,7 @@ import { UpdateUserPasswordDto } from './dto/update-user-password.dto';
 import { hash } from 'bcrypt';
 import { ConfigService } from '@nestjs/config';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { Role } from '../auth/entities/role.entity';
+import { Role } from '../role/entities/role.entity';
 import { ResetUserPasswordDto } from './dto/reset-user-password.dto';
 import {
   CommonErrorCode,

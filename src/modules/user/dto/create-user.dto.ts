@@ -1,4 +1,4 @@
-import { Role } from '../../auth/entities/role.entity';
+import { Role } from '../../role/entities/role.entity';
 import {
   IsBoolean,
   IsNotEmpty,

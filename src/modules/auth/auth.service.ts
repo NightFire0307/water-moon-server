@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from './entities/user.entity';
-import { Role } from './entities/role.entity';
+import { Role } from '../role/entities/role.entity';
 import { Repository } from 'typeorm';
 import { Permission } from './entities/permissions.entity';
 import { compare, hash } from 'bcrypt';
@@ -269,27 +269,27 @@ export class AuthService {
       permissions: userInfo.isAdmin
         ? ['*:*']
         : userInfo.roles.flatMap((role) =>
-            role.permissions.map((permission) => {
-              let action: string;
-              switch (permission.action) {
-                case 'GET':
-                  action = 'read';
-                  break;
-                case 'POST':
-                  action = 'create';
-                  break;
-                case 'PUT':
-                  action = 'update';
-                  break;
-                case 'DELETE':
-                  action = 'delete';
-                  break;
-                default:
-                  action = 'unknown';
-              }
-              return `${permission.name}:${action}`;
-            }),
-          ),
+          role.permissions.map((permission) => {
+            let action: string;
+            switch (permission.action) {
+              case 'GET':
+                action = 'read';
+                break;
+              case 'POST':
+                action = 'create';
+                break;
+              case 'PUT':
+                action = 'update';
+                break;
+              case 'DELETE':
+                action = 'delete';
+                break;
+              default:
+                action = 'unknown';
+            }
+            return `${permission.name}:${action}`;
+          }),
+        ),
     };
   }
 }

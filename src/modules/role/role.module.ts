@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { RoleService } from './role.service';
 import { RoleController } from './role.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { Role } from '../auth/entities/role.entity';
+import { Role } from './entities/role.entity';
 import { Permission } from '../auth/entities/permissions.entity';
 import { RedisModule } from '../../redis/redis.module';
 
@@ -11,4 +11,4 @@ import { RedisModule } from '../../redis/redis.module';
   controllers: [RoleController],
   providers: [RoleService],
 })
-export class RoleModule {}
+export class RoleModule { }
