@@ -208,7 +208,10 @@ export class SelectionService {
 
     // 校验当前产品的数量是否超过限制
     if (orderProduct.product.photo_limit !== 0) {
-      if (uniquePhotoIds.size > orderProduct.product.photo_limit) {
+      if (
+        uniquePhotoIds.size >
+        orderProduct.product.photo_limit * orderProduct.count
+      ) {
         throw new DatabaseException(
           PhotoErrorCode.PHOTO_UPDATE_FAILED,
           '当前产品的照片数量已超过限制',
