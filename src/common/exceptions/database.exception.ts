@@ -6,6 +6,7 @@ export enum CommonErrorCode {
   DATABASE_ERROR = 'DATABASE_ERROR',
   DATABASE_CANNOT_DELETE = 'DATABASE_CANNOT_DELETE',
   NO_PERMISSION = 'NO_PERMISSION',
+  DATE_ERROR = 'DATE_ERROR',
 }
 
 export enum OrderErrorCode {
@@ -15,7 +16,7 @@ export enum OrderErrorCode {
 }
 
 export enum LinkErrorCode {
-  LINK_EXPIRED = 'LINK_EXPIRED',
+  LINK_ERROR = 'LINK_ERROR',
 }
 
 export enum PhotoErrorCode {
@@ -64,9 +65,9 @@ export class DatabaseException extends BaseBusinessException {
         data: '订单已取消',
         status: HttpStatus.BAD_REQUEST,
       },
-      [LinkErrorCode.LINK_EXPIRED]: {
-        data: '链接已过期',
-        status: HttpStatus.BAD_REQUEST,
+      [LinkErrorCode.LINK_ERROR]: {
+        data: '链接无效或过期',
+        status: HttpStatus.GONE,
       },
       [PhotoErrorCode.PHOTO_UPDATE_FAILED]: {
         data: '照片更新失败',
@@ -74,6 +75,10 @@ export class DatabaseException extends BaseBusinessException {
       },
       [ProductErrorCode.PRODUCT_NAME_ALREADY_EXISTS]: {
         data: '产品名称已存在',
+        status: HttpStatus.BAD_REQUEST,
+      },
+      [CommonErrorCode.DATE_ERROR]: {
+        data: '日期错误',
         status: HttpStatus.BAD_REQUEST,
       },
     };

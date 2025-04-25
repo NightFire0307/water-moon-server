@@ -11,12 +11,18 @@ import { Product } from '../product/entities/product.entity';
 import { OrderProduct } from '../order/entities/orderProduct.entity';
 import { ProductPhotoSelectionDto } from './dto/selection-photos-update.dto';
 import { SelectionRemarkUpdateDto } from './dto/selection-remark-update.dto';
+import * as dayjs from 'dayjs';
 import {
   CommonErrorCode,
   DatabaseException,
+  LinkErrorCode,
   OrderErrorCode,
   PhotoErrorCode,
 } from '../../common/exceptions/database.exception';
+import {
+  AuthErrorCode,
+  AuthException,
+} from 'src/common/exceptions/auth.exception';
 
 @Injectable()
 export class SelectionService {
@@ -70,7 +76,7 @@ export class SelectionService {
     const sharedLinkObj = JSON.parse(sharedLink);
 
     if (sharedLinkObj.password !== password) {
-      throw new BadRequestException('密码错误');
+      throw new AuthException(AuthErrorCode.PASSWORD_ERROR, '密码错误');
     }
 
     // 更新订单状态
@@ -101,13 +107,19 @@ export class SelectionService {
       '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
     const bs62 = basex(BASE62);
 
-    try {
-      const decodedUrl = bs62.decode(short_url);
-      const textDecoder = new TextDecoder('utf-8');
-      return textDecoder.decode(decodedUrl).split('_')[0];
-    } catch {
-      throw new Error('Invalid short URL');
+    const decodedUrl = bs62.decode(short_url);
+    const textDecoder = new TextDecoder('utf-8');
+
+    const [orderId, , expired] = textDecoder.decode(decodedUrl).split('_');
+    console.log('解码链接', orderId, expired);
+
+    // 判断链接是否过期
+    const expirationDate = dayjs(expired);
+    if (!expirationDate.isAfter(dayjs())) {
+      throw new DatabaseException(LinkErrorCode.LINK_ERROR, '链接无效或过期');
     }
+
+    return orderId;
   }
 
   // 获取选片订单信息
