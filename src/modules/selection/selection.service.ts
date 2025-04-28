@@ -336,11 +336,54 @@ export class SelectionService {
     throw new BadRequestException('当前订单状态不允许锁定');
   }
 
-  async updatePhotoRemark({ photoId, remark }: SelectionRemarkUpdateDto) {
-    const photo = await this.getPhotoById(photoId);
+  async updatePhotoRemark(
+    orderId: number,
+    { photoId, remark }: SelectionRemarkUpdateDto,
+  ) {
+    const order = await this.orderRepository.findOneBy({ id: orderId });
 
-    photo.remark = remark;
-    await this.photoRepository.save(photo);
+    if (!order) {
+      throw new DatabaseException(CommonErrorCode.NOT_FOUND, '当前订单不存在');
+    }
+
+    const photo = await this.getPhotoById(photoId);
+    const key = `photos_url:${order.order_number}`;
+    const field = photoId.toString();
+
+    const jsonStr = await this.redisClient.hget(key, field);
+
+    // 判断 Redis 中是否有数据
+    if (!jsonStr) {
+      throw new DatabaseException(
+        CommonErrorCode.NOT_FOUND,
+        '照片数据不存在或已失效',
+      );
+    }
+
+    let photoInfo;
+    try {
+      photoInfo = JSON.parse(jsonStr);
+    } catch {
+      throw new DatabaseException(
+        CommonErrorCode.DATABASE_ERROR,
+        '照片数据格式错误',
+      );
+    }
+
+    photoInfo.remark = remark;
+
+    try {
+      await this.redisClient.hset(key, field, JSON.stringify(photoInfo));
+      photo.remark = remark;
+      await this.photoRepository.save(photo);
+    } catch (err) {
+      // 可以加一行日志记录一下
+      throw new DatabaseException(
+        CommonErrorCode.DATABASE_ERROR,
+        err?.message ?? '更新失败',
+      );
+    }
+
     return {
       data: photoId,
       msg: '更新备注成功',

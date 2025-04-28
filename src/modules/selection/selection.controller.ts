@@ -34,7 +34,7 @@ export class SelectionController {
   constructor(
     private readonly selectionService: SelectionService,
     private readonly photoService: PhotoService,
-  ) {}
+  ) { }
 
   // 校验短链和密码
   @Post('auth')
@@ -114,8 +114,14 @@ export class SelectionController {
   // 更新照片备注
   @Patch('photos/remark')
   @UseGuards(CustomLogin)
-  async updatePhotoRemark(@Body() remarkUpdateDto: SelectionRemarkUpdateDto) {
-    return await this.selectionService.updatePhotoRemark(remarkUpdateDto);
+  async updatePhotoRemark(
+    @OrderInfo('orderId') orderId: number,
+    @Body() remarkUpdateDto: SelectionRemarkUpdateDto,
+  ) {
+    return await this.selectionService.updatePhotoRemark(
+      orderId,
+      remarkUpdateDto,
+    );
   }
 
   // 获取照片备注

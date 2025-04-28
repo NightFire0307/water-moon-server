@@ -6,6 +6,5 @@ export class SelectionRemarkUpdateDto {
   photoId: number;
 
   @IsString()
-  @IsNotEmpty()
   remark: string;
 }
