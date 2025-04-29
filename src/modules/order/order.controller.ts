@@ -27,7 +27,7 @@ import { ResetOrderStatusDto } from './dto/reset-order-status.dto';
 
 @Controller('admin/orders')
 export class OrderController {
-  constructor(private readonly orderService: OrderService) {}
+  constructor(private readonly orderService: OrderService) { }
 
   @Get()
   @RequireLogin()
@@ -75,7 +75,7 @@ export class OrderController {
   @RequireLogin()
   resetOrderStatus(
     @Param('orderId') orderId: string,
-    @Body(new ValidationPipe()) resetOrderStatusDto: ResetOrderStatusDto,
+    @Body() resetOrderStatusDto: ResetOrderStatusDto,
   ) {
     if (Number.isNaN(+orderId)) {
       throw new BadRequestException('Id必须是一个数字');

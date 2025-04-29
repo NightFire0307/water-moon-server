@@ -1,8 +1,7 @@
-import { IsNotEmpty, IsNumber } from 'class-validator';
-import { OrderStatus } from '../entities/order.entity';
+import { IsBoolean, IsNotEmpty } from 'class-validator';
 
 export class ResetOrderStatusDto {
-  @IsNumber()
   @IsNotEmpty()
-  status: OrderStatus;
+  @IsBoolean()
+  resetSelection: boolean;
 }

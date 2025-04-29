@@ -311,17 +311,24 @@ export class OrderService {
     orderId: number,
     resetOrderStatusDto: ResetOrderStatusDto,
   ) {
-    if (resetOrderStatusDto.status) return '状态不正确';
+    const { resetSelection } = resetOrderStatusDto;
 
     const order = await this.orderRepository.findOneBy({ id: orderId });
     if (!order)
       throw new DatabaseException(CommonErrorCode.NOT_FOUND, '订单不存在');
 
+    // 只有当用户提交选片结果之后才能重置
     if (order.status === OrderStatus.SUBMITTED) {
+      if (resetSelection) {
+        console.log('清空所有选片记录');
+        order.photos.forEach((photo) => {
+          photo.order_product = null;
+        });
+      }
+
       order.status = OrderStatus.PENDING;
       await this.orderRepository.save(order);
 
-      // TODO 重置订单状态后，需要删除选片结果
       return {
         data: order.id,
         msg: '订单状态重置成功',
