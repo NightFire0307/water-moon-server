@@ -9,6 +9,7 @@ import { generatePassword } from '../../common/utils/generatePassword';
 import { PaginationQuery } from '../../common/custom.decorator';
 import { RedisService } from '../../redis/redis.service';
 import * as dayjs from 'dayjs';
+import * as crypto from 'node:crypto';
 import {
   CommonErrorCode,
   DatabaseException,
@@ -34,10 +35,7 @@ export class LinkService {
     if (!order)
       throw new DatabaseException(CommonErrorCode.NOT_FOUND, '订单不存在');
 
-    let expired_time = 0;
-    if (!expired_at) {
-      expired_time = dayjs('9999-12-31').unix();
-    } else {
+    if (expired_at) {
       const now = dayjs().unix();
       if (expired_at * 1000 < now) {
         throw new DatabaseException(
@@ -45,12 +43,11 @@ export class LinkService {
           '过期时间不能小于当前时间',
         );
       }
-      expired_time = expired_at;
     }
 
     // 生成短链接
     const buffer = Buffer.from(
-      `${order.id}_${order.order_number}_${expired_time}`,
+      `${order.id}_${order.order_number}_${crypto.randomBytes(6)}`,
       'utf-8',
     );
     const short_url = bs62.encode(buffer);

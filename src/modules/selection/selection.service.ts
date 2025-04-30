@@ -11,7 +11,6 @@ import { Product } from '../product/entities/product.entity';
 import { OrderProduct } from '../order/entities/orderProduct.entity';
 import { ProductPhotoSelectionDto } from './dto/selection-photos-update.dto';
 import { SelectionRemarkUpdateDto } from './dto/selection-remark-update.dto';
-import * as dayjs from 'dayjs';
 import {
   CommonErrorCode,
   DatabaseException,
@@ -23,6 +22,8 @@ import {
   AuthErrorCode,
   AuthException,
 } from 'src/common/exceptions/auth.exception';
+import { Link } from '../link/entities/link.entity';
+import * as dayjs from 'dayjs';
 
 @Injectable()
 export class SelectionService {
@@ -44,11 +45,34 @@ export class SelectionService {
   @InjectRepository(Photo)
   private readonly photoRepository: Repository<Photo>;
 
+  @InjectRepository(Link)
+  private readonly linkRepository: Repository<Link>;
+
   // 校验短链是否存在
   async verifyToken(shortUrl: string) {
-    const decodedOrderId = this.decodeOrderId(shortUrl);
+    const orderId = this.decodeOrderId(shortUrl);
 
-    const order = await this.findOrderById(+decodedOrderId);
+    // 判断链接是否过期
+    const link = await this.linkRepository.findOne({
+      where: {
+        share_url: shortUrl,
+      },
+    });
+
+    if (!link) {
+      throw new DatabaseException(LinkErrorCode.LINK_ERROR, '链接无效或过期');
+    }
+
+    // 判断链接是否过期
+    if (link.expired_at !== null) {
+      const now = dayjs();
+      const expiredTime = dayjs(link.expired_at);
+      if (expiredTime.isBefore(now)) {
+        throw new DatabaseException(LinkErrorCode.LINK_ERROR, '链接无效或过期');
+      }
+    }
+
+    const order = await this.findOrderById(+orderId);
 
     return {
       data: order.id,
@@ -110,14 +134,7 @@ export class SelectionService {
     const decodedUrl = bs62.decode(short_url);
     const textDecoder = new TextDecoder('utf-8');
 
-    const [orderId, , expired] = textDecoder.decode(decodedUrl).split('_');
-    console.log('解码链接', orderId, expired);
-
-    // 判断链接是否过期
-    const expirationDate = dayjs(expired);
-    if (!expirationDate.isAfter(dayjs())) {
-      throw new DatabaseException(LinkErrorCode.LINK_ERROR, '链接无效或过期');
-    }
+    const [orderId] = textDecoder.decode(decodedUrl).split('_');
 
     return orderId;
   }

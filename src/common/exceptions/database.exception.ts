@@ -66,7 +66,7 @@ export class DatabaseException extends BaseBusinessException {
         status: HttpStatus.BAD_REQUEST,
       },
       [LinkErrorCode.LINK_ERROR]: {
-        data: '链接无效或过期',
+        data: '链接错误',
         status: HttpStatus.GONE,
       },
       [PhotoErrorCode.PHOTO_UPDATE_FAILED]: {
