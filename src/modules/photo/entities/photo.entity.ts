@@ -7,6 +7,7 @@ import {
   JoinColumn,
   UpdateDateColumn,
   ManyToMany,
+  JoinTable,
 } from 'typeorm';
 import { Order } from '../../order/entities/order.entity';
 import { OrderProduct } from '../../order/entities/orderProduct.entity'; // 产品类型实体
@@ -35,7 +36,8 @@ export class Photo {
     () => OrderProduct,
     (orderProduct) => orderProduct.selected_photos,
   )
-  order_product: OrderProduct;
+  @JoinTable({ name: 'order_product_photos' })
+  order_products: OrderProduct[];
 
   @Column({ default: false })
   is_selected: boolean; // 是否被选中

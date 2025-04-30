@@ -313,16 +313,28 @@ export class OrderService {
   ) {
     const { resetSelection } = resetOrderStatusDto;
 
-    const order = await this.orderRepository.findOneBy({ id: orderId });
+    const order = await this.orderRepository
+      .createQueryBuilder('order')
+      .where('order.id = :id', { id: orderId })
+      .leftJoinAndSelect('order.photos', 'photo')
+      .leftJoinAndSelect('photo.order_products', 'photo_order_product')
+      .getOne();
+
     if (!order)
       throw new DatabaseException(CommonErrorCode.NOT_FOUND, '订单不存在');
 
     // 只有当用户提交选片结果之后才能重置
     if (order.status === OrderStatus.SUBMITTED) {
       if (resetSelection) {
-        console.log('清空所有选片记录');
-        order.photos.forEach((photo) => {
-          photo.order_product = null;
+        // 防止重置的照片数量过大时阻塞请求
+        setImmediate(async () => {
+          for (const photo of order.photos) {
+            await this.photoRepository
+              .createQueryBuilder()
+              .relation(Photo, 'order_products')
+              .of(photo.id)
+              .remove(photo.order_products);
+          }
         });
       }
 
@@ -330,12 +342,12 @@ export class OrderService {
       await this.orderRepository.save(order);
 
       return {
-        data: order.id,
+        data: orderId,
         msg: '订单状态重置成功',
       };
     } else {
       return {
-        data: order.id,
+        data: orderId,
         msg: '用户必须提交选片结果之后才能重置订单状态',
       };
     }
