@@ -91,17 +91,28 @@ export class SelectionService {
     if (!order)
       throw new DatabaseException(CommonErrorCode.NOT_FOUND, { orderId });
 
-    // 校验Redis中的链接密码
-    const sharedLink = await this.redisClient.hget(
-      `share_link:${order.order_number}`,
-      short_url,
-    );
+    // 检验密码
+    const link = await this.linkRepository.findOne({
+      where: {
+        share_url: short_url,
+      },
+    });
 
-    const sharedLinkObj = JSON.parse(sharedLink);
-
-    if (sharedLinkObj.password !== password) {
+    if (link.share_password !== password) {
       throw new AuthException(AuthErrorCode.PASSWORD_ERROR, '密码错误');
     }
+
+    // 校验Redis中的链接密码
+    // const sharedLink = await this.redisClient.hget(
+    //   `share_link:${order.order_number}`,
+    //   short_url,
+    // );
+
+    // const sharedLinkObj = JSON.parse(sharedLink);
+
+    // if (sharedLinkObj.password !== password) {
+    //   throw new AuthException(AuthErrorCode.PASSWORD_ERROR, '密码错误');
+    // }
 
     // 更新订单状态
     if (order.status === OrderStatus.PENDING) {
