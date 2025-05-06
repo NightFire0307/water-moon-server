@@ -352,4 +352,59 @@ export class OrderService {
       };
     }
   }
+
+  // 获取订单完成结果
+  async getOrderResult(orderId: number) {
+    const order = await this.orderRepository
+      .createQueryBuilder('order')
+      .where('order.id = :id', { id: orderId })
+      .leftJoinAndSelect('order.photos', 'photo')
+      .leftJoinAndSelect('photo.order_products', 'photo_order_product')
+      .leftJoinAndSelect('photo_order_product.product', 'product')
+      .select([
+        'order.id',
+        'order.order_number',
+        'order.max_select_photos',
+        'order.extra_photo_price',
+        'order.status',
+        'photo.id',
+        'photo.remark',
+        'photo.name',
+        'photo_order_product',
+        'product.name',
+      ])
+      .getOne();
+
+    // 检查订单是否存在
+    if (!order) {
+      throw new DatabaseException(CommonErrorCode.NOT_FOUND, '订单不存在');
+    }
+
+    // 检查订单状态用户是否已提交
+    if (order.status !== OrderStatus.SUBMITTED) {
+      throw new DatabaseException(CommonErrorCode.DATE_ERROR, '用户选片未提交');
+    }
+
+    return {
+      data: {
+        list: {
+          ...order,
+          photos: order.photos.map((photo) => {
+            return {
+              ...photo,
+              status:
+                photo.order_products.length > 0 ? 'selected' : 'unselected',
+              order_products: photo.order_products.map((orderProduct) => {
+                return {
+                  id: orderProduct.id,
+                  name: orderProduct.product.name,
+                };
+              }),
+            };
+          }),
+        },
+      },
+      msg: '查询成功',
+    };
+  }
 }

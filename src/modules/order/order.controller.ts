@@ -29,6 +29,7 @@ import { ResetOrderStatusDto } from './dto/reset-order-status.dto';
 export class OrderController {
   constructor(private readonly orderService: OrderService) { }
 
+  // 获取订单列表
   @Get()
   @RequireLogin()
   async getOrderList(
@@ -40,6 +41,7 @@ export class OrderController {
     return await this.orderService.getOrderList(query, pagination, is_admin);
   }
 
+  // 获取订单详情
   @Get('/:id')
   @RequireLogin()
   @UseInterceptors(ClassSerializerInterceptor)
@@ -50,6 +52,7 @@ export class OrderController {
     return await this.orderService.getOrderDetail(+id);
   }
 
+  // 创建订单
   @Post()
   @RequireLogin()
   async createOrder(
@@ -58,6 +61,7 @@ export class OrderController {
     return await this.orderService.createOrder(createOrderDto);
   }
 
+  // 更新订单
   @Put('/:orderId')
   @RequireLogin()
   async updateOrder(
@@ -83,12 +87,23 @@ export class OrderController {
     return this.orderService.resetOrderStatus(+orderId, resetOrderStatusDto);
   }
 
-  @Delete(':id')
+  // 删除订单
+  @Delete(':orderId')
   @RequireLogin()
-  async deleteOrder(@Param('id') id: string) {
-    if (Number.isNaN(+id)) {
+  async deleteOrder(@Param('orderId') orderId: string) {
+    if (Number.isNaN(+orderId)) {
       throw new BadRequestException('Id必须是一个数字');
     }
-    return await this.orderService.deleteOrder(+id);
+    return await this.orderService.deleteOrder(+orderId);
+  }
+
+  // 获取订单完成结果
+  @Get('/:orderId/result')
+  @RequireLogin()
+  async getOrderResult(@Param('orderId') orderId: string) {
+    if (Number.isNaN(+orderId)) {
+      throw new BadRequestException('Id必须是一个数字');
+    }
+    return await this.orderService.getOrderResult(+orderId);
   }
 }
