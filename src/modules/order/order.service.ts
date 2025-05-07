@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Order, OrderStatus } from './entities/order.entity';
@@ -17,6 +17,7 @@ import {
   OrderErrorCode,
   PhotoErrorCode,
 } from '../../common/exceptions/database.exception';
+import type Redis from 'ioredis';
 
 interface OrderProductCount {
   orderId: number;
@@ -38,6 +39,8 @@ export class OrderService {
 
   @InjectRepository(Product)
   private readonly productRepository: Repository<Product>;
+
+  @Inject('REDIS_CLIENT') private readonly redisClient: Redis;
 
   async getOrderList(
     query: GetOrderListDto,
@@ -385,23 +388,44 @@ export class OrderService {
       throw new DatabaseException(CommonErrorCode.DATE_ERROR, '用户选片未提交');
     }
 
+    // 获取 Redis 中订单所属的图片信息
+    const redisOrderPhotos = await this.redisClient.hgetall(
+      `photos_url:${order.order_number}`,
+    );
+
+    // 转换照片链接信息
+    function transformPhoto(photo: Photo, redisData: object) {
+      const raw = redisData[photo.id.toString()];
+      let thumbnail_url = null;
+
+      if (raw) {
+        try {
+          thumbnail_url = JSON.parse(raw).thumbnail_url;
+        } catch {
+          console.error(`Error parsing JSON for photo ${photo.id}`);
+        }
+      }
+
+      return {
+        ...photo,
+        thumbnail_url,
+        status: photo.order_products.length > 0 ? 'selected' : 'unSelected',
+        order_products: photo.order_products.map((orderProduct) => {
+          return {
+            id: orderProduct.id,
+            name: orderProduct.product.name,
+          };
+        }),
+      };
+    }
+
     return {
       data: {
         list: {
           ...order,
-          photos: order.photos.map((photo) => {
-            return {
-              ...photo,
-              status:
-                photo.order_products.length > 0 ? 'selected' : 'unselected',
-              order_products: photo.order_products.map((orderProduct) => {
-                return {
-                  id: orderProduct.id,
-                  name: orderProduct.product.name,
-                };
-              }),
-            };
-          }),
+          photos: order.photos.map((photo) =>
+            transformPhoto(photo, redisOrderPhotos),
+          ),
         },
       },
       msg: '查询成功',
