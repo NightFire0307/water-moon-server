@@ -7,6 +7,7 @@ export enum CommonErrorCode {
   DATABASE_CANNOT_DELETE = 'DATABASE_CANNOT_DELETE',
   NO_PERMISSION = 'NO_PERMISSION',
   DATE_ERROR = 'DATE_ERROR',
+  OTHER_ERROR = 'OTHER_ERROR',
 }
 
 export enum OrderErrorCode {
@@ -79,6 +80,10 @@ export class DatabaseException extends BaseBusinessException {
       },
       [CommonErrorCode.DATE_ERROR]: {
         data: '日期错误',
+        status: HttpStatus.BAD_REQUEST,
+      },
+      [CommonErrorCode.OTHER_ERROR]: {
+        data: '其他错误',
         status: HttpStatus.BAD_REQUEST,
       },
     };

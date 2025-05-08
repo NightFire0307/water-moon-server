@@ -59,4 +59,9 @@ export class MinioService {
       },
     });
   }
+
+  async downloadImage(keyName: string) {
+    const bucketName = this.configService.get('minio_bucket');
+    return await this.minioClient.getObject(bucketName, keyName);
+  }
 }

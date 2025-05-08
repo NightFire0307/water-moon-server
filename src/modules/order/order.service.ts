@@ -18,6 +18,10 @@ import {
   PhotoErrorCode,
 } from '../../common/exceptions/database.exception';
 import type Redis from 'ioredis';
+import * as archiver from 'archiver';
+import { PassThrough } from 'node:stream';
+import { ConfigService } from '@nestjs/config';
+import { MinioService } from 'src/minio/minio.service';
 
 interface OrderProductCount {
   orderId: number;
@@ -41,6 +45,9 @@ export class OrderService {
   private readonly productRepository: Repository<Product>;
 
   @Inject('REDIS_CLIENT') private readonly redisClient: Redis;
+
+  @Inject(ConfigService) private readonly configService: ConfigService;
+  @Inject(MinioService) private readonly minioService: MinioService;
 
   async getOrderList(
     query: GetOrderListDto,
@@ -429,6 +436,43 @@ export class OrderService {
         },
       },
       msg: '查询成功',
+    };
+  }
+
+  async exportOrderResult(orderId: number) {
+    const order = await this.orderRepository.findOne({
+      where: { id: orderId },
+      relations: ['photos', 'photos.order_products'],
+    });
+
+    if (!order) {
+      throw new DatabaseException(CommonErrorCode.NOT_FOUND, '订单不存在');
+    }
+
+    if (order.status !== OrderStatus.SUBMITTED) {
+      throw new DatabaseException(CommonErrorCode.DATE_ERROR, '用户选片未提交');
+    }
+
+    const archive = archiver('zip', {
+      zlib: { level: 3 }, // 设置压缩级别
+    });
+    const passThrough = new PassThrough();
+
+    archive.pipe(passThrough); // 建立管道连接
+
+    for (const photo of order.photos) {
+      if (photo.order_products.length > 0) {
+        const stream = await this.minioService.downloadImage(
+          photo.oss_file_key.split('.')[0],
+        );
+        archive.append(stream, { name: `${photo.name}.jpg` });
+      }
+    }
+
+    return {
+      orderNumber: order.order_number,
+      zipStream: passThrough,
+      archive,
     };
   }
 }

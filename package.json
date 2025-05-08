@@ -30,6 +30,8 @@
     "@nestjs/schedule": "^5.0.1",
     "@nestjs/swagger": "^8.1.0",
     "@nestjs/typeorm": "^10.0.2",
+    "@types/archiver": "^6.0.3",
+    "archiver": "^7.0.1",
     "axios": "^1.7.9",
     "base-x": "^5.0.0",
     "bcrypt": "^5.1.1",

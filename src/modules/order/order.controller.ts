@@ -10,6 +10,7 @@ import {
   Post,
   Put,
   Query,
+  Res,
   UseInterceptors,
   ValidationPipe,
 } from '@nestjs/common';
@@ -24,6 +25,7 @@ import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
 import { GetOrderListDto } from './dto/get-order-list.dto';
 import { ResetOrderStatusDto } from './dto/reset-order-status.dto';
+import { Response } from 'express';
 
 @Controller('admin/orders')
 export class OrderController {
@@ -105,5 +107,30 @@ export class OrderController {
       throw new BadRequestException('Id必须是一个数字');
     }
     return await this.orderService.getOrderResult(+orderId);
+  }
+
+  // 导出订单选片结果
+  @Get('/:orderId/result/export')
+  @RequireLogin()
+  async exportOrderResult(
+    @Param('orderId') orderId: string,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    if (Number.isNaN(+orderId)) {
+      throw new BadRequestException('Id必须是一个数字');
+    }
+
+    const { orderNumber, zipStream, archive } =
+      await this.orderService.exportOrderResult(+orderId);
+
+    // 设置响应头，告诉浏览器这是一个文件下载
+    res.setHeader('Content-Type', 'application/zip');
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename=${orderNumber}.zip`,
+    );
+
+    zipStream.pipe(res);
+    await archive.finalize();
   }
 }
