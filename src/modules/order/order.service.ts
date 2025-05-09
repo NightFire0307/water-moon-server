@@ -442,7 +442,11 @@ export class OrderService {
   async exportOrderResult(orderId: number) {
     const order = await this.orderRepository.findOne({
       where: { id: orderId },
-      relations: ['photos', 'photos.order_products'],
+      relations: [
+        'photos',
+        'photos.order_products',
+        'photos.order_products.product',
+      ],
     });
 
     if (!order) {
@@ -460,12 +464,30 @@ export class OrderService {
 
     archive.pipe(passThrough); // 建立管道连接
 
+    // 按照产品分类照片
+    const productMap = new Map<string, string[]>();
+
     for (const photo of order.photos) {
       if (photo.order_products.length > 0) {
-        const stream = await this.minioService.downloadImage(
-          photo.oss_file_key.split('.')[0],
-        );
-        archive.append(stream, { name: `${photo.name}.jpg` });
+        for (const orderProduct of photo.order_products) {
+          if (!productMap.has(orderProduct.product.name)) {
+            productMap.set(orderProduct.product.name, [photo.oss_file_key]);
+          } else {
+            productMap.get(orderProduct.product.name)?.push(photo.oss_file_key);
+          }
+        }
+      }
+    }
+
+    // 下载照片并添加到 ZIP 包中
+    for (const [productName, ossFileKeys] of productMap.entries()) {
+      for (const ossFileKey of ossFileKeys) {
+        const ossKey = ossFileKey.split('.')[0];
+        const fileName = ossKey.split('/').pop();
+        const downloadStream = await this.minioService.downloadImage(ossKey);
+        archive.append(downloadStream, {
+          name: `${productName}/${fileName}.jpg`,
+        });
       }
     }
 
