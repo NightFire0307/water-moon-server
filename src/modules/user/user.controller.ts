@@ -29,7 +29,7 @@ import { ResetUserPasswordDto } from './dto/reset-user-password.dto';
 @ApiBearerAuth()
 @Controller('admin/users')
 export class UserController {
-  constructor(private readonly adminService: UserService) {}
+  constructor(private readonly adminService: UserService) { }
 
   @Get()
   @RequireLogin()
@@ -92,8 +92,7 @@ export class UserController {
     @Param('id') userId: string,
     @Body() updateUserDto: UpdateUserDto,
   ) {
-    await this.adminService.updateUser(parseInt(userId), updateUserDto);
-    return 'done';
+    return await this.adminService.updateUser(parseInt(userId), updateUserDto);
   }
 
   @Delete('/:id')

@@ -36,6 +36,7 @@ export class UserService {
 
     if (username) condition.username = Like(`%${username}%`);
     if (nickname) condition.nickname = Like(`%${nickname}%`);
+    condition.isDelete = false;
     const [data, total] = await this.userRepository.findAndCount({
       skip: (current - 1) * pageSize,
       take: pageSize,
@@ -72,9 +73,27 @@ export class UserService {
   }
 
   async updateUser(userId: number, updateUserDto: UpdateUserDto) {
-    const result = await this.userRepository.update(userId, updateUserDto);
-    if (result.affected === 0) return '未查询到该用户';
-    return '更新成功';
+    const foundUser = await this.userRepository.findOne({
+      where: {
+        user_id: userId,
+      },
+    });
+
+    if (!foundUser) {
+      throw new DatabaseException(CommonErrorCode.NOT_FOUND, '未查询到该用户');
+    }
+
+    const newUser = {
+      ...foundUser,
+      ...updateUserDto,
+    };
+
+    await this.userRepository.save(newUser);
+
+    return {
+      data: userId,
+      msg: '更新成功',
+    };
   }
 
   async deleteUser(userId: number) {

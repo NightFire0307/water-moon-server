@@ -31,11 +31,11 @@ export class User {
   nickname: string;
 
   @Column({
-    name: 'phone',
-    length: 11,
+    type: 'varchar',
+    length: 20,
     comment: '手机号',
   })
-  phone: string;
+  phoneNumber: string;
 
   @Column({
     length: 150,

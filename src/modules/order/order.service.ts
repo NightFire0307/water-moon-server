@@ -254,6 +254,13 @@ export class OrderService {
       throw new Error('订单不存在');
     }
 
+    if (foundOrder.status === OrderStatus.SUBMITTED) {
+      throw new DatabaseException(
+        OrderErrorCode.ORDER_IS_SUBMIT,
+        '用户选片结果已提交，若需修改订单内容则需先重置订单状态',
+      );
+    }
+
     const queryRunner =
       this.orderRepository.manager.connection.createQueryRunner();
     await queryRunner.startTransaction();
