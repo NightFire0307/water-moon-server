@@ -64,8 +64,16 @@ export class UserService {
   }
 
   async createUser(createUserDto: CreateUserDto) {
+    const { password, ...rest } = createUserDto;
+    const saltRound = this.configService.get('hash_salt_rounds');
+    const hashedPassword = await hash(password, parseInt(saltRound));
+
     try {
-      await this.userRepository.save(createUserDto);
+      const user = this.userRepository.create({
+        ...rest,
+        password: hashedPassword,
+      });
+      await this.userRepository.save(user);
       return '创建成功';
     } catch {
       return '创建失败';

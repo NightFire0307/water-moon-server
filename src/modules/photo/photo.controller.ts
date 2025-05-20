@@ -19,6 +19,7 @@ import {
   Pagination,
   PaginationQuery,
   RequireLogin,
+  RequirePermission,
 } from '../../common/custom.decorator';
 import { DeletePhotosDto } from './dto/delete-photos.dto';
 import { UpdatePhotoRecommendDto } from './dto/update-photo-recommend.dto';
@@ -28,7 +29,7 @@ import { FileTypeValidationPipe } from './file-type-validation.pipe';
 import { map, Observable } from 'rxjs';
 import { CompressPhotoProcessor } from './compress-photo.processor';
 
-@Controller('/admin/photos')
+@Controller('admin/photos')
 export class PhotoController {
   @Inject(PhotoService)
   private readonly photoService: PhotoService;
@@ -38,6 +39,7 @@ export class PhotoController {
 
   @Get()
   @RequireLogin()
+  @RequirePermission('photo:list', '照片列表')
   async getPhotosByOrderId(
     @Query('orderId') orderId: string,
     @Pagination() pagination: PaginationQuery,
@@ -60,8 +62,9 @@ export class PhotoController {
     );
   }
 
-  @Post('upload/:orderId')
+  @Post('/upload/:orderId')
   @RequireLogin()
+  @RequirePermission('photo:upload', '上传照片')
   @UseInterceptors(
     FileInterceptor('file', {
       limits: { fileSize: 20 * 1024 * 1024 },
@@ -77,7 +80,7 @@ export class PhotoController {
     return this.photoService.savePhotoToMinio(+orderId, file, uid);
   }
 
-  @Put('recommend/:orderId')
+  @Put('/recommend/:orderId')
   @RequireLogin()
   updatePhotoRecommendStatus(
     @Param('orderId') orderId: string,
@@ -92,8 +95,9 @@ export class PhotoController {
     );
   }
 
-  @Delete(':orderId')
+  @Delete('/:orderId')
   @RequireLogin()
+  @RequirePermission('photo:delete', '删除照片')
   deletePhotos(
     @Param('orderId') orderId: string,
     @Body() deletePhotosDto: DeletePhotosDto,

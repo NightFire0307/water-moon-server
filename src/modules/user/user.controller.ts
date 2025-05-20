@@ -43,7 +43,7 @@ export class UserController {
     required: false,
     description: '昵称',
   })
-  @RequirePermission('user_view', '查看用户列表')
+  @RequirePermission('user:view', '查看用户列表')
   @UseInterceptors(ClassSerializerInterceptor)
   async findAllUsers(
     @Pagination() pagination: PaginationQuery,
@@ -55,7 +55,7 @@ export class UserController {
 
   @Get(':id')
   @RequireLogin()
-  @RequirePermission('user_view_detail', '查看用户信息')
+  @RequirePermission('user-detail:view', '查看用户信息')
   async findCurUserDetail(@Param('id') id: string) {
     if (Number.isNaN(+id)) {
       return '参数错误';
@@ -80,14 +80,14 @@ export class UserController {
 
   @Post()
   @RequireLogin()
-  @RequirePermission('user_create', '创建用户')
+  @RequirePermission('user:create', '创建用户')
   async createUser(@Body() createUserDto: CreateUserDto) {
     return await this.adminService.createUser(createUserDto);
   }
 
   @Put('/:id')
   @RequireLogin()
-  @RequirePermission('user_update', '更新用户')
+  @RequirePermission('user:update', '更新用户')
   async updateUser(
     @Param('id') userId: string,
     @Body() updateUserDto: UpdateUserDto,
@@ -97,14 +97,14 @@ export class UserController {
 
   @Delete('/:id')
   @RequireLogin()
-  @RequirePermission('user_delete', '删除用户')
+  @RequirePermission('user:delete', '删除用户')
   async removeUser(@Param('id') userId: string) {
     return this.adminService.deleteUser(parseInt(userId));
   }
 
   @Put('/:id/roles')
   @RequireLogin()
-  @RequirePermission('user_update_role', '更新用户角色')
+  @RequirePermission('user-role:update', '更新用户角色')
   async updateUserRoles(
     @Param('id') userId: string,
     @Body('roleIds') roleIds: number[],
@@ -112,9 +112,9 @@ export class UserController {
     return await this.adminService.updateUserRoles(parseInt(userId), roleIds);
   }
 
-  @Post('update_password')
+  @Post('/update_password')
   @RequireLogin()
-  @RequirePermission('user_update_pwd', '更新用户密码')
+  @RequirePermission('user-pwd:update', '更新用户密码')
   async updatePassword(
     @UserInfo('userId') userId: number,
     @Body() passwordDto: UpdateUserPasswordDto,
@@ -122,9 +122,9 @@ export class UserController {
     return await this.adminService.updatePassword(userId, passwordDto);
   }
 
-  @Post('reset_password')
+  @Post('/reset_password')
   @RequireLogin()
-  @RequirePermission('user_reset_pwd', '重置用户密码')
+  @RequirePermission('user-pwd:reset', '重置用户密码')
   async resetPassword(
     @UserInfo('userId') userId: number,
     @UserInfo('isAdmin') isAdmin: boolean,
