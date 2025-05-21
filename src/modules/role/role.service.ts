@@ -99,7 +99,7 @@ export class RoleService {
 
     const saveResult = await this.roleRepository.save(role_permissions);
     const permissions = saveResult.permissions.map(
-      (permission) => permission.name,
+      (permission) => permission.code,
     );
 
     // 更新Redis缓存

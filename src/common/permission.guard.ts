@@ -65,7 +65,7 @@ export class PermissionGuard implements CanActivate {
       const result = {
         ...userInfo,
         permissions: userInfo.roles.flatMap((role) =>
-          role.permissions.map((permission) => permission.name),
+          role.permissions.map((permission) => permission.code),
         ),
       };
 

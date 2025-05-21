@@ -24,14 +24,12 @@ export class LinkController {
   @Post()
   @UseInterceptors(ClassSerializerInterceptor)
   @RequireLogin()
-  @RequirePermission('link:create', '生成分享链接')
   generateShareUrl(@Body() createLinkDto: CreateLinkDto) {
     return this.linkService.generateShareUrl(createLinkDto);
   }
 
   @Get('/:orderId')
   @RequireLogin()
-  @RequirePermission('link:list', '获取分享链接')
   getShareUrlByOrderId(
     @Param('orderId') orderId: string,
     @Pagination() pagination: PaginationQuery,
@@ -41,7 +39,6 @@ export class LinkController {
 
   @Delete('/:id')
   @RequireLogin()
-  @RequirePermission('link:delete', '删除分享链接')
   removeShareLink(@Param('id') id: string) {
     return this.linkService.removeShareLinkByOrderId(+id);
   }

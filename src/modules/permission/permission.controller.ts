@@ -13,7 +13,6 @@ export class PermissionController {
 
   @Get()
   @RequireLogin()
-  @RequirePermission('permission:list', '查看权限列表')
   getPermissions(@Pagination() pagination: PaginationQuery) {
     return this.permissionService.getPermissions(pagination);
   }

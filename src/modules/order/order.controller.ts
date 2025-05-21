@@ -35,7 +35,6 @@ export class OrderController {
   // 获取订单列表
   @Get()
   @RequireLogin()
-  @RequirePermission('order:list', '订单列表')
   async getOrderList(
     @Query() query: GetOrderListDto,
     @Pagination() pagination: PaginationQuery,
@@ -48,7 +47,6 @@ export class OrderController {
   // 获取订单详情
   @Get('/:id')
   @RequireLogin()
-  @RequirePermission('order-detail:view', '订单详情')
   @UseInterceptors(ClassSerializerInterceptor)
   async getOrderDetail(@Param('id') id: string) {
     if (Number.isNaN(+id)) {
@@ -60,7 +58,6 @@ export class OrderController {
   // 创建订单
   @Post()
   @RequireLogin()
-  @RequirePermission('order:create', '创建订单')
   async createOrder(
     @Body(new ValidationPipe()) createOrderDto: CreateOrderDto,
   ) {
@@ -70,7 +67,6 @@ export class OrderController {
   // 更新订单
   @Put('/:orderId')
   @RequireLogin()
-  @RequirePermission('order:update', '更新订单')
   async updateOrder(
     @Param('orderId') orderId: string,
     @Body(new ValidationPipe()) updateOrderDto: UpdateOrderDto,
@@ -84,7 +80,6 @@ export class OrderController {
   // 重置订单状态
   @Patch('/:orderId')
   @RequireLogin()
-  @RequirePermission('order-status:reset', '重置订单状态')
   resetOrderStatus(
     @Param('orderId') orderId: string,
     @Body() resetOrderStatusDto: ResetOrderStatusDto,
@@ -98,7 +93,6 @@ export class OrderController {
   // 删除订单
   @Delete(':orderId')
   @RequireLogin()
-  @RequirePermission('order:delete', '删除订单')
   async deleteOrder(@Param('orderId') orderId: string) {
     if (Number.isNaN(+orderId)) {
       throw new BadRequestException('Id必须是一个数字');
@@ -109,7 +103,6 @@ export class OrderController {
   // 获取订单完成结果
   @Get('/:orderId/result')
   @RequireLogin()
-  @RequirePermission('order-result:view', '获取订单完成结果')
   async getOrderResult(@Param('orderId') orderId: string) {
     if (Number.isNaN(+orderId)) {
       throw new BadRequestException('Id必须是一个数字');

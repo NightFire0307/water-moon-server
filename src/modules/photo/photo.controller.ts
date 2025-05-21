@@ -39,7 +39,6 @@ export class PhotoController {
 
   @Get()
   @RequireLogin()
-  @RequirePermission('photo:list', '照片列表')
   async getPhotosByOrderId(
     @Query('orderId') orderId: string,
     @Pagination() pagination: PaginationQuery,
@@ -64,7 +63,6 @@ export class PhotoController {
 
   @Post('/upload/:orderId')
   @RequireLogin()
-  @RequirePermission('photo:upload', '上传照片')
   @UseInterceptors(
     FileInterceptor('file', {
       limits: { fileSize: 20 * 1024 * 1024 },
@@ -97,7 +95,6 @@ export class PhotoController {
 
   @Delete('/:orderId')
   @RequireLogin()
-  @RequirePermission('photo:delete', '删除照片')
   deletePhotos(
     @Param('orderId') orderId: string,
     @Body() deletePhotosDto: DeletePhotosDto,

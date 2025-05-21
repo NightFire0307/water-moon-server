@@ -8,6 +8,7 @@ import {
   Post,
   Put,
   Query,
+  SetMetadata,
   UseInterceptors,
 } from '@nestjs/common';
 import { UserService } from './user.service';
@@ -22,28 +23,25 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserPasswordDto } from './dto/update-user-password.dto';
 import { UserDetailVo } from './vo/user-detail.vo';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { ResetUserPasswordDto } from './dto/reset-user-password.dto';
+import { Permission } from '../auth/entities/permissions.entity';
 
 @ApiTags('用户管理模块')
 @ApiBearerAuth()
 @Controller('admin/users')
+@SetMetadata('permission', { name: '用户管理', code: 'user', type: 'group' })
 export class UserController {
   constructor(private readonly adminService: UserService) { }
 
   @Get()
   @RequireLogin()
-  @ApiQuery({
-    name: 'username',
-    required: false,
-    description: '用户名',
+  @RequirePermission({
+    name: '用户列表',
+    code: 'user:view',
+    type: 'button',
+    description: '查看用户列表',
   })
-  @ApiQuery({
-    name: 'nickname',
-    required: false,
-    description: '昵称',
-  })
-  @RequirePermission('user:view', '查看用户列表')
   @UseInterceptors(ClassSerializerInterceptor)
   async findAllUsers(
     @Pagination() pagination: PaginationQuery,
@@ -53,9 +51,14 @@ export class UserController {
     return await this.adminService.findAllUsers(username, nickname, pagination);
   }
 
-  @Get(':id')
+  @Get('/:id')
   @RequireLogin()
-  @RequirePermission('user-detail:view', '查看用户信息')
+  @RequirePermission({
+    name: '用户详情',
+    code: 'user:view',
+    type: 'button',
+    description: '查看用户详情',
+  })
   async findCurUserDetail(@Param('id') id: string) {
     if (Number.isNaN(+id)) {
       return '参数错误';
@@ -80,14 +83,24 @@ export class UserController {
 
   @Post()
   @RequireLogin()
-  @RequirePermission('user:create', '创建用户')
+  @RequirePermission({
+    name: '添加用户',
+    code: 'user:create',
+    type: 'button',
+    description: '添加用户',
+  })
   async createUser(@Body() createUserDto: CreateUserDto) {
     return await this.adminService.createUser(createUserDto);
   }
 
   @Put('/:id')
   @RequireLogin()
-  @RequirePermission('user:update', '更新用户')
+  @RequirePermission({
+    name: '更新用户',
+    code: 'user:update',
+    type: 'button',
+    description: '更新用户',
+  })
   async updateUser(
     @Param('id') userId: string,
     @Body() updateUserDto: UpdateUserDto,
@@ -97,14 +110,24 @@ export class UserController {
 
   @Delete('/:id')
   @RequireLogin()
-  @RequirePermission('user:delete', '删除用户')
+  @RequirePermission({
+    name: '删除用户',
+    code: 'user:delete',
+    type: 'button',
+    description: '删除用户',
+  })
   async removeUser(@Param('id') userId: string) {
     return this.adminService.deleteUser(parseInt(userId));
   }
 
   @Put('/:id/roles')
   @RequireLogin()
-  @RequirePermission('user-role:update', '更新用户角色')
+  @RequirePermission({
+    name: '更新用户角色',
+    code: 'user-role:update',
+    type: 'button',
+    description: '更新用户角色',
+  })
   async updateUserRoles(
     @Param('id') userId: string,
     @Body('roleIds') roleIds: number[],
@@ -114,7 +137,12 @@ export class UserController {
 
   @Post('/update_password')
   @RequireLogin()
-  @RequirePermission('user-pwd:update', '更新用户密码')
+  @RequirePermission({
+    name: '修改密码',
+    code: 'user-pwd:update',
+    type: 'button',
+    description: '修改用户密码',
+  })
   async updatePassword(
     @UserInfo('userId') userId: number,
     @Body() passwordDto: UpdateUserPasswordDto,
@@ -124,7 +152,12 @@ export class UserController {
 
   @Post('/reset_password')
   @RequireLogin()
-  @RequirePermission('user-pwd:reset', '重置用户密码')
+  @RequirePermission({
+    name: '重置密码',
+    code: 'user-pwd:reset',
+    type: 'button',
+    description: '重置用户密码',
+  })
   async resetPassword(
     @UserInfo('userId') userId: number,
     @UserInfo('isAdmin') isAdmin: boolean,

@@ -7,6 +7,7 @@ import {
   Post,
   Put,
   Query,
+  SetMetadata,
 } from '@nestjs/common';
 import { ProductService } from './product.service';
 import {
@@ -22,12 +23,18 @@ import { UpdateProductTypeDto } from './dto/update-productType.dto';
 import { BatchDeleteProductType } from './dto/batch-delete-productType.dto';
 
 @Controller('admin/product')
+@SetMetadata('permission', { name: '产品管理', code: 'product', type: 'group' })
 export class ProductController {
   constructor(private readonly productService: ProductService) { }
 
   @Get()
   @RequireLogin()
-  @RequirePermission('product:list', '产品列表')
+  @RequirePermission({
+    code: 'product:view',
+    name: '产品列表',
+    type: 'button',
+    description: '查看产品列表',
+  })
   getProducts(
     @Pagination() pagination: PaginationQuery,
     @Query('name') name?: string,
@@ -38,14 +45,24 @@ export class ProductController {
 
   @Post()
   @RequireLogin()
-  @RequirePermission('product:create', '创建产品')
+  @RequirePermission({
+    code: 'product:create',
+    name: '添加产品',
+    type: 'button',
+    description: '添加产品',
+  })
   async createProduct(@Body() createProductDto: CreateProductDto) {
     return await this.productService.createProduct(createProductDto);
   }
 
   @Put('/type/:id')
   @RequireLogin()
-  @RequirePermission('product:update', '更新产品')
+  @RequirePermission({
+    code: 'product:update',
+    name: '修改产品',
+    type: 'button',
+    description: '修改产品',
+  })
   async updateProductType(
     @Param('id') id: string,
     @Body() updateProductType: UpdateProductTypeDto,
@@ -55,7 +72,12 @@ export class ProductController {
 
   @Get('/type')
   @RequireLogin()
-  @RequirePermission('product-type:list', '产品类型列表')
+  @RequirePermission({
+    code: 'product-type:view',
+    name: '产品类型列表',
+    type: 'button',
+    description: '查看产品类型列表',
+  })
   async getProductTypes(
     @Pagination() pagination: PaginationQuery,
     @Query('name') name?: string,
@@ -65,7 +87,12 @@ export class ProductController {
 
   @Get('/type/:id')
   @RequireLogin()
-  @RequirePermission('product-type:detail', '产品类型详情')
+  @RequirePermission({
+    code: 'product-type:view',
+    name: '产品类型详情',
+    type: 'button',
+    description: '查看产品类型详情',
+  })
   getProductTypeDetail(@Param('id') id: string) {
     if (Number.isNaN(+id)) {
       return 'id 必须为数字';
@@ -75,28 +102,48 @@ export class ProductController {
 
   @Post('/type')
   @RequireLogin()
-  @RequirePermission('product-type:create', '创建产品类型')
+  @RequirePermission({
+    code: 'product-type:create',
+    name: '添加产品类型',
+    type: 'button',
+    description: '添加产品类型',
+  })
   async createProductType(@Body() createProductTypeDto: CreateProductTypeDto) {
     return await this.productService.createProductType(createProductTypeDto);
   }
 
   @Delete('/type/:id')
   @RequireLogin()
-  @RequirePermission('product-type:delete', '删除产品类型')
+  @RequirePermission({
+    code: 'product-type:delete',
+    name: '删除产品类型',
+    type: 'button',
+    description: '删除产品类型',
+  })
   async deleteProductType(@Param('id') id: string) {
     return await this.productService.deleteProductType(+id);
   }
 
   @Delete('/type')
   @RequireLogin()
-  @RequirePermission('product-type:batchDelete', '批量删除产品类型')
+  @RequirePermission({
+    code: 'product-type:delete',
+    name: '批量删除产品类型',
+    type: 'button',
+    description: '批量删除产品类型',
+  })
   batchDeleteProductType(@Body() body: BatchDeleteProductType) {
     return this.productService.batchDeleteProductType(body.ids);
   }
 
   @Get(':id')
   @RequireLogin()
-  @RequirePermission('product:detail', '产品详情')
+  @RequirePermission({
+    code: 'product:view',
+    name: '产品详情',
+    type: 'button',
+    description: '查看产品详情',
+  })
   getProductDetail(@Param('id') id: string) {
     if (Number.isNaN(+id)) {
       return 'id 必须为数字';
@@ -106,7 +153,12 @@ export class ProductController {
 
   @Put(':id')
   @RequireLogin()
-  @RequirePermission('product:update', '更新产品')
+  @RequirePermission({
+    code: 'product:update',
+    name: '修改产品',
+    type: 'button',
+    description: '修改产品',
+  })
   async updateProduct(
     @Param('id') id: string,
     @Body() updateProductDto: UpdateProductDto,
@@ -116,7 +168,12 @@ export class ProductController {
 
   @Delete(':id')
   @RequireLogin()
-  @RequirePermission('product:delete', '删除产品')
+  @RequirePermission({
+    code: 'product:delete',
+    name: '删除产品',
+    type: 'button',
+    description: '删除产品',
+  })
   async deleteProduct(@Param('id') id: string) {
     if (Number.isNaN(+id)) {
       return 'id 必须为数字';

@@ -9,7 +9,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { User } from './entities/user.entity';
 import { Role } from '../role/entities/role.entity';
 import { Repository } from 'typeorm';
-import { Permission } from './entities/permissions.entity';
+import { Permission, PermissionAction } from './entities/permissions.entity';
 import { compare, hash } from 'bcrypt';
 import { ConfigService } from '@nestjs/config';
 import { LoginUserDto } from './dto/login-user.dto';
@@ -272,22 +272,22 @@ export class AuthService {
           role.permissions.map((permission) => {
             let action: string;
             switch (permission.action) {
-              case 'GET':
+              case PermissionAction.GET:
                 action = 'read';
                 break;
-              case 'POST':
+              case PermissionAction.POST:
                 action = 'create';
                 break;
-              case 'PUT':
+              case PermissionAction.PUT:
                 action = 'update';
                 break;
-              case 'DELETE':
+              case PermissionAction.DELETE:
                 action = 'delete';
                 break;
               default:
                 action = 'unknown';
             }
-            return `${permission.name}:${action}`;
+            return `${permission.code}:${action}`;
           }),
         ),
     };
