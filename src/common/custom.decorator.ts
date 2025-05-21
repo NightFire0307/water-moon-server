@@ -6,17 +6,26 @@ import {
 } from '@nestjs/common';
 import { Request } from 'express';
 
-export const PERMISSION_KEY = 'require-permission';
+export const PERMISSION_KEY = 'permission';
 
 export const RequireLogin = () => SetMetadata('require-login', true);
-export const RequirePermission = (
-  permissions: string,
-  description?: string,
-) => {
-  return applyDecorators(
-    SetMetadata(PERMISSION_KEY, permissions),
-    SetMetadata('description', description ?? ''),
-  );
+
+/**
+ * 权限元数据
+ * @param name 权限显示名
+ * @param code 权限编码
+ * @param type 权限类型
+ * @param description 权限描述
+ * @returns
+ */
+export interface PermissionMetadata {
+  name: string;
+  code: string;
+  type: 'button' | 'group';
+  description?: string;
+}
+export const RequirePermission = (data: PermissionMetadata) => {
+  return applyDecorators(SetMetadata(PERMISSION_KEY, data));
 };
 
 // 从Token中获取用户信息

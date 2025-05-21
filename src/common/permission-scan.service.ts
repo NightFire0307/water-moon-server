@@ -4,7 +4,7 @@ import {
   RequestMethod,
 } from '@nestjs/common';
 import { Reflector, ModulesContainer } from '@nestjs/core';
-import { PERMISSION_KEY } from './custom.decorator';
+import { PERMISSION_KEY, type PermissionMetadata } from './custom.decorator';
 import { Permission } from '../modules/auth/entities/permissions.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -14,25 +14,27 @@ class CreatePermissionsDto extends OmitType(Permission, [
   'id',
   'createTime',
   'updateTime',
-]) {}
+]) { }
 
 @Injectable()
 export class PermissionScanService implements OnApplicationBootstrap {
   constructor(
     private reflector: Reflector,
     private modulesContainer: ModulesContainer,
-  ) {}
+  ) { }
 
   @InjectRepository(Permission)
   private permissionRepository: Repository<Permission>;
 
   async onApplicationBootstrap() {
     const permissions = this.scanPermissions();
+
     await this.savePermissions(permissions);
   }
 
   scanPermissions() {
-    const permissions: CreatePermissionsDto[] = [];
+    const permissions = {};
+    // const permissions: CreatePermissionsDto[] = [];
 
     // 遍历所有模块
     for (const module of this.modulesContainer.values()) {
@@ -45,38 +47,43 @@ export class PermissionScanService implements OnApplicationBootstrap {
         const prototype = Object.getPrototypeOf(instance);
         // 获取控制器级别路径
         const controllerPath = Reflect.getMetadata('path', controller.metatype);
+        // 获取控制器的权限元数据
+        const controllerPermissions = this.reflector.get<PermissionMetadata>(
+          PERMISSION_KEY,
+          controller.metatype,
+        );
+
+        if (!controllerPermissions) continue;
+
+        permissions[instance.constructor.name] = {
+          ...controllerPermissions,
+        };
+
         // 遍历控制器原型上的所有方法
         for (const methodName of Object.getOwnPropertyNames(prototype)) {
           const method = prototype[methodName];
           if (typeof method === 'function') {
             const methodPath = Reflect.getMetadata('path', method);
-            const requiredPermissions = this.reflector.get<string[]>(
+            const requiredPermissions = this.reflector.get(
               PERMISSION_KEY,
               method,
             );
-            const description: string = Reflect.getMetadata(
-              'description',
-              method,
-            );
 
-            if (requiredPermissions) {
-              const fullPath = `/${controllerPath}${methodPath}`.replace(
-                /\/$/,
-                '',
-              );
-
-              permissions.push({
-                name: Array.isArray(requiredPermissions)
-                  ? requiredPermissions.join('_')
-                  : requiredPermissions,
-                module: instance.constructor.name,
-                endpoint: fullPath,
-                action:
-                  RequestMethod[Reflect.getMetadata('method', method)] ||
-                  'UNKNOWN',
-                description,
-              });
+            if (!requiredPermissions || requiredPermissions.type === 'group') {
+              continue;
             }
+
+            if (!permissions[instance.constructor.name].children) {
+              permissions[instance.constructor.name].children = [];
+            }
+
+            permissions[instance.constructor.name].children.push({
+              ...requiredPermissions,
+              endpoint: `/${controllerPath}${methodPath}`,
+              action:
+                RequestMethod[Reflect.getMetadata('method', method)] ||
+                'UNKNOWN',
+            });
           }
         }
       }
@@ -85,17 +92,65 @@ export class PermissionScanService implements OnApplicationBootstrap {
     return permissions;
   }
 
-  async savePermissions(permissions: CreatePermissionsDto[]) {
-    for (const permission of permissions) {
-      const existingPermission = await this.permissionRepository.findOne({
-        where: {
-          name: permission.name,
-        },
-      });
+  async savePermissions(permissions) {
+    const parentPermissionEntities = [];
 
-      if (!existingPermission) {
-        await this.permissionRepository.save(permission);
+    // 先保存父级权限
+    for (const key in permissions) {
+      const permission = permissions[key];
+      const permissionEntity = {
+        name: permission.name,
+        code: permission.code,
+        endpoint: null,
+        action: null,
+        type: permission.type,
+        description: permission.description,
+        parentId: null,
+        createTime: new Date(),
+        updateTime: new Date(),
+      };
+
+      parentPermissionEntities.push(permissionEntity);
+    }
+
+    // 注：使用upsert时，必须提供纯对象形式的所有字段,否则会出错
+    await this.permissionRepository.upsert(parentPermissionEntities, {
+      conflictPaths: ['code'],
+    });
+
+    // 获取所有父级权限
+    const parentPermissions = await this.permissionRepository.find();
+    const subPermissionEntities = [];
+    // 处理子权限
+    for (const key in permissions) {
+      const permission = permissions[key];
+      console.log(permission);
+      if (permission.children) {
+        for (const child of permission.children) {
+          console.log(child);
+          const parentId = parentPermissions.find(
+            (parent) => parent.code === child.code.split(':')[0],
+          )?.id;
+
+          if (parentId && child.type === 'button') {
+            subPermissionEntities.push({
+              name: child.name,
+              code: child.code,
+              endpoint: child.endpoint,
+              action: child.action,
+              type: child.type,
+              description: child.description,
+              parentId: parentId,
+              createTime: new Date(),
+              updateTime: new Date(),
+            });
+          }
+        }
       }
     }
+
+    await this.permissionRepository.upsert(subPermissionEntities, {
+      conflictPaths: ['code'],
+    });
   }
 }
