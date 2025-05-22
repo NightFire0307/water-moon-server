@@ -4,10 +4,9 @@ import {
   Pagination,
   PaginationQuery,
   RequireLogin,
-  RequirePermission,
 } from '../../common/custom.decorator';
 
-@Controller('admin/permission')
+@Controller('admin/permissions')
 export class PermissionController {
   constructor(private readonly permissionService: PermissionService) { }
 

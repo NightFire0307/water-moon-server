@@ -124,10 +124,8 @@ export class PermissionScanService implements OnApplicationBootstrap {
     // 处理子权限
     for (const key in permissions) {
       const permission = permissions[key];
-      console.log(permission);
       if (permission.children) {
         for (const child of permission.children) {
-          console.log(child);
           const parentId = parentPermissions.find(
             (parent) => parent.code === child.code.split(':')[0],
           )?.id;

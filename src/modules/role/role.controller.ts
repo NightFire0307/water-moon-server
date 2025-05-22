@@ -91,4 +91,10 @@ export class RoleController {
   updateRole(@Param('id') id: string, @Body() updateRoleDto: UpdateRoleDto) {
     return this.roleService.updateRole(+id, updateRoleDto);
   }
+
+  @Get('/:roleId')
+  @RequireLogin()
+  getRoleByRoleId(@Param('roleId') roleId: string) {
+    return this.roleService.getRoleByRoleId(+roleId);
+  }
 }

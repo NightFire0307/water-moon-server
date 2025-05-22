@@ -38,15 +38,36 @@ export class RoleService {
     };
   }
 
-  async createRole(createRoleDto: CreateRoleDto) {
+  async createRole({ name, description = '', permissionIds }: CreateRoleDto) {
     const foundRole = await this.roleRepository.findOneBy({
-      name: createRoleDto.name,
+      name,
     });
 
     if (foundRole) return '该角色已存在';
 
-    await this.roleRepository.save(createRoleDto);
-    return '创建成功';
+    const role = this.roleRepository.create({
+      name,
+      description,
+    });
+
+    const newRole = await this.roleRepository.save(role);
+
+    // 如果同时有权限ID，则添加权限
+    if (permissionIds.length > 0) {
+      const permissions = await this.permissionRepository.find({
+        where: {
+          id: In(permissionIds),
+        },
+      });
+
+      role.permissions = permissions;
+      await this.roleRepository.save(role);
+    }
+
+    return {
+      data: newRole.role_id,
+      msg: '创建成功',
+    };
   }
 
   async updateRole(id: number, updateRoleDto: UpdateRoleDto) {
@@ -109,6 +130,26 @@ export class RoleService {
     pipeline.expire(`permissions:${userId}`, 60 * 60 * 24);
     await pipeline.exec();
 
-    return 'done';
+    return {
+      data: '更新成功',
+    };
+  }
+
+  async getRoleByRoleId(roleId: number) {
+    const { permissions, ...rest } = await this.roleRepository.findOne({
+      where: {
+        role_id: roleId,
+      },
+      relations: ['permissions'],
+    });
+
+    const permissionIds = permissions.map((permission) => permission.id);
+
+    return {
+      data: {
+        ...rest,
+        permissionIds,
+      },
+    };
   }
 }
