@@ -37,10 +37,10 @@ export class UserController {
   @Get()
   @RequireLogin()
   @RequirePermission({
-    name: '用户列表',
+    name: '查看用户',
     code: 'user:view',
     type: 'button',
-    description: '查看用户列表',
+    description: '查看用户',
   })
   @UseInterceptors(ClassSerializerInterceptor)
   async findAllUsers(
@@ -54,10 +54,10 @@ export class UserController {
   @Get('/:id')
   @RequireLogin()
   @RequirePermission({
-    name: '用户详情',
+    name: '查看用户',
     code: 'user:view',
     type: 'button',
-    description: '查看用户详情',
+    description: '查看用户',
   })
   async findCurUserDetail(@Param('id') id: string) {
     if (Number.isNaN(+id)) {

@@ -27,10 +27,10 @@ export class RoleController {
   @Get()
   @RequireLogin()
   @RequirePermission({
-    name: '角色列表',
-    code: 'role:list',
+    name: '查看角色',
+    code: 'role:view',
     type: 'button',
-    description: '查看角色列表',
+    description: '查看角色',
   })
   async getRoles(@Pagination() pagination: PaginationQuery) {
     return this.roleService.getRoles(pagination);

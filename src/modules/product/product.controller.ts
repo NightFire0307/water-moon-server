@@ -31,7 +31,7 @@ export class ProductController {
   @RequireLogin()
   @RequirePermission({
     code: 'product:view',
-    name: '产品列表',
+    name: '查看产品',
     type: 'button',
     description: '查看产品列表',
   })
@@ -74,7 +74,7 @@ export class ProductController {
   @RequireLogin()
   @RequirePermission({
     code: 'product-type:view',
-    name: '产品类型列表',
+    name: '查看产品类型',
     type: 'button',
     description: '查看产品类型列表',
   })
@@ -89,7 +89,7 @@ export class ProductController {
   @RequireLogin()
   @RequirePermission({
     code: 'product-type:view',
-    name: '产品类型详情',
+    name: '查看产品类型',
     type: 'button',
     description: '查看产品类型详情',
   })
