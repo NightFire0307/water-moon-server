@@ -7,7 +7,7 @@ import { Reflector, ModulesContainer } from '@nestjs/core';
 import { PERMISSION_KEY, type PermissionMetadata } from './custom.decorator';
 import { Permission } from '../modules/auth/entities/permissions.entity';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { OmitType } from '@nestjs/swagger';
 
 class CreatePermissionsDto extends OmitType(Permission, [
@@ -113,10 +113,20 @@ export class PermissionScanService implements OnApplicationBootstrap {
       parentPermissionEntities.push(permissionEntity);
     }
 
-    // 注：使用upsert时，必须提供纯对象形式的所有字段,否则会出错
-    await this.permissionRepository.upsert(parentPermissionEntities, {
-      conflictPaths: ['code'],
+    // 查找数据库中已存在的父级权限
+    const existingParentPermissions = await this.permissionRepository.find({
+      where: { code: In(parentPermissionEntities.map((p) => p.code)) },
     });
+
+    // 过滤出不存在的父级权限
+    const newParentPermissions = parentPermissionEntities.filter(
+      (p) => !existingParentPermissions.some((ep) => ep.code === p.code),
+    );
+
+    // 批量插入新的父级权限
+    if (newParentPermissions.length > 0) {
+      await this.permissionRepository.save(newParentPermissions);
+    }
 
     // 获取所有父级权限
     const parentPermissions = await this.permissionRepository.find();
