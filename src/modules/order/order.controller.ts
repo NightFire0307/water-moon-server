@@ -35,6 +35,12 @@ export class OrderController {
   // 获取订单列表
   @Get()
   @RequireLogin()
+  @RequirePermission({
+    code: 'order:view',
+    name: '查看订单',
+    type: 'button',
+    description: '查看订单列表',
+  })
   async getOrderList(
     @Query() query: GetOrderListDto,
     @Pagination() pagination: PaginationQuery,
@@ -47,6 +53,12 @@ export class OrderController {
   // 获取订单详情
   @Get('/:id')
   @RequireLogin()
+  @RequirePermission({
+    code: 'order:view',
+    name: '查看订单详情',
+    type: 'button',
+    description: '查看订单详情',
+  })
   @UseInterceptors(ClassSerializerInterceptor)
   async getOrderDetail(@Param('id') id: string) {
     if (Number.isNaN(+id)) {
@@ -58,6 +70,12 @@ export class OrderController {
   // 创建订单
   @Post()
   @RequireLogin()
+  @RequirePermission({
+    code: 'order:create',
+    name: '创建订单',
+    type: 'button',
+    description: '创建新的订单',
+  })
   async createOrder(
     @Body(new ValidationPipe()) createOrderDto: CreateOrderDto,
   ) {
@@ -67,6 +85,12 @@ export class OrderController {
   // 更新订单
   @Put('/:orderId')
   @RequireLogin()
+  @RequirePermission({
+    code: 'order:update',
+    name: '更新订单',
+    type: 'button',
+    description: '更新订单信息',
+  })
   async updateOrder(
     @Param('orderId') orderId: string,
     @Body(new ValidationPipe()) updateOrderDto: UpdateOrderDto,
@@ -80,6 +104,12 @@ export class OrderController {
   // 重置订单状态
   @Patch('/:orderId')
   @RequireLogin()
+  @RequirePermission({
+    code: 'order:reset-status',
+    name: '重置订单状态',
+    type: 'button',
+    description: '重置订单状态',
+  })
   resetOrderStatus(
     @Param('orderId') orderId: string,
     @Body() resetOrderStatusDto: ResetOrderStatusDto,
@@ -93,6 +123,12 @@ export class OrderController {
   // 删除订单
   @Delete(':orderId')
   @RequireLogin()
+  @RequirePermission({
+    code: 'order:delete',
+    name: '删除订单',
+    type: 'button',
+    description: '删除订单',
+  })
   async deleteOrder(@Param('orderId') orderId: string) {
     if (Number.isNaN(+orderId)) {
       throw new BadRequestException('Id必须是一个数字');
@@ -103,6 +139,12 @@ export class OrderController {
   // 获取订单完成结果
   @Get('/:orderId/result')
   @RequireLogin()
+  @RequirePermission({
+    code: 'order-detail:view',
+    name: '查看订单选片结果',
+    type: 'button',
+    description: '查看订单选片结果',
+  })
   async getOrderResult(@Param('orderId') orderId: string) {
     if (Number.isNaN(+orderId)) {
       throw new BadRequestException('Id必须是一个数字');
@@ -113,6 +155,12 @@ export class OrderController {
   // 导出订单选片结果
   @Get('/:orderId/result/export')
   @RequireLogin()
+  @RequirePermission({
+    code: 'order-detail:export',
+    name: '导出订单选片结果',
+    type: 'button',
+    description: '导出订单选片结果',
+  })
   async exportOrderResult(
     @Param('orderId') orderId: string,
     @Res({ passthrough: true }) res: Response,
