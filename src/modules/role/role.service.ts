@@ -70,16 +70,35 @@ export class RoleService {
     };
   }
 
-  async updateRole(id: number, updateRoleDto: UpdateRoleDto) {
+  async updateRole(id: number, dto: UpdateRoleDto) {
+    const dataToUpdate: Partial<Role> = {
+      ...dto,
+      updateTime: new Date(),
+    };
+
+    // 如果有权限ID，则更新权限
+    if (dto.permissionIds.length > 0) {
+      const permissions = await this.permissionRepository.find({
+        where: {
+          id: In(dto.permissionIds),
+        },
+      });
+
+      dataToUpdate.permissions = permissions;
+    }
+
     const role = await this.roleRepository.preload({
       role_id: id,
-      ...updateRoleDto,
+      ...dataToUpdate,
     });
 
     if (!role) return '角色不存在';
 
     await this.roleRepository.save(role);
-    return '更新成功';
+    return {
+      data: role.role_id,
+      msg: '更新成功',
+    };
   }
 
   async removeRole(id: number) {

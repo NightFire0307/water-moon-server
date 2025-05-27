@@ -88,14 +88,11 @@ export class AuthService {
         'user.user_id',
         'user.username',
         'user.nickname',
+        'user.phoneNumber',
         'user.isAdmin',
-        'user.isFrozen',
         'user.password',
-        'roles.role_id',
-        'roles.name',
-        'permissions.name',
-        'permissions.action',
-        'permissions.description',
+        'roles',
+        'permissions',
       ])
       .cache(60000)
       .getOne();
@@ -110,20 +107,36 @@ export class AuthService {
       }
     });
 
-    const result = this.flattenUserPermissions(userInfo);
-
-    // 移除密码
-    delete result.password;
+    // 遍历用户角色，获取权限
+    const permissions = new Set<string>();
+    userInfo.roles.forEach((role) => {
+      role.permissions.forEach((permission) => {
+        if (permission.code.split(':').length === 2) {
+          permissions.add(permission.code);
+        }
+      });
+    });
 
     // 缓存用户权限(24小时)
-    const pipeline = this.redisClient.pipeline();
+    // const pipeline = this.redisClient.pipeline();
     // 移除旧权限
-    pipeline.del(`permissions:${result.user_id}`);
-    pipeline.lpush(`permissions:${result.user_id}`, ...result.permissions);
-    pipeline.expire(`permissions:${result.user_id}`, 60 * 60 * 24);
-    await pipeline.exec();
+    // pipeline.del(`permissions:${result.user_id}`);
+    // pipeline.lpush(`permissions:${result.user_id}`, ...result.permissions);
+    // pipeline.expire(`permissions:${result.user_id}`, 60 * 60 * 24);
+    // await pipeline.exec();
 
-    return result;
+    return {
+      user_id: userInfo.user_id,
+      username: userInfo.username,
+      nickname: userInfo.nickname,
+      isAdmin: userInfo.isAdmin,
+      isFrozen: userInfo.isFrozen,
+      roles: userInfo.roles.map((role) => ({
+        roleId: role.role_id,
+        name: role.name,
+      })),
+      permissions: Array.from(permissions),
+    };
   }
 
   async findUserById(userId: number, isAdmin: boolean) {
@@ -156,16 +169,17 @@ export class AuthService {
    * @param { LoginUserVo } vo
    * @returns {{ accessToken: string, refreshToken: string }} 返回access_token 和 refresh_token
    */
-  generateToken(vo: User): {
+  generateToken(vo: { user_id: number; permissions: string[] }): {
     accessToken: string;
     refreshToken: string;
   } {
+    console.log(vo);
+
     // 生成 AccessToken
     const accessToken = this.jwtService.sign(
       {
         userId: vo.user_id,
-        username: vo.username,
-        isAdmin: vo.isAdmin,
+        permissions: vo.permissions,
       },
       {
         expiresIn: this.configService.get('jwt_access_token_expires_time'),
@@ -255,41 +269,6 @@ export class AuthService {
     return {
       postURL,
       formData,
-    };
-  }
-
-  // 拍平用户权限
-  flattenUserPermissions(userInfo: User) {
-    return {
-      ...userInfo,
-      roles: userInfo.roles.map((role) => ({
-        ...role,
-        permissions: undefined,
-      })),
-      permissions: userInfo.isAdmin
-        ? ['*:*']
-        : userInfo.roles.flatMap((role) =>
-          role.permissions.map((permission) => {
-            let action: string;
-            switch (permission.action) {
-              case PermissionAction.GET:
-                action = 'read';
-                break;
-              case PermissionAction.POST:
-                action = 'create';
-                break;
-              case PermissionAction.PUT:
-                action = 'update';
-                break;
-              case PermissionAction.DELETE:
-                action = 'delete';
-                break;
-              default:
-                action = 'unknown';
-            }
-            return `${permission.code}:${action}`;
-          }),
-        ),
     };
   }
 }

@@ -64,14 +64,22 @@ export class UserService {
   }
 
   async createUser(createUserDto: CreateUserDto) {
-    const { password, ...rest } = createUserDto;
+    const { password, roles, ...rest } = createUserDto;
     const saltRound = this.configService.get('hash_salt_rounds');
     const hashedPassword = await hash(password, parseInt(saltRound));
+
+    // 先查询 Role 实体
+    const roleEntities = await this.roleRepository.findBy({
+      role_id: In(roles),
+    });
+
+    console.log(roleEntities);
 
     try {
       const user = this.userRepository.create({
         ...rest,
         password: hashedPassword,
+        roles: roleEntities,
       });
       await this.userRepository.save(user);
       return '创建成功';
@@ -80,23 +88,37 @@ export class UserService {
     }
   }
 
-  async updateUser(userId: number, updateUserDto: UpdateUserDto) {
-    const foundUser = await this.userRepository.findOne({
-      where: {
-        user_id: userId,
-      },
+  async updateUser(userId: number, dto: UpdateUserDto) {
+    const dataToUpdate: Partial<User> = {
+      ...dto,
+      updateTime: new Date(),
+    };
+
+    // 更新用户角色
+    if (dataToUpdate.roles.length > 0) {
+      const roles = await this.roleRepository.find({
+        where: {
+          role_id: In(dataToUpdate.roles),
+        },
+      });
+
+      if (roles.length !== dataToUpdate.roles.length) {
+        throw new DatabaseException(CommonErrorCode.NOT_FOUND, '角色不存在');
+      }
+
+      dataToUpdate.roles = roles;
+    }
+
+    const user = await this.userRepository.preload({
+      user_id: userId,
+      ...dataToUpdate,
     });
 
-    if (!foundUser) {
+    if (!user) {
       throw new DatabaseException(CommonErrorCode.NOT_FOUND, '未查询到该用户');
     }
 
-    const newUser = {
-      ...foundUser,
-      ...updateUserDto,
-    };
-
-    await this.userRepository.save(newUser);
+    await this.userRepository.save(user);
 
     return {
       data: userId,
