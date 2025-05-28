@@ -7,7 +7,6 @@ import {
   Post,
   Put,
   Query,
-  SetMetadata,
 } from '@nestjs/common';
 import { ProductService } from './product.service';
 import {
@@ -23,7 +22,12 @@ import { UpdateProductTypeDto } from './dto/update-productType.dto';
 import { BatchDeleteProductType } from './dto/batch-delete-productType.dto';
 
 @Controller('admin/product')
-@SetMetadata('permission', { name: '产品管理', code: 'product', type: 'group' })
+@RequirePermission({
+  code: 'product',
+  name: '产品管理',
+  type: 'group',
+  description: '产品管理'
+})
 export class ProductController {
   constructor(private readonly productService: ProductService) { }
 

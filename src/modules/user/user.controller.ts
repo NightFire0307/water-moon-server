@@ -25,12 +25,16 @@ import { UserDetailVo } from './vo/user-detail.vo';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { ResetUserPasswordDto } from './dto/reset-user-password.dto';
-import { Permission } from '../auth/entities/permissions.entity';
 
 @ApiTags('用户管理模块')
 @ApiBearerAuth()
 @Controller('admin/users')
-@SetMetadata('permission', { name: '用户管理', code: 'user', type: 'group' })
+@RequirePermission({
+  code: 'user',
+  name: '用户管理',
+  type: 'group',
+  description: '用户管理'
+})
 export class UserController {
   constructor(private readonly adminService: UserService) { }
 

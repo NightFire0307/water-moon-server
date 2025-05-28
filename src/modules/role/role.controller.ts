@@ -6,7 +6,6 @@ import {
   Param,
   Post,
   Put,
-  SetMetadata,
 } from '@nestjs/common';
 import { RoleService } from './role.service';
 import {
@@ -20,7 +19,12 @@ import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto, UpdateRolePermissionsDto } from './dto/update-role.dto';
 
 @Controller('admin/roles')
-@SetMetadata('permission', { name: '角色管理', code: 'role', type: 'group' })
+@RequirePermission({
+  code: 'role',
+  name: '角色管理',
+  type: 'group',
+  description: '角色管理'
+})
 export class RoleController {
   constructor(private readonly roleService: RoleService) { }
 
