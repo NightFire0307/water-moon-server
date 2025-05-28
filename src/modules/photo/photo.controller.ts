@@ -30,6 +30,12 @@ import { map, Observable } from 'rxjs';
 import { CompressPhotoProcessor } from './compress-photo.processor';
 
 @Controller('admin/photos')
+@RequirePermission({
+  code: 'photo',
+  name: '照片管理',
+  type: 'group',
+  description: '照片管理',
+})
 export class PhotoController {
   @Inject(PhotoService)
   private readonly photoService: PhotoService;
@@ -39,6 +45,12 @@ export class PhotoController {
 
   @Get()
   @RequireLogin()
+  @RequirePermission({
+    code: 'photo:view',
+    name: '查看照片',
+    type: 'button',
+    description: '查看照片',
+  })
   async getPhotosByOrderId(
     @Query('orderId') orderId: string,
     @Pagination() pagination: PaginationQuery,

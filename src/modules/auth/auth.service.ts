@@ -51,14 +51,14 @@ export class AuthService {
 
     user1.username = 'admin';
     user1.nickname = 'admin';
-    user1.isAdmin = true;
+    user1.isSuperAdmin = true;
     user1.isFrozen = false;
     user1.password = await hash('123456', parseInt(saltRounds));
 
     const user2 = new User();
     user2.username = 'admin1';
     user2.nickname = 'admin1';
-    user2.isAdmin = false;
+    user2.isSuperAdmin = false;
     user2.isFrozen = false;
     user2.password = await hash('123456', parseInt(saltRounds));
 
@@ -89,7 +89,7 @@ export class AuthService {
         'user.username',
         'user.nickname',
         'user.phoneNumber',
-        'user.isAdmin',
+        'user.isSuperAdmin',
         'user.password',
         'roles',
         'permissions',
@@ -109,13 +109,17 @@ export class AuthService {
 
     // 遍历用户角色，获取权限
     const permissions = new Set<string>();
-    userInfo.roles.forEach((role) => {
-      role.permissions.forEach((permission) => {
-        if (permission.code.split(':').length === 2) {
-          permissions.add(permission.code);
-        }
+    if (userInfo.isSuperAdmin) {
+      permissions.add('*:*');
+    } else {
+      userInfo.roles.forEach((role) => {
+        role.permissions.forEach((permission) => {
+          if (permission.code.split(':').length === 2) {
+            permissions.add(permission.code);
+          }
+        });
       });
-    });
+    }
 
     // 缓存用户权限(24小时)
     // const pipeline = this.redisClient.pipeline();
@@ -127,23 +131,16 @@ export class AuthService {
 
     return {
       user_id: userInfo.user_id,
-      username: userInfo.username,
-      nickname: userInfo.nickname,
-      isAdmin: userInfo.isAdmin,
-      isFrozen: userInfo.isFrozen,
-      roles: userInfo.roles.map((role) => ({
-        roleId: role.role_id,
-        name: role.name,
-      })),
+      roles: userInfo.roles.map((role) => role.name),
       permissions: Array.from(permissions),
     };
   }
 
-  async findUserById(userId: number, isAdmin: boolean) {
+  async findUserById(userId: number, isSuperAdmin: boolean) {
     const user = await this.userRepository.findOne({
       where: {
         user_id: userId,
-        isAdmin,
+        isSuperAdmin,
       },
       relations: ['roles', 'roles.permissions'],
     });
@@ -151,7 +148,7 @@ export class AuthService {
     return {
       id: user.user_id,
       username: user.username,
-      isAdmin: user.isAdmin,
+      isSuperAdmin: user.isSuperAdmin,
       roles: user.roles.map((item) => item.name),
       permissions: user.roles.reduce((arr, item) => {
         item.permissions.forEach((permission) => {
@@ -169,16 +166,15 @@ export class AuthService {
    * @param { LoginUserVo } vo
    * @returns {{ accessToken: string, refreshToken: string }} 返回access_token 和 refresh_token
    */
-  generateToken(vo: { user_id: number; permissions: string[] }): {
+  generateToken(vo: { user_id: number; roles: string[], permissions: string[] }): {
     accessToken: string;
     refreshToken: string;
   } {
-    console.log(vo);
-
     // 生成 AccessToken
     const accessToken = this.jwtService.sign(
       {
         userId: vo.user_id,
+        roles: vo.roles,
         permissions: vo.permissions,
       },
       {
@@ -202,11 +198,11 @@ export class AuthService {
   /**
    * 根据 refreshToken 刷新 accessToken
    * @param {number} userId
-   * @param {boolean} isAdmin
+   * @param {boolean} isSuperAdmin
    */
-  async refreshToken(userId: number, isAdmin: boolean) {
+  async refreshToken(userId: number, isSuperAdmin: boolean) {
     try {
-      const user = await this.findUserById(userId, isAdmin);
+      const user = await this.findUserById(userId, isSuperAdmin);
 
       const access_token = this.jwtService.sign(
         {

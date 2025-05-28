@@ -70,7 +70,7 @@ export class UserService {
 
     // 先查询 Role 实体
     const roleEntities = await this.roleRepository.findBy({
-      role_id: In(roles),
+      roleId: In(roles),
     });
 
     console.log(roleEntities);
@@ -98,7 +98,7 @@ export class UserService {
     if (dataToUpdate.roles.length > 0) {
       const roles = await this.roleRepository.find({
         where: {
-          role_id: In(dataToUpdate.roles),
+          roleId: In(dataToUpdate.roles),
         },
       });
 
@@ -158,7 +158,7 @@ export class UserService {
 
     const roles = await this.roleRepository.find({
       where: {
-        role_id: In(roleIds),
+        roleId: In(roleIds),
       },
     });
 

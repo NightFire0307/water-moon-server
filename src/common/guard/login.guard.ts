@@ -9,15 +9,12 @@ import { Observable } from 'rxjs';
 import { JwtService } from '@nestjs/jwt';
 import { Reflector } from '@nestjs/core';
 import { Request } from 'express';
-import { Permission } from '../../modules/auth/entities/permissions.entity';
 import { AuthErrorCode, AuthException } from '../exceptions/auth.exception';
 
 export interface JwtUserData {
   userId: number;
-  username: string;
-  isAdmin: boolean;
   roles: string[];
-  permissions: Permission[];
+  permissions: string[];
 }
 
 declare module 'express' {
@@ -55,11 +52,10 @@ export class LoginGuard implements CanActivate {
     try {
       const token = authorization.split(' ')[1];
       const data = this.jwtService.verify<JwtUserData>(token);
+      console.log('11', data);
 
       request.user = {
         userId: data.userId,
-        username: data.username,
-        isAdmin: data.isAdmin,
         roles: data.roles,
         permissions: data.permissions,
       };

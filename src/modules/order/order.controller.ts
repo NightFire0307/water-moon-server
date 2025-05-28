@@ -29,6 +29,12 @@ import { ResetOrderStatusDto } from './dto/reset-order-status.dto';
 import { Response } from 'express';
 
 @Controller('admin/orders')
+@RequirePermission({
+  code: 'order',
+  name: '订单管理',
+  type: 'group',
+  description: '订单管理',
+})
 export class OrderController {
   constructor(private readonly orderService: OrderService) { }
 
@@ -55,7 +61,7 @@ export class OrderController {
   @RequireLogin()
   @RequirePermission({
     code: 'order:view',
-    name: '查看订单详情',
+    name: '查看订单',
     type: 'button',
     description: '查看订单详情',
   })

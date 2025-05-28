@@ -15,7 +15,7 @@ import { Exclude } from 'class-transformer';
 })
 export class Role {
   @PrimaryGeneratedColumn()
-  role_id: number;
+  roleId: number;
 
   @Column({
     length: 20,
@@ -24,8 +24,15 @@ export class Role {
   name: string;
 
   @Column({
+    length: 20,
+    comment: '显示名称'
+  })
+  displayName: string
+
+  @Column({
     length: 255,
     comment: '角色描述',
+    default: ''
   })
   description: string;
 

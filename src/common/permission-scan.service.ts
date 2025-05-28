@@ -157,8 +157,21 @@ export class PermissionScanService implements OnApplicationBootstrap {
       }
     }
 
-    await this.permissionRepository.upsert(subPermissionEntities, {
-      conflictPaths: ['code'],
+    // 过滤出已存在的子权限
+    const existingSubPermissions = await this.permissionRepository.find({
+      where: { code: In(subPermissionEntities.map((p) => p.code)) },
     });
+
+    // 过滤出不存在的子权限
+    const newSubPermissions = subPermissionEntities.filter(
+      (p) => !existingSubPermissions.some((ep) => ep.code === p.code),
+    );
+
+    // 去重
+    const uniqueNewSubPermissions = Array.from(
+      new Map(newSubPermissions.map((item) => [item.code, item])).values(),
+    );
+
+    await this.permissionRepository.save(uniqueNewSubPermissions);
   }
 }

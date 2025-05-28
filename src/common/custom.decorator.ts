@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { Request } from 'express';
 
-export const PERMISSION_KEY = 'permission';
+export const PERMISSION_KEY = 'require-permission';
 
 export const RequireLogin = () => SetMetadata('require-login', true);
 

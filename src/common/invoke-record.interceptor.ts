@@ -26,7 +26,7 @@ export class InvokeRecordInterceptor implements NestInterceptor {
 
     // 记录用户信息
     this.logger.debug(
-      `userId: ${request.user?.userId}, username: ${request.user?.username}`,
+      `userId: ${request.user?.userId}`,
     );
 
     const now = Date.now();

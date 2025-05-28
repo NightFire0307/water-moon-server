@@ -65,7 +65,7 @@ export class RoleService {
     }
 
     return {
-      data: newRole.role_id,
+      data: newRole.roleId,
       msg: '创建成功',
     };
   }
@@ -88,7 +88,7 @@ export class RoleService {
     }
 
     const role = await this.roleRepository.preload({
-      role_id: id,
+      roleId: id,
       ...dataToUpdate,
     });
 
@@ -96,7 +96,7 @@ export class RoleService {
 
     await this.roleRepository.save(role);
     return {
-      data: role.role_id,
+      data: role.roleId,
       msg: '更新成功',
     };
   }
@@ -104,7 +104,7 @@ export class RoleService {
   async removeRole(id: number) {
     const role = await this.roleRepository.findOne({
       where: {
-        role_id: id,
+        roleId: id,
       },
     });
 
@@ -121,7 +121,7 @@ export class RoleService {
     const { permissionsIds } = updateRolePermissionsDto;
     const role_permissions = await this.roleRepository.findOne({
       where: {
-        role_id: id,
+        roleId: id,
       },
       relations: {
         permissions: true,
@@ -157,7 +157,7 @@ export class RoleService {
   async getRoleByRoleId(roleId: number) {
     const { permissions, ...rest } = await this.roleRepository.findOne({
       where: {
-        role_id: roleId,
+        roleId: roleId,
       },
       relations: ['permissions'],
     });

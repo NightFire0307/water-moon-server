@@ -45,10 +45,10 @@ export class User {
   password: string;
 
   @Column({
-    comment: '是否是管理员',
+    comment: '是否超级管理员',
     default: false,
   })
-  isAdmin: boolean;
+  isSuperAdmin: boolean;
 
   @Column({
     comment: '是否冻结',

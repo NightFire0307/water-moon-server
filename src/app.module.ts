@@ -10,7 +10,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { APP_GUARD } from '@nestjs/core';
 import { LoginGuard } from './common/guard/login.guard';
-import { PermissionGuard } from './common/permission.guard';
+import { PermissionGuard } from './common/guard/permission.guard';
 import { UserModule } from './modules/user/user.module';
 import { RoleModule } from './modules/role/role.module';
 import { PermissionScanService } from './common/permission-scan.service';
