@@ -115,7 +115,7 @@ export class AuthService {
       userInfo.roles.forEach((role) => {
         role.permissions.forEach((permission) => {
           if (permission.code.split(':').length === 2) {
-            permissions.add(permission.code);
+            permissions.add(permission.code.toLowerCase());
           }
         });
       });
@@ -130,8 +130,10 @@ export class AuthService {
     // await pipeline.exec();
 
     return {
-      user_id: userInfo.user_id,
-      roles: userInfo.roles.map((role) => role.name),
+      userId: userInfo.user_id,
+      username: userInfo.username,
+      nickname: userInfo.nickname,
+      roles: userInfo.roles.map((role) => role.code),
       permissions: Array.from(permissions),
     };
   }
@@ -166,14 +168,14 @@ export class AuthService {
    * @param { LoginUserVo } vo
    * @returns {{ accessToken: string, refreshToken: string }} 返回access_token 和 refresh_token
    */
-  generateToken(vo: { user_id: number; roles: string[], permissions: string[] }): {
+  generateToken(vo: { userId: number; roles: string[], permissions: string[] }): {
     accessToken: string;
     refreshToken: string;
   } {
     // 生成 AccessToken
     const accessToken = this.jwtService.sign(
       {
-        userId: vo.user_id,
+        userId: vo.userId,
         roles: vo.roles,
         permissions: vo.permissions,
       },
@@ -185,7 +187,7 @@ export class AuthService {
     // 生成 RefreshToken
     const refreshToken = this.jwtService.sign(
       {
-        userId: vo.user_id,
+        userId: vo.userId,
       },
       {
         expiresIn: this.configService.get('jwt_refresh_token_expires_time'),

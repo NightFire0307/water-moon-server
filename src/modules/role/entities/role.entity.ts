@@ -19,15 +19,15 @@ export class Role {
 
   @Column({
     length: 20,
-    comment: '角色名',
+    comment: '角色编码'
   })
-  name: string;
+  code: string
 
   @Column({
     length: 20,
-    comment: '显示名称'
+    comment: '角色名称',
   })
-  displayName: string
+  name: string;
 
   @Column({
     length: 255,

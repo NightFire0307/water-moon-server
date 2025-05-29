@@ -38,14 +38,15 @@ export class RoleService {
     };
   }
 
-  async createRole({ name, description = '', permissionIds }: CreateRoleDto) {
+  async createRole({ code, name, description = '', permissionIds }: CreateRoleDto) {
     const foundRole = await this.roleRepository.findOneBy({
-      name,
+      code,
     });
 
     if (foundRole) return '该角色已存在';
 
     const role = this.roleRepository.create({
+      code,
       name,
       description,
     });
