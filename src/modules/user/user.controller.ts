@@ -8,7 +8,6 @@ import {
   Post,
   Put,
   Query,
-  SetMetadata,
   UseInterceptors,
 } from '@nestjs/common';
 import { UserService } from './user.service';

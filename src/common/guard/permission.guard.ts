@@ -12,6 +12,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { User } from '../../modules/auth/entities/user.entity';
 import { Repository } from 'typeorm';
 import { AuthService } from '../../modules/auth/auth.service';
+import { IS_PUBLIC_KEY, REQUIRE_PERMISSION_KEY, type PermissionMetadata } from '../custom.decorator';
 
 @Injectable()
 export class PermissionGuard implements CanActivate {
@@ -29,20 +30,35 @@ export class PermissionGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request: Request = context.switchToHttp().getRequest();
-    if (!request.user) return true
 
-    // 如果是超级用户则直接放行
-    if (request.user.roles.includes('super_admin')) return true
-
-    // 获取接口上定义的权限
-    const requiredPermissions = this.reflector.getAllAndOverride<string>(
-      'require-permission',
+    // 1. 检查是否为公共接口
+    const isPublic = this.reflector.getAllAndOverride<boolean>(
+      IS_PUBLIC_KEY,
       [context.getClass(), context.getHandler()],
     );
+    if (isPublic) return true;
 
-    // 校验访问权限
-    if (!request.user.permissions.includes(requiredPermissions)) {
-      throw new ForbiddenException('您没有访问该资源的权限')
+    const user = request.user;
+
+    // 2. 检查用户信息
+    if (!user) {
+      throw new ForbiddenException('用户未登录或Token已过期');
+    }
+
+    // 3. 超级管理员直接放行
+    if (user.roles?.includes('super_admin')) return true;
+
+    // 4. 获取接口所需权限
+    const requiredPermission = this.reflector.getAllAndOverride<PermissionMetadata>(
+      REQUIRE_PERMISSION_KEY,
+      [context.getHandler(), context.getClass()],
+    );
+    console.log('requiredPermission', requiredPermission);
+    if (!requiredPermission) return true; // 未设置权限要求则放行
+
+    // 5. 校验用户权限
+    if (!user.permissions?.includes(requiredPermission.code)) {
+      throw new ForbiddenException('您没有访问该资源的权限');
     }
 
     return true;

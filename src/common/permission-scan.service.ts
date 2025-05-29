@@ -4,7 +4,7 @@ import {
   RequestMethod,
 } from '@nestjs/common';
 import { Reflector, ModulesContainer } from '@nestjs/core';
-import { PERMISSION_KEY, type PermissionMetadata } from './custom.decorator';
+import { REQUIRE_PERMISSION_KEY, type PermissionMetadata } from './custom.decorator';
 import { Permission } from '../modules/auth/entities/permissions.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
@@ -49,7 +49,7 @@ export class PermissionScanService implements OnApplicationBootstrap {
         const controllerPath = Reflect.getMetadata('path', controller.metatype);
         // 获取控制器的权限元数据
         const controllerPermissions = this.reflector.get<PermissionMetadata>(
-          PERMISSION_KEY,
+          REQUIRE_PERMISSION_KEY,
           controller.metatype,
         );
 
@@ -65,7 +65,7 @@ export class PermissionScanService implements OnApplicationBootstrap {
           if (typeof method === 'function') {
             const methodPath = Reflect.getMetadata('path', method);
             const requiredPermissions = this.reflector.get(
-              PERMISSION_KEY,
+              REQUIRE_PERMISSION_KEY,
               method,
             );
 

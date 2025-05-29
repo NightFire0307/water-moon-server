@@ -6,9 +6,15 @@ import {
 } from '@nestjs/common';
 import { Request } from 'express';
 
-export const PERMISSION_KEY = 'require-permission';
+export const REQUIRE_PERMISSION_KEY = 'requirePermission';
+export const REQUIRE_LOGIN_KEY = 'requireLogin';
+export const IS_PUBLIC_KEY = 'isPublic';
 
-export const RequireLogin = () => SetMetadata('require-login', true);
+// 登录元数据
+export const RequireLogin = () => SetMetadata(REQUIRE_LOGIN_KEY, true);
+
+// 白名单装饰器
+export const Public = () => SetMetadata(IS_PUBLIC_KEY, true);
 
 /**
  * 权限元数据
@@ -25,7 +31,7 @@ export interface PermissionMetadata {
   description?: string;
 }
 export const RequirePermission = (data: PermissionMetadata) => {
-  return applyDecorators(SetMetadata(PERMISSION_KEY, data));
+  return applyDecorators(SetMetadata(REQUIRE_PERMISSION_KEY, data));
 };
 
 // 从Token中获取用户信息

@@ -10,6 +10,7 @@ import { JwtService } from '@nestjs/jwt';
 import { Reflector } from '@nestjs/core';
 import { Request } from 'express';
 import { AuthErrorCode, AuthException } from '../exceptions/auth.exception';
+import { REQUIRE_LOGIN_KEY } from '../custom.decorator';
 
 export interface JwtUserData {
   userId: number;
@@ -36,7 +37,7 @@ export class LoginGuard implements CanActivate {
   ): boolean | Promise<boolean> | Observable<boolean> {
     const request: Request = context.switchToHttp().getRequest();
 
-    const requireLogin = this.reflector.getAllAndOverride('require-login', [
+    const requireLogin = this.reflector.getAllAndOverride(REQUIRE_LOGIN_KEY, [
       context.getClass(),
       context.getHandler(),
     ]);

@@ -15,7 +15,7 @@ import {
 import { AuthService } from './auth.service';
 import { LoginUserDto } from './dto/login-user.dto';
 import { JwtService } from '@nestjs/jwt';
-import { RequireLogin } from '../../common/custom.decorator';
+import { Public, RequireLogin } from '../../common/custom.decorator';
 import { Request, Response } from 'express';
 import {
   AuthErrorCode,
@@ -53,6 +53,7 @@ export class AuthController {
   @Post('admin/login')
   @HttpCode(200)
   @UseInterceptors(ClassSerializerInterceptor)
+  @Public()
   async adminLogin(
     @Body() loginUser: LoginUserDto,
     @Res({ passthrough: true }) response: Response,
