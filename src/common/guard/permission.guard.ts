@@ -53,7 +53,6 @@ export class PermissionGuard implements CanActivate {
       REQUIRE_PERMISSION_KEY,
       [context.getHandler(), context.getClass()],
     );
-    console.log('requiredPermission', requiredPermission);
     if (!requiredPermission) return true; // 未设置权限要求则放行
 
     // 5. 校验用户权限
