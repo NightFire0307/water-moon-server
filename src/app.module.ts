@@ -32,6 +32,7 @@ import { MinioModule } from './minio/minio.module';
 import { BullModule } from '@nestjs/bullmq';
 import { SelectionModule } from './modules/selection/selection.module';
 import { LoggerModule } from './common/logger/logger.module';
+import * as path from 'path'
 
 @Module({
   imports: [
@@ -39,7 +40,7 @@ import { LoggerModule } from './common/logger/logger.module';
     TypeOrmModule.forFeature([Permission, User]),
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: ['src/.env.development'],
+      envFilePath: path.join(__dirname, '.env.production'),
     }),
     ScheduleModule.forRoot(),
     TypeOrmModule.forRootAsync({
@@ -51,7 +52,7 @@ import { LoggerModule } from './common/logger/logger.module';
           username: configService.get('mysql_server_login_username'),
           password: configService.get('mysql_server_login_password'),
           database: configService.get('mysql_server_database'),
-          synchronize: true,
+          synchronize: false,
           logging: true,
           entities: [
             User,
