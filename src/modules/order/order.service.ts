@@ -21,7 +21,7 @@ import type Redis from 'ioredis';
 import * as archiver from 'archiver';
 import { PassThrough } from 'node:stream';
 import { ConfigService } from '@nestjs/config';
-import { MinioService } from 'src/minio/minio.service';
+import { MinioService } from '../../minio/minio.service';
 
 interface OrderProductCount {
   orderId: number;

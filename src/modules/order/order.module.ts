@@ -7,8 +7,8 @@ import { Product } from '../product/entities/product.entity';
 import { OrderProduct } from './entities/orderProduct.entity';
 import { Link } from '../link/entities/link.entity';
 import { Photo } from '../photo/entities/photo.entity';
-import { RedisModule } from 'src/redis/redis.module';
-import { MinioModule } from 'src/minio/minio.module';
+import { RedisModule } from '../../redis/redis.module';
+import { MinioModule } from '../../minio/minio.module';
 
 @Module({
   imports: [

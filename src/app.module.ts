@@ -33,6 +33,7 @@ import { BullModule } from '@nestjs/bullmq';
 import { SelectionModule } from './modules/selection/selection.module';
 import { LoggerModule } from './common/logger/logger.module';
 import * as path from 'path'
+import { SeedModule } from './seeds/seed.module';
 
 @Module({
   imports: [
@@ -103,6 +104,7 @@ import * as path from 'path'
     MinioModule,
     SelectionModule,
     LoggerModule,
+    SeedModule,
   ],
   controllers: [AppController],
   providers: [

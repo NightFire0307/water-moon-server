@@ -21,7 +21,7 @@ import {
 import {
   AuthErrorCode,
   AuthException,
-} from 'src/common/exceptions/auth.exception';
+} from '../../common/exceptions/auth.exception';
 import { Link } from '../link/entities/link.entity';
 import * as dayjs from 'dayjs';
 

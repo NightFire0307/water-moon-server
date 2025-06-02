@@ -12,6 +12,7 @@
     "start:dev": "npx cross-env NODE_ENV=development nest start --watch",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
+    "seed": "npx cross-env NODE_ENV=development ts-node src/seeds/seed.ts",
     "docker:compose": "docker compose up",
     "docker:compose:clear": "docker compose down --rmi all",
     "migration:generate": "npx ts-node ./node_modules/typeorm/cli migration:run -d ./src/data-source.ts ",
