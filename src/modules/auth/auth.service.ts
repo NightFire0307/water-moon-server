@@ -9,8 +9,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { User } from './entities/user.entity';
 import { Role } from '../role/entities/role.entity';
 import { Repository } from 'typeorm';
-import { Permission, PermissionAction } from './entities/permissions.entity';
-import { compare, hash } from 'bcrypt';
+import { Permission } from './entities/permissions.entity';
+import { compare } from 'bcrypt';
 import { ConfigService } from '@nestjs/config';
 import { LoginUserDto } from './dto/login-user.dto';
 import { JwtService } from '@nestjs/jwt';
@@ -40,43 +40,6 @@ export class AuthService {
 
   @InjectRepository(Permission)
   private readonly permissionRepository: Repository<Permission>;
-
-  async initDb() {
-    const saltRounds: string = this.configService.get('hash_salt_rounds');
-    if (!saltRounds) {
-      throw new Error('Salt Rounds configuration is missing');
-    }
-    console.log(typeof saltRounds);
-    const user1 = new User();
-
-    user1.username = 'admin';
-    user1.nickname = 'admin';
-    user1.isSuperAdmin = true;
-    user1.isFrozen = false;
-    user1.password = await hash('123456', parseInt(saltRounds));
-
-    const user2 = new User();
-    user2.username = 'admin1';
-    user2.nickname = 'admin1';
-    user2.isSuperAdmin = false;
-    user2.isFrozen = false;
-    user2.password = await hash('123456', parseInt(saltRounds));
-
-    const role = new Role();
-    role.name = '管理员';
-
-    const role2 = new Role();
-    role2.name = '选片师';
-
-    const role3 = new Role();
-    role3.name = '普通用户';
-
-    user1.roles = [role, role2];
-    user2.roles = [role2];
-
-    await this.userRepository.save([user1, user2]);
-    await this.roleRepository.save([role, role2, role3]);
-  }
 
   async login(loginUserDto: LoginUserDto) {
     const userInfo = await this.userRepository
@@ -109,7 +72,13 @@ export class AuthService {
 
     // 遍历用户角色，获取权限
     const permissions = new Set<string>();
-    if (userInfo.isSuperAdmin) {
+    // 如果是超级管理员，直接赋予所有权限
+    const isSuperAdmin = userInfo.roles.some(
+      (role) => role.code === 'super_admin',
+    );
+
+    if (isSuperAdmin) {
+
       permissions.add('*:*');
     } else {
       userInfo.roles.forEach((role) => {
@@ -138,11 +107,10 @@ export class AuthService {
     };
   }
 
-  async findUserById(userId: number, isSuperAdmin: boolean) {
+  async findUserById(userId: number) {
     const user = await this.userRepository.findOne({
       where: {
         user_id: userId,
-        isSuperAdmin,
       },
       relations: ['roles', 'roles.permissions'],
     });
@@ -150,7 +118,6 @@ export class AuthService {
     return {
       id: user.user_id,
       username: user.username,
-      isSuperAdmin: user.isSuperAdmin,
       roles: user.roles.map((item) => item.name),
       permissions: user.roles.reduce((arr, item) => {
         item.permissions.forEach((permission) => {
@@ -200,11 +167,10 @@ export class AuthService {
   /**
    * 根据 refreshToken 刷新 accessToken
    * @param {number} userId
-   * @param {boolean} isSuperAdmin
    */
-  async refreshToken(userId: number, isSuperAdmin: boolean) {
+  async refreshToken(userId: number) {
     try {
-      const user = await this.findUserById(userId, isSuperAdmin);
+      const user = await this.findUserById(userId);
 
       const access_token = this.jwtService.sign(
         {

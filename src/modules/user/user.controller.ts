@@ -75,7 +75,6 @@ export class UserController {
       vo.username = user.username;
       vo.nickname = user.nickname;
       vo.isFrozen = user.isFrozen;
-      vo.isAdmin = user.isSuperAdmin;
       vo.updateTime = user.updateTime;
       vo.createTime = user.createTime;
       return vo;

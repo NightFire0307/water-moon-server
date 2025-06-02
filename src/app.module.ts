@@ -53,7 +53,7 @@ import { SeedModule } from './seeds/seed.module';
           username: configService.get('mysql_server_login_username'),
           password: configService.get('mysql_server_login_password'),
           database: configService.get('mysql_server_database'),
-          synchronize: false,
+          synchronize: process.env.NODE_ENV !== 'production',
           logging: true,
           entities: [
             User,

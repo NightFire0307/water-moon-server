@@ -78,7 +78,7 @@ export class AuthController {
     try {
       const { userId } =
         this.jwtService.verify<RefreshTokenPayload>(refreshToken);
-      return await this.userService.refreshToken(userId, false);
+      return await this.userService.refreshToken(userId);
     } catch {
       throw new AuthException(AuthErrorCode.LOGIN_EXPIRED);
     }
@@ -95,7 +95,6 @@ export class AuthController {
       this.jwtService.verify<RefreshTokenPayload>(refreshToken);
     const { access_token, refresh_token } = await this.userService.refreshToken(
       userId,
-      true,
     );
 
     // 更新 refreshToken
@@ -113,11 +112,5 @@ export class AuthController {
     @Query('fileName') fileName: string,
   ) {
     return await this.userService.getMinioToken(orderNumber, fileName);
-  }
-
-  @Get('init-db')
-  async initDb() {
-    await this.userService.initDb();
-    return 'done';
   }
 }

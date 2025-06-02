@@ -45,12 +45,6 @@ export class User {
   password: string;
 
   @Column({
-    comment: '是否超级管理员',
-    default: false,
-  })
-  isSuperAdmin: boolean;
-
-  @Column({
     comment: '是否冻结',
     default: false,
   })
