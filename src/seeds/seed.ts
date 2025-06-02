@@ -14,6 +14,7 @@ async function bootstrap() {
   await roleSeed.run(app)
   await userSeed.run(app, configService);
   await app.close();
+  process.exit(0);
 }
 
 bootstrap();
