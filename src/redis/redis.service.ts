@@ -26,11 +26,6 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     // 订阅 key 过期事件
     await this.subscriber.psubscribe('__keyevent@0__:expired');
 
-    // 监听过期事件
-    this.subscriber.on('pmessage', (pattern, channel, message) => {
-      console.log('key 过期了', message); // 输出过期的键名
-    });
-
     console.log('Redis Listener Initialized');
   }
 

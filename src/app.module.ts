@@ -40,7 +40,7 @@ import * as path from 'path'
     TypeOrmModule.forFeature([Permission, User]),
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: path.join(__dirname, '.env.production'),
+      envFilePath: path.join(__dirname, `.env.${process.env.NODE_ENV}`),
     }),
     ScheduleModule.forRoot(),
     TypeOrmModule.forRootAsync({

@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { RedisService } from './redis.service';
 import { RedisController } from './redis.controller';
 import { Redis } from 'ioredis';
+import { ConfigService } from '@nestjs/config';
 
 @Module({
   controllers: [RedisController],
@@ -9,17 +10,25 @@ import { Redis } from 'ioredis';
     RedisService,
     {
       provide: 'REDIS_CLIENT',
-      useFactory: () => {
-        return new Redis(6379, 'localhost');
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => {
+        return new Redis({
+          host: configService.get<string>('redis_server_host'),
+          port: configService.get<number>('redis_server_port'),
+        });
       },
     },
     {
       provide: 'SUBSCRIBER_CLIENT',
-      useFactory: () => {
-        return new Redis(6379, 'localhost');
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => {
+        return new Redis({
+          host: configService.get<string>('redis_server_host'),
+          port: configService.get<number>('redis_server_port'),
+        });
       },
     },
   ],
   exports: ['REDIS_CLIENT', RedisService],
 })
-export class RedisModule {}
+export class RedisModule { }

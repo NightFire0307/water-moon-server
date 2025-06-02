@@ -10,7 +10,10 @@ import * as Minio from 'minio';
     MinioService,
     {
       provide: 'MINIO_CLIENT',
+      inject: [ConfigService],
       useFactory(configService: ConfigService) {
+        console.log(process.env.NODE_ENV)
+        console.log(configService.get('minio_endpoint'));
         return new Minio.Client({
           endPoint: configService.get('minio_endpoint'),
           port: configService.get('minio_port'),
@@ -19,9 +22,8 @@ import * as Minio from 'minio';
           secretKey: configService.get('minio_secret_key'),
         });
       },
-      inject: [ConfigService],
     },
   ],
   exports: ['MINIO_CLIENT', MinioService],
 })
-export class MinioModule {}
+export class MinioModule { }
