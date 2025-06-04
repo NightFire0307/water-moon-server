@@ -27,7 +27,7 @@ export class Photo {
   size: number;
 
   // 订单关联照片
-  @ManyToOne(() => Order, (order) => order.photos)
+  @ManyToOne(() => Order, (order) => order.photos, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'order_id' })
   order: Order;
 
@@ -35,6 +35,7 @@ export class Photo {
   @ManyToMany(
     () => OrderProduct,
     (orderProduct) => orderProduct.selected_photos,
+    { onDelete: 'CASCADE' }
   )
   @JoinTable({ name: 'order_product_photos' })
   order_products: OrderProduct[];

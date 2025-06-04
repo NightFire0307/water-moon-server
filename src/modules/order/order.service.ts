@@ -266,33 +266,44 @@ export class OrderService {
     await queryRunner.startTransaction();
 
     const { order_products, ...rest } = updateOrderDto;
-    await this.orderRepository.update({ id }, rest);
+    await queryRunner.manager.update(Order, { id }, rest);
 
     if (order_products) {
+      // 获取order_products中的产品id
       const productIds = [...new Set(order_products.map((item) => item.id))];
+
+      // 查询产品是否存在
       const foundProduct = await this.productRepository.find({
         where: {
           id: In(productIds),
         },
       });
 
+      // 如果查询到的产品数量与传入的产品id数量不一致，则抛出异常
       if (foundProduct.length !== productIds.length) {
         return new DatabaseException(CommonErrorCode.NOT_FOUND, '查询不到产品');
       }
+
+      // 删除原有的订单产品照片
+      await queryRunner.manager.delete('order_product_photos', {
+        orderProductsId: In(productIds),
+      });
+
+      // 删除原有的订单产品
+      await queryRunner.manager.delete(OrderProduct, { order: foundOrder });
 
       const order_products_data = order_products.map((item) => {
         const product = foundProduct.find((product) => product.id === item.id);
         if (!product) {
           throw new Error(`查询不到产品id: ${item.id}`);
         }
-        return this.orderProductRepository.create({
+        return queryRunner.manager.create(OrderProduct, {
           order: foundOrder,
           product,
           count: item.count,
           remark: item.remark,
         });
       });
-      await this.orderProductRepository.delete({ order: foundOrder });
       await queryRunner.manager.save(order_products_data);
     }
 
