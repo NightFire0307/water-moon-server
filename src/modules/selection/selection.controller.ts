@@ -18,6 +18,7 @@ import {
   OrderInfo,
   Pagination,
   PaginationQuery,
+  Public,
 } from '../../common/custom.decorator';
 import { CustomLogin } from './guard/custom-login.guard';
 import { VerifySurl } from './guard/verify-surl.guard';
@@ -30,6 +31,7 @@ import {
 } from '../../common/exceptions/auth.exception';
 
 @Controller('selection')
+@Public()
 export class SelectionController {
   constructor(
     private readonly selectionService: SelectionService,

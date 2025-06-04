@@ -52,7 +52,6 @@ export class AuthService {
         'user.username',
         'user.nickname',
         'user.phoneNumber',
-        'user.isSuperAdmin',
         'user.password',
         'roles',
         'permissions',
@@ -78,7 +77,6 @@ export class AuthService {
     );
 
     if (isSuperAdmin) {
-
       permissions.add('*:*');
     } else {
       userInfo.roles.forEach((role) => {

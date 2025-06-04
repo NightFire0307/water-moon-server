@@ -18,6 +18,7 @@ import { PhotoService } from './photo.service';
 import {
   Pagination,
   PaginationQuery,
+  Public,
   RequireLogin,
   RequirePermission,
 } from '../../common/custom.decorator';
@@ -63,6 +64,7 @@ export class PhotoController {
 
   // 服务端推送照片处理进度
   @Sse('completions')
+  @Public()
   completions(): Observable<any> {
     return this.compressPhotoProcessor.imageProcessed$.pipe(
       map((event) => {
