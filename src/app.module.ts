@@ -34,6 +34,9 @@ import { SelectionModule } from './modules/selection/selection.module';
 import { LoggerModule } from './common/logger/logger.module';
 import * as path from 'path'
 import { SeedModule } from './seeds/seed.module';
+import { PackageModule } from '@/modules/package/package.module';
+import { ProductPackage } from './modules/package/entities/product-package.entity';
+import { ProductPackageItem } from './modules/package/entities/product-package-item.entity';
 
 @Module({
   imports: [
@@ -61,6 +64,8 @@ import { SeedModule } from './seeds/seed.module';
             Permission,
             Product,
             ProductType,
+            ProductPackage,
+            ProductPackageItem,
             Order,
             Photo,
             OrderProduct,
@@ -105,6 +110,7 @@ import { SeedModule } from './seeds/seed.module';
     SelectionModule,
     LoggerModule,
     SeedModule,
+    PackageModule,
   ],
   controllers: [AppController],
   providers: [
