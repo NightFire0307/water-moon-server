@@ -12,8 +12,6 @@ import * as Minio from 'minio';
       provide: 'MINIO_CLIENT',
       inject: [ConfigService],
       useFactory(configService: ConfigService) {
-        console.log(process.env.NODE_ENV)
-        console.log(configService.get('minio_endpoint'));
         return new Minio.Client({
           endPoint: configService.get('minio_endpoint'),
           port: configService.get('minio_port'),

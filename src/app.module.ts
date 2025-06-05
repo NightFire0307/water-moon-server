@@ -35,6 +35,8 @@ import { LoggerModule } from './common/logger/logger.module';
 import * as path from 'path'
 import { SeedModule } from './seeds/seed.module';
 
+console.log(`Environment: ${process.env.NODE_ENV}`);
+
 @Module({
   imports: [
     AuthModule,
