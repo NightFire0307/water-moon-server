@@ -13,7 +13,9 @@ export enum CommonErrorCode {
 export enum OrderErrorCode {
   ORDER_IS_SUBMIT = 'ORDER_IS_SUBMIT',
   ORDER_IS_CANCEL = 'ORDER_IS_CANCEL',
+  ORDER_IS_SELECTING = 'ORDER_IS_SELECTING',
   ORDER_NUMBER_ALREADY_EXISTS = 'ORDER_NUMBER_ALREADY_EXISTS',
+  ORDER_PRODUCT_HAS_PHOTO = 'ORDER_PRODUCT_HAS_PHOTO',
 }
 
 export enum LinkErrorCode {
@@ -64,6 +66,14 @@ export class DatabaseException extends BaseBusinessException {
       },
       [OrderErrorCode.ORDER_IS_CANCEL]: {
         data: '订单已取消',
+        status: HttpStatus.BAD_REQUEST,
+      },
+      [OrderErrorCode.ORDER_IS_SELECTING]: {
+        data: '订单正在选片中',
+        status: HttpStatus.BAD_REQUEST,
+      },
+      [OrderErrorCode.ORDER_PRODUCT_HAS_PHOTO]: {
+        data: '订单产品已存在照片',
         status: HttpStatus.BAD_REQUEST,
       },
       [LinkErrorCode.LINK_ERROR]: {

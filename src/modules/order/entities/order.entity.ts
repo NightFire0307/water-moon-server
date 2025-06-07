@@ -35,7 +35,7 @@ export class Order {
   @Column()
   customer_phone: string;
 
-  @OneToMany(() => Photo, (photo) => photo.order)
+  @OneToMany(() => Photo, (photo) => photo.order, { cascade: true })
   @JoinColumn({ name: 'order_photos' })
   photos: Photo[];
 

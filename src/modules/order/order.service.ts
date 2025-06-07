@@ -2,7 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Order, OrderStatus } from './entities/order.entity';
-import { In, Repository } from 'typeorm';
+import { In, Repository, DataSource } from 'typeorm';
 import { Product } from '../product/entities/product.entity';
 import { PaginationQuery } from '../../common/custom.decorator';
 import { OrderProduct } from './entities/orderProduct.entity';
@@ -48,6 +48,8 @@ export class OrderService {
 
   @Inject(ConfigService) private readonly configService: ConfigService;
   @Inject(MinioService) private readonly minioService: MinioService;
+
+  constructor(private readonly dataSource: DataSource) { }
 
   async getOrderList(
     query: GetOrderListDto,
@@ -248,78 +250,67 @@ export class OrderService {
   }
 
   async updateOrder(id: number, updateOrderDto: UpdateOrderDto) {
-    const foundOrder = await this.orderRepository.findOneBy({ id });
-
-    if (!foundOrder) {
-      throw new Error('订单不存在');
-    }
-
-    if (foundOrder.status === OrderStatus.SUBMITTED) {
-      throw new DatabaseException(
-        OrderErrorCode.ORDER_IS_SUBMIT,
-        '用户选片结果已提交，若需修改订单内容则需先重置订单状态',
-      );
-    }
-
-    const queryRunner =
-      this.orderRepository.manager.connection.createQueryRunner();
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
     await queryRunner.startTransaction();
 
     const { order_products, ...rest } = updateOrderDto;
-    await queryRunner.manager.update(Order, { id }, rest);
+    try {
+      const order = await queryRunner.manager.findOne(Order,
+        {
+          where: { id, is_deleted: false },
+          relations: ['order_products', 'order_products.product']
+        }
+      );
 
-    if (order_products) {
-      // 获取order_products中的产品id
-      const productIds = [...new Set(order_products.map((item) => item.id))];
-
-      // 查询产品是否存在
-      const foundProduct = await this.productRepository.find({
-        where: {
-          id: In(productIds),
-        },
-      });
-
-      // 如果查询到的产品数量与传入的产品id数量不一致，则抛出异常
-      if (foundProduct.length !== productIds.length) {
-        return new DatabaseException(CommonErrorCode.NOT_FOUND, '查询不到产品');
+      if (!order) {
+        throw new Error('订单不存在');
       }
 
-      // 删除原有的订单产品照片
-      await queryRunner.manager.delete('order_product_photos', {
-        orderProductsId: In(productIds),
-      });
+      if (order.status === OrderStatus.SUBMITTED) {
+        throw new DatabaseException(
+          OrderErrorCode.ORDER_IS_SUBMIT,
+          '用户选片结果已提交，若需修改订单内容则需先重置订单状态',
+        );
+      }
 
-      // 删除原有的订单产品
-      await queryRunner.manager.delete(OrderProduct, { order: foundOrder });
+      // 更新订单信息
+      await queryRunner.manager.update(Order, { id }, rest);
 
-      const order_products_data = order_products.map((item) => {
-        const product = foundProduct.find((product) => product.id === item.id);
+      // 清空原先所有订单产品
+      await queryRunner.manager.delete(OrderProduct, { order: { id } });
+
+      // 添加新订单产品
+      for (const item of order_products) {
+        const product = await queryRunner.manager.findOne(Product, {
+          where: { id: item.id }
+        })
+
         if (!product) {
-          throw new Error(`查询不到产品id: ${item.id}`);
+          throw new DatabaseException(CommonErrorCode.NOT_FOUND, '产品不存在');
         }
-        return queryRunner.manager.create(OrderProduct, {
-          order: foundOrder,
+
+        const orderProduct = queryRunner.manager.create(OrderProduct, {
+          order,
           product,
           count: item.count,
-          remark: item.remark,
-        });
-      });
-      await queryRunner.manager.save(order_products_data);
-    }
+        })
 
-    try {
+        await queryRunner.manager.save(orderProduct);
+      }
+
       await queryRunner.commitTransaction();
-
       return {
-        data: id,
+        data: [],
         msg: '订单更新成功',
-      };
-    } catch (e) {
-      await queryRunner.rollbackTransaction();
-      throw new DatabaseException(CommonErrorCode.DATABASE_ERROR, e);
+      }
+    } catch (err) {
+      console.log(err)
+      await queryRunner.rollbackTransaction()
     } finally {
-      await queryRunner.release();
+      await queryRunner.release()
     }
+
   }
 
   async deleteOrder(id: number) {
