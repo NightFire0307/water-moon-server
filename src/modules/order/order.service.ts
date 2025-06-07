@@ -277,6 +277,23 @@ export class OrderService {
       // 更新订单信息
       await queryRunner.manager.update(Order, { id }, rest);
 
+      // 删除原先订单产品关联的照片
+      for (const orderProduct of order.order_products) {
+        // 查询所有已关联的照片ID
+        const orderProductWithPhotos = await queryRunner.manager.findOne(OrderProduct, {
+          where: { id: orderProduct.id },
+          relations: ['selected_photos'],
+        });
+        const photoIds = orderProductWithPhotos.selected_photos.map(photo => photo.id);
+
+        if (photoIds.length > 0) {
+          await queryRunner.manager
+            .createQueryBuilder()
+            .relation(OrderProduct, 'selected_photos')
+            .of(orderProduct.id)
+            .remove(photoIds);
+        }
+      }
       // 清空原先所有订单产品
       await queryRunner.manager.delete(OrderProduct, { order: { id } });
 
