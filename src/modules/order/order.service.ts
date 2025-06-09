@@ -30,6 +30,13 @@ interface OrderProductCount {
   total_photos: string;
 }
 
+interface OrderSummary {
+  totalOrderCount: string;
+  inProgressOrderCount: string;
+  completedOrderCount: string;
+  todayOrderCount: string;
+}
+
 @Injectable()
 export class OrderService {
   @InjectRepository(Order)
@@ -286,6 +293,7 @@ export class OrderService {
         });
         const photoIds = orderProductWithPhotos.selected_photos.map(photo => photo.id);
 
+        // 如果有已关联的照片，则解除关联
         if (photoIds.length > 0) {
           await queryRunner.manager
             .createQueryBuilder()
@@ -522,5 +530,44 @@ export class OrderService {
       zipStream: passThrough,
       archive,
     };
+  }
+
+  async getOrderSummary() {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
+    const yesterday = new Date(today);
+    yesterday.setDate(today.getDate() - 1);
+
+    const result = await this.orderRepository
+      .createQueryBuilder('order')
+      .select([
+        // 总订单数量
+        'COUNT(*) AS totalOrderCount',
+        // 待选片订单数量
+        `SUM(CASE WHEN order.status = ':inProgress' THEN 1 ELSE 0 END) AS inProgressOrderCount`,
+        // 已完成订单数量
+        `SUM(CASE WHEN order.status = ':completed' THEN 1 ELSE 0 END) AS completedOrderCount`,
+        // 今日订单数量
+        `SUM(CASE WHEN order.created_at >= :today AND order.created_at < :tomorrow THEN 1 ELSE 0 END) AS todayOrderCount`,
+      ])
+      .setParameters({
+        inProgress: OrderStatus.IN_PROGRESS,
+        completed: OrderStatus.FINISHED,
+        today,
+        tomorrow,
+        yesterday
+      })
+      .getRawOne();
+
+    return {
+      data: {
+        totalOrderCount: Number(result.totalOrderCount),
+        inProgressOrderCount: Number(result.inProgressOrderCount),
+        completedOrderCount: Number(result.completedOrderCount),
+        todayOrderCount: Number(result.todayOrderCount),
+      }
+    }
   }
 }

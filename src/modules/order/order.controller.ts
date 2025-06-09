@@ -38,6 +38,18 @@ import { Response } from 'express';
 export class OrderController {
   constructor(private readonly orderService: OrderService) { }
 
+  @Get('/summary')
+  @RequireLogin()
+  @RequirePermission({
+    code: 'order:summary',
+    name: '订单统计',
+    type: 'button',
+    description: '获取订单统计信息',
+  })
+  async getDashboardOrderSummary() {
+    return await this.orderService.getOrderSummary()
+  }
+
   // 获取订单列表
   @Get()
   @RequireLogin()
