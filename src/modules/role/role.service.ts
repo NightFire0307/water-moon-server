@@ -109,6 +109,11 @@ export class RoleService {
       },
     });
 
+    // 禁止删除超级管理员角色
+    if (role.code === 'super_admin') {
+      throw new DatabaseException(CommonErrorCode.DATABASE_ERROR, '禁止删除超级管理员角色');
+    }
+
     if (!role) return '删除失败！角色不存在';
     await this.roleRepository.remove(role);
     return '删除成功';
