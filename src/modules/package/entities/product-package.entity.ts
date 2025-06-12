@@ -17,7 +17,7 @@ export class ProductPackage {
 
   // 套餐是否上架
   @Column({ type: 'boolean', default: true, comment: '套餐是否上架' })
-  isPublished: boolean;
+  is_published: boolean;
 
   @OneToMany(() => ProductPackageItem, item => item.package, { cascade: true })
   items: ProductPackageItem[];
