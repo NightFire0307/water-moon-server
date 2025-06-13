@@ -69,13 +69,11 @@ export class PackageService {
     }
   }
 
-  async updatePackage(id: number, { items, name, isPublished, price, description }: UpdatePackageDto) {
-    const pkg = await this.packageRepository.findOne({
-      where: { id }
-    })
+  async updatePackage(id: number, { items = [], name, isPublished, price, description }: UpdatePackageDto) {
+    const pkg = await this.validatePackageExist(id);
 
-    if (!pkg) {
-      throw new DatabaseException(CommonErrorCode.NOT_FOUND, '套餐不存在');
+    if (items.length === 0) {
+      throw new DatabaseException(CommonErrorCode.DATABASE_ERROR, '套餐内必须包含至少一个商品');
     }
 
     const productIds = items.map(item => item.productId);
@@ -108,6 +106,30 @@ export class PackageService {
       data: updatePkg,
       msg: '套餐更新成功',
     }
+  }
+
+  async deletePackage(id: number) {
+    const pkg = await this.validatePackageExist(id);
+
+    await this.packageRepository.remove(pkg);
+    return {
+      data: id,
+      msg: '套餐删除成功',
+    }
+  }
+
+  // 校验套餐是否存在
+  private async validatePackageExist(id: number) {
+    const pkg = await this.packageRepository.findOne({
+      where: { id },
+      relations: ['items', 'items.product']
+    })
+
+    if (!pkg) {
+      throw new DatabaseException(CommonErrorCode.NOT_FOUND, '套餐不存在');
+    }
+
+    return pkg;
   }
 
   // 校验产品是否存在

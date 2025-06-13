@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Put, ValidationPipe } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Put, ValidationPipe } from '@nestjs/common';
 import { PackageService } from './package.service';
 import { CreatePackageDto } from './dto/createPackage.dto';
 import { Pagination, RequireLogin, type PaginationQuery } from '@/common/custom.decorator';
@@ -32,5 +32,13 @@ export class PackageController {
     @Body(new ValidationPipe()) dto: UpdatePackageDto
   ) {
     return await this.packageService.updatePackage(Number(id), dto);
+  }
+
+  @Delete(":id")
+  @RequireLogin()
+  async deletePackage(
+    @Param('id') id: string
+  ) {
+    return await this.packageService.deletePackage(Number(id));
   }
 }
