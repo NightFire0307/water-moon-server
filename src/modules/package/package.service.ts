@@ -8,6 +8,7 @@ import { In, Repository } from 'typeorm';
 import { CommonErrorCode, DatabaseException } from '@/common/exceptions/database.exception';
 import type { PaginationQuery } from '@/common/custom.decorator';
 import type { UpdatePackageDto } from './dto/updatePackage.dto';
+import type { QueryPackageDto } from './dto/queryPackage.dto';
 
 @Injectable()
 export class PackageService {
@@ -21,8 +22,11 @@ export class PackageService {
   @InjectRepository(Product)
   private readonly productRepository: Repository<Product>;
 
-  async getPackages(pagination: PaginationQuery) {
+  async getPackages(pagination: PaginationQuery, { isPublished = true }: QueryPackageDto) {
     const data = await this.packageRepository.find({
+      where: {
+        is_published: isPublished
+      },
       take: pagination.pageSize,
       skip: (pagination.current - 1) * pagination.pageSize,
       relations: ['items']
@@ -31,6 +35,15 @@ export class PackageService {
     return {
       data,
       msg: '获取套餐列表成功',
+    }
+  }
+
+  async getPackageById(id: number) {
+    const pkg = await this.validatePackageExist(id);
+
+    return {
+      data: pkg,
+      msg: '获取套餐详情成功',
     }
   }
 
@@ -64,15 +77,16 @@ export class PackageService {
         data,
         msg: '套餐创建成功',
       }
-    } catch {
+    } catch (e) {
+      console.error('创建套餐失败:', e);
       throw new DatabaseException(CommonErrorCode.DATABASE_ERROR, '创建套餐失败');
     }
   }
 
-  async updatePackage(id: number, { items = [], name, isPublished, price, description }: UpdatePackageDto) {
+  async updatePackage(id: number, { items, name, isPublished, price, description }: UpdatePackageDto) {
     const pkg = await this.validatePackageExist(id);
 
-    if (items.length === 0) {
+    if (!Array.isArray(items) || items.length === 0) {
       throw new DatabaseException(CommonErrorCode.DATABASE_ERROR, '套餐内必须包含至少一个商品');
     }
 

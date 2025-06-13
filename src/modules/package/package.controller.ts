@@ -1,8 +1,9 @@
-import { Body, Controller, Delete, Get, Param, Post, Put, ValidationPipe } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Put, Query, ValidationPipe } from '@nestjs/common';
 import { PackageService } from './package.service';
 import { CreatePackageDto } from './dto/createPackage.dto';
 import { Pagination, RequireLogin, type PaginationQuery } from '@/common/custom.decorator';
 import { UpdatePackageDto } from './dto/updatePackage.dto';
+import { QueryPackageDto } from './dto/queryPackage.dto';
 
 @Controller('admin/packages')
 export class PackageController {
@@ -11,9 +12,18 @@ export class PackageController {
   @Get()
   @RequireLogin()
   async getPackages(
-    @Pagination() pagination: PaginationQuery
+    @Pagination() pagination: PaginationQuery,
+    @Query() query: QueryPackageDto
   ) {
-    return await this.packageService.getPackages(pagination);
+    return await this.packageService.getPackages(pagination, query);
+  }
+
+  @Get(":id")
+  @RequireLogin()
+  async getPackageById(
+    @Param('id') id: string
+  ) {
+    return await this.packageService.getPackageById(Number(id));
   }
 
   @Post()
@@ -21,7 +31,6 @@ export class PackageController {
   async createPackage(
     @Body(new ValidationPipe()) dto: CreatePackageDto,
   ) {
-    console.log('dto', dto)
     return await this.packageService.createPackage(dto);
   }
 

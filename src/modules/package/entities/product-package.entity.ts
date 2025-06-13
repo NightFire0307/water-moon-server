@@ -1,5 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
 import { ProductPackageItem } from './product-package-item.entity';
+import { Expose } from 'class-transformer';
 
 @Entity('product_packages')
 export class ProductPackage {
@@ -17,6 +18,7 @@ export class ProductPackage {
 
   // 套餐是否上架
   @Column({ type: 'boolean', default: true, comment: '套餐是否上架' })
+  @Expose({ name: 'isPublished' })
   is_published: boolean;
 
   @OneToMany(() => ProductPackageItem, item => item.package, { cascade: true })
