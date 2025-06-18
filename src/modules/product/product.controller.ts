@@ -47,6 +47,14 @@ export class ProductController {
     return this.productService.getProducts(pagination, name, productTypeId);
   }
 
+  @Get('by-category')
+  @RequireLogin()
+  getProductByCategory(
+    @Query('limit') limit: number = 10,
+  ) {
+    return this.productService.getProductByCategory(limit);
+  }
+
   @Post()
   @RequireLogin()
   @RequirePermission({
