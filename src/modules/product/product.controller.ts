@@ -50,9 +50,10 @@ export class ProductController {
   @Get('by-category')
   @RequireLogin()
   getProductByCategory(
-    @Query('limit') limit: number = 10,
+    @Query('keyword') keyword?: string,
+    @Query('limit') limit?: number,
   ) {
-    return this.productService.getProductByCategory(limit);
+    return this.productService.getProductByCategory(keyword, limit);
   }
 
   @Post()

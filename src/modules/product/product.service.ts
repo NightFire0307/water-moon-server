@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ProductType } from './entities/productType.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Product } from './entities/product.entity';
-import { In, Like, Repository } from 'typeorm';
+import { In, Like, Repository, type DataSource } from 'typeorm';
 import { PaginationQuery } from '../../common/custom.decorator';
 import { CreateProductDto } from './dto/create-product.dto';
 import { CreateProductTypeDto } from './dto/create-productType.dto';
@@ -246,28 +246,33 @@ export class ProductService {
     };
   }
 
-  async getProductByCategory(limit: number) {
-    console.log(limit)
+  async getProductByCategory(keyword: string, limit: number = 10) {
+
     const products = await this.productTypeRepository
       .createQueryBuilder('productType')
       .leftJoinAndSelect('productType.products', 'product', 'product.is_published = :isPublished', { isPublished: true })
+      .where(
+        '(productType.name LIKE :keyword OR product.name LIKE :keyword)',
+        { keyword: `%${keyword}%` }
+      )
       .select([
         'productType.id',
         'productType.name',
         'product.id AS productId',
         'product.name'
       ])
+      .cache(60)
       .getRawMany();
 
 
     console.log(products)
     // 转换为 Map 以便按产品类型分组
-    const map = new Map<number, { id: number, name: string, items: Record<string, any> }>()
+    const map = new Map<number, { id: number, category: string, items: Record<string, any> }>()
     for (const product of products) {
       if (!map.has(product.productType_id)) {
         map.set(product.productType_id, {
           id: product.productType_id,
-          name: product.productType_name,
+          category: product.productType_name,
           items: []
         });
       }

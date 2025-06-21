@@ -39,10 +39,29 @@ export class PackageService {
   }
 
   async getPackageById(id: number) {
-    const pkg = await this.validatePackageExist(id);
+    const pkg = await this.packageRepository.createQueryBuilder('package')
+      .leftJoinAndSelect('package.items', 'items')
+      .leftJoinAndSelect('items.product', 'product')
+      .leftJoinAndSelect('product.product_type', 'productType')
+      .where('package.id = :id', { id })
+      .andWhere('package.is_published = true')
+      .getOne()
 
     return {
-      data: pkg,
+      data: {
+        ...pkg,
+        items: pkg.items.map(item => ({
+          id: item.id,
+          count: item.count,
+          category: item.product.product_type.name,
+          product: {
+            productId: item.product.id,
+            name: item.product.name,
+            is_published: item.product.is_published,
+            photo_limit: item.product.photo_limit,
+          }
+        }))
+      },
       msg: '获取套餐详情成功',
     }
   }
