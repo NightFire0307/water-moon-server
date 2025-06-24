@@ -22,15 +22,23 @@ export class PackageService {
   @InjectRepository(Product)
   private readonly productRepository: Repository<Product>;
 
-  async getPackages(pagination: PaginationQuery, { isPublished = true }: QueryPackageDto) {
-    const data = await this.packageRepository.find({
-      where: {
-        is_published: isPublished
-      },
-      take: pagination.pageSize,
-      skip: (pagination.current - 1) * pagination.pageSize,
-      relations: ['items']
-    })
+  async getPackages(pagination: PaginationQuery, { is_published = true, name }: QueryPackageDto) {
+    console.log(is_published)
+    const queryBuilder = this.packageRepository.createQueryBuilder('package')
+      .leftJoinAndSelect('package.items', 'items')
+      .leftJoinAndSelect('items.product', 'product')
+      .leftJoinAndSelect('product.product_type', 'productType')
+      .where('package.is_published = :is_published', { is_published });
+
+    if (name) {
+      queryBuilder.andWhere('package.name LIKE :name', { name: `%${name}%` });
+    }
+
+    queryBuilder
+      .take(pagination.pageSize)
+      .skip((pagination.current - 1) * pagination.pageSize);
+
+    const data = await queryBuilder.getMany();
 
     return {
       data,

@@ -15,6 +15,7 @@ export class PackageController {
     @Pagination() pagination: PaginationQuery,
     @Query() query: QueryPackageDto
   ) {
+    console.log('query', query)
     return await this.packageService.getPackages(pagination, query);
   }
 
