@@ -41,7 +41,20 @@ export class PackageService {
     const data = await queryBuilder.getMany();
 
     return {
-      data,
+      data: data.map(pkg => ({
+        ...pkg,
+        items: pkg.items.map(item => ({
+          id: item.id,
+          count: item.count,
+          product: {
+            id: item.product.id,
+            name: item.product.name,
+            is_published: item.product.is_published,
+            photo_limit: item.product.photo_limit,
+          },
+          product_type: item.product.product_type.name,
+        }))
+      })),
       msg: '获取套餐列表成功',
     }
   }
