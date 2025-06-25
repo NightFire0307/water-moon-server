@@ -41,20 +41,25 @@ export class PackageService {
     const data = await queryBuilder.getMany();
 
     return {
-      data: data.map(pkg => ({
-        ...pkg,
-        items: pkg.items.map(item => ({
-          id: item.id,
-          count: item.count,
-          product: {
-            id: item.product.id,
-            name: item.product.name,
-            is_published: item.product.is_published,
-            photo_limit: item.product.photo_limit,
-          },
-          product_type: item.product.product_type.name,
-        }))
-      })),
+      data: {
+        list: data.map(pkg => ({
+          ...pkg,
+          items: pkg.items.map(item => ({
+            id: item.id,
+            count: item.count,
+            product: {
+              id: item.product.id,
+              name: item.product.name,
+              is_published: item.product.is_published,
+              photo_limit: item.product.photo_limit,
+            },
+            product_type: item.product.product_type.name,
+          }))
+        })),
+        total: await queryBuilder.getCount(),
+        current: pagination.current,
+        pageSize: pagination.pageSize,
+      },
       msg: '获取套餐列表成功',
     }
   }
@@ -65,7 +70,6 @@ export class PackageService {
       .leftJoinAndSelect('items.product', 'product')
       .leftJoinAndSelect('product.product_type', 'productType')
       .where('package.id = :id', { id })
-      .andWhere('package.is_published = true')
       .getOne()
 
     return {
