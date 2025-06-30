@@ -14,7 +14,6 @@
 - 🎁 **套餐系统**：支持按套餐组合产品并配置是否允许超出照片数量
 - 🔗 **短链访问**：每个订单生成独立选片链接 + 动态访问密码
 - 🔐 **权限控制（RBAC）**：管理员 / 选片师 / 普通用户三种角色，权限分明
-- 📑 **接口文档**：集成 Swagger 自动生成完整 API 文档
 - 🧾 **选片结果提交**：保存用户选择的照片、备注，供后期导出使用
 
 ---
@@ -36,5 +35,17 @@
 ```bash
 git clone https://github.com/NightFire0307/water-moon-server.git
 cd water-moon-server
+
+# 安装依赖
+npm i
+
+# 启动服务
 npm run start:dev
+
+# 初始化数据库
+npm run seed
 ```
+
+## 🤝 参与贡献（Contributing）
+
+我们欢迎任何形式的贡献！无论是提交 bug、提建议、添加功能，还是改进文档，都是对项目的重要支持。
