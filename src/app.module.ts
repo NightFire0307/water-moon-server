@@ -34,6 +34,9 @@ import { SelectionModule } from './modules/selection/selection.module';
 import { LoggerModule } from './common/logger/logger.module';
 import * as path from 'path'
 import { SeedModule } from './seeds/seed.module';
+import { PackageModule } from '@/modules/package/package.module';
+import { ProductPackage } from './modules/package/entities/product-package.entity';
+import { ProductPackageItem } from './modules/package/entities/product-package-item.entity';
 
 console.log(`Environment: ${process.env.NODE_ENV}`);
 
@@ -63,6 +66,8 @@ console.log(`Environment: ${process.env.NODE_ENV}`);
             Permission,
             Product,
             ProductType,
+            ProductPackage,
+            ProductPackageItem,
             Order,
             Photo,
             OrderProduct,
@@ -107,6 +112,7 @@ console.log(`Environment: ${process.env.NODE_ENV}`);
     SelectionModule,
     LoggerModule,
     SeedModule,
+    PackageModule,
   ],
   controllers: [AppController],
   providers: [

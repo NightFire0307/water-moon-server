@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ProductType } from './entities/productType.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Product } from './entities/product.entity';
-import { In, Like, Repository } from 'typeorm';
+import { In, Like, Repository, type DataSource } from 'typeorm';
 import { PaginationQuery } from '../../common/custom.decorator';
 import { CreateProductDto } from './dto/create-product.dto';
 import { CreateProductTypeDto } from './dto/create-productType.dto';
@@ -78,6 +78,7 @@ export class ProductService {
   async createProduct(createProductDto: CreateProductDto) {
     const product = new Product();
     product.name = createProductDto.name;
+    product.is_published = createProductDto.isPublished;
     product.photo_limit = createProductDto.photoLimit;
     product.product_type = await this.productTypeRepository.findOne({
       where: {
@@ -103,6 +104,8 @@ export class ProductService {
     if (!product) return '产品不存在';
 
     product.name = updateProductDto.name;
+    product.is_published = updateProductDto.isPublished;
+    product.photo_limit = updateProductDto.photoLimit;
     product.product_type = await this.productTypeRepository.findOne({
       where: {
         id: updateProductDto.productTypeId,
@@ -241,5 +244,49 @@ export class ProductService {
       data: ids,
       message: '删除成功',
     };
+  }
+
+  async getProductByCategory(keyword: string, limit: number = 10) {
+
+    const products = await this.productTypeRepository
+      .createQueryBuilder('productType')
+      .leftJoinAndSelect('productType.products', 'product', 'product.is_published = :isPublished', { isPublished: true })
+      .where(
+        '(productType.name LIKE :keyword OR product.name LIKE :keyword)',
+        { keyword: `%${keyword}%` }
+      )
+      .select([
+        'productType.id',
+        'productType.name',
+        'product.id AS productId',
+        'product.name'
+      ])
+      .cache(60)
+      .getRawMany();
+
+
+    console.log(products)
+    // 转换为 Map 以便按产品类型分组
+    const map = new Map<number, { id: number, category: string, items: Record<string, any> }>()
+    for (const product of products) {
+      if (!map.has(product.productType_id)) {
+        map.set(product.productType_id, {
+          id: product.productType_id,
+          category: product.productType_name,
+          items: []
+        });
+      }
+
+      if (product.productId) {
+        map.get(product.productType_id).items.push({
+          productId: product.productId,
+          name: product.product_name,
+        });
+      }
+    }
+
+    return {
+      data: Array.from(map.values())
+    }
   }
 }
