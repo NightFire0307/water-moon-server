@@ -12,7 +12,7 @@
     "start:dev": "npx cross-env NODE_ENV=development nest start --watch",
     "start:debug": "nest start --debug --watch",
     "start:prod": "npx cross-env NODE_ENV=production node dist/main",
-    "seed": "npx cross-env NODE_ENV=production ts-node src/seeds/seed.ts",
+    "seed": "cross-env NODE_ENV=production ts-node -r tsconfig-paths/register ./src/seeds/seed.ts",
     "docker:build": "docker build -t water-moon-server .",
     "docker:run": "docker run -d -p 3000:3000 --name water-moon-server water-moon-server",
     "migration:generate": "npx cross-env NODE_ENV=production ts-node-esm --experimental-specifier-resolution=node ./node_modules/typeorm/cli.js migration:generate src/migrations/InitMigration --dataSource src/data-source.ts",
