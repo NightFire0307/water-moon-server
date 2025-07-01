@@ -42,8 +42,49 @@ npm i
 # 启动服务
 npm run start:dev
 
-# 初始化数据库
+# 初始化数据库数据
 npm run seed
+
+```
+
+### Minio 安装
+
+```bash
+docker pull minio/minio
+
+docker run -d \
+  --name minio \
+  -p 9000:9000 \
+  -p 9001:9001 \
+  -e "MINIO_ROOT_USER=minioadmin" \
+  -e "MINIO_ROOT_PASSWORD=minioadmin" \
+  -v /data/minio/data:/data \
+  -v /data/minio/config:/root/.minio \
+  minio/minio server /data --console-address ":9001"
+```
+
+### Minio AK&SK 获取
+
+```bash
+username: minioadmin
+password: minioadmin
+```
+
+![minio登录](./screenshots/minio-login.png)
+![minio AK&SK创建](./screenshots/create_sdk.png)
+
+6. 复制 AK & SK 到环境配置文件
+
+```BASH
+# .env.production || .env.development
+
+# Minio OSS
+minio_bucket=bucket名字
+minio_endpoint=minio服务器地址
+minio_port=minio服务器端口
+minio_expire_time=minio生成下载凭据的过期时间
+minio_access_key=AK
+minio_secret_key=SK
 ```
 
 ## 🤝 参与贡献（Contributing）
