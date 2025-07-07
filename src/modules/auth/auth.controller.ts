@@ -13,7 +13,7 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { LoginUserDto } from './dto/login-user.dto';
+import { AdminLoginDto } from './dto/admin-login.dto';
 import { JwtService } from '@nestjs/jwt';
 import { Public, RequireLogin } from '../../common/custom.decorator';
 import { Request, Response } from 'express';
@@ -36,26 +36,13 @@ export class AuthController {
   @Inject(JwtService)
   private readonly jwtService: JwtService;
 
-  @Post('login')
-  async userLogin(@Body() loginUser: LoginUserDto) {
-    const user = await this.userService.login(loginUser);
-    const { accessToken, refreshToken } = this.userService.generateToken(user);
-
-    return {
-      data: {
-        user,
-        accessToken,
-        refreshToken,
-      },
-    };
-  }
-
+  // 管理端登录
   @Post('admin/login')
   @HttpCode(200)
   @UseInterceptors(ClassSerializerInterceptor)
   @Public()
   async adminLogin(
-    @Body() loginUser: LoginUserDto,
+    @Body() loginUser: AdminLoginDto,
     @Res({ passthrough: true }) response: Response,
   ) {
     const userInfo = await this.userService.login(loginUser);

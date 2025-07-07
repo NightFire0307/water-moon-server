@@ -12,7 +12,7 @@ import { Repository } from 'typeorm';
 import { Permission } from './entities/permissions.entity';
 import { compare } from 'bcrypt';
 import { ConfigService } from '@nestjs/config';
-import { LoginUserDto } from './dto/login-user.dto';
+import { AdminLoginDto } from './dto/admin-login.dto';
 import { JwtService } from '@nestjs/jwt';
 import * as qiniu from 'qiniu';
 import * as Minio from 'minio';
@@ -41,7 +41,7 @@ export class AuthService {
   @InjectRepository(Permission)
   private readonly permissionRepository: Repository<Permission>;
 
-  async login(loginUserDto: LoginUserDto) {
+  async login(loginUserDto: AdminLoginDto) {
     const userInfo = await this.userRepository
       .createQueryBuilder('user')
       .where('user.username = :username', { username: loginUserDto.username })

@@ -48,6 +48,74 @@ export class SelectionService {
   @InjectRepository(Link)
   private readonly linkRepository: Repository<Link>;
 
+  // 选片常规登录(订单号和手机号)
+  async selectionLogin(dto: SelectionLoginDto) {
+    const { login_type, short_url, order_number, credential } = dto
+    let order: Order;
+
+    if (login_type === 'link') {
+      // 短链登录处理
+      const orderId = this.decodeOrderId(short_url)
+      order = await this.findOrderById(+orderId);
+
+      // 验证订单是否存在
+      if (!order) {
+        throw new DatabaseException(CommonErrorCode.NOT_FOUND, '订单不存在');
+      }
+
+      // 校验短链密码
+      const link = await this.linkRepository.findOne({
+        where: {
+          share_url: short_url,
+        },
+      });
+
+      if (link.share_password !== credential) {
+        throw new AuthException(AuthErrorCode.PASSWORD_ERROR, '密码错误');
+      }
+    } else if (login_type === 'order') {
+      // 常规登录处理
+      order = await this.orderRepository.findOne({
+        where: {
+          order_number
+        }
+      })
+
+      // 验证订单是否存在
+      if (!order) {
+        throw new DatabaseException(CommonErrorCode.NOT_FOUND, '订单不存在');
+      }
+
+      // 验证手机号
+      if (order.customer_phone !== credential) {
+        throw new AuthException(AuthErrorCode.PHONE_ERROR, '手机号不匹配');
+      }
+
+    } else {
+      throw new BadRequestException('无效的登录类型');
+    }
+
+    // 更新订单状态
+    if (order.status === OrderStatus.PENDING) {
+      order.status = OrderStatus.IN_PROGRESS;
+      await this.orderRepository.save(order);
+    }
+
+    // 生成访问令牌和刷新令牌
+    const accessToken = await this.jwtService.signAsync(
+      { orderId: order.id, short_url: short_url },
+      { expiresIn: '2h' })
+    const refreshToken = await this.jwtService.signAsync(
+      { orderId: order.id },
+      { expiresIn: '30d' },)
+
+    return {
+      accessToken,
+      refreshToken,
+      order
+    }
+  }
+
   // 校验短链是否存在
   async verifyToken(shortUrl: string) {
     const orderId = this.decodeOrderId(shortUrl);
@@ -79,58 +147,6 @@ export class SelectionService {
     };
   }
 
-  // 校验短链和密码
-  async validateLinkAndPassword(
-    orderId: number,
-    { short_url, password }: SelectionLoginDto,
-  ) {
-    const order = await this.orderRepository.findOne({
-      where: { id: orderId },
-    });
-
-    if (!order)
-      throw new DatabaseException(CommonErrorCode.NOT_FOUND, { orderId });
-
-    // 检验密码
-    const link = await this.linkRepository.findOne({
-      where: {
-        share_url: short_url,
-      },
-    });
-
-    if (link.share_password !== password) {
-      throw new AuthException(AuthErrorCode.PASSWORD_ERROR, '密码错误');
-    }
-
-    // 校验Redis中的链接密码
-    // const sharedLink = await this.redisClient.hget(
-    //   `share_link:${order.order_number}`,
-    //   short_url,
-    // );
-
-    // const sharedLinkObj = JSON.parse(sharedLink);
-
-    // if (sharedLinkObj.password !== password) {
-    //   throw new AuthException(AuthErrorCode.PASSWORD_ERROR, '密码错误');
-    // }
-
-    // 更新订单状态
-    if (order.status === OrderStatus.PENDING) {
-      order.status = OrderStatus.IN_PROGRESS;
-      await this.orderRepository.save(order);
-    }
-
-    return {
-      access_token: await this.jwtService.signAsync(
-        { orderId, short_url },
-        { expiresIn: '2h' },
-      ),
-      refresh_token: await this.jwtService.signAsync(
-        { orderId },
-        { expiresIn: '30d' },
-      ),
-    };
-  }
 
   /**
    * 解码短链

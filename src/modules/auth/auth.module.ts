@@ -7,10 +7,11 @@ import { Role } from '../role/entities/role.entity';
 import { Permission } from './entities/permissions.entity';
 import { RedisModule } from '../../redis/redis.module';
 import { MinioModule } from '../../minio/minio.module';
+import { Order } from '../order/entities/order.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User, Role, Permission]),
+    TypeOrmModule.forFeature([User, Role, Permission, Order]),
     RedisModule,
     MinioModule,
   ],

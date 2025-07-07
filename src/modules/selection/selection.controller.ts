@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   Body,
   Controller,
   Get,
@@ -38,35 +37,27 @@ export class SelectionController {
     private readonly photoService: PhotoService,
   ) { }
 
-  // 校验短链和密码
-  @Post('auth')
-  @HttpCode(200)
-  async validateSelection(
-    @Body() selectionLogin: SelectionLoginDto,
-    @Res({ passthrough: true })
-    response: Response,
+  // 订单号和手机号登录
+  @Post('login')
+  async clientLogin(
+    @Body() dto: SelectionLoginDto,
+    @Res({ passthrough: true }) response: Response,
   ) {
-    const orderId = this.selectionService.decodeOrderId(
-      selectionLogin.short_url,
-    );
-    if (isNaN(Number(orderId))) throw new BadRequestException('无效的短链');
+    const { accessToken, refreshToken, order } = await this.selectionService.selectionLogin(dto)
 
-    const { access_token, refresh_token } =
-      await this.selectionService.validateLinkAndPassword(
-        +orderId,
-        selectionLogin,
-      );
-
-    response.cookie('selection_refresh_token', refresh_token, {
+    // 设置cookie
+    response.cookie('selection_refresh_token', refreshToken, {
       maxAge: 30 * 24 * 60 * 60 * 1000,
       httpOnly: true,
     });
 
     return {
       data: {
-        access_token,
+        accessToken,
+        order,
       },
-    };
+      message: '登录成功',
+    }
   }
 
   @Post('auth/verify/:short_url')
@@ -84,8 +75,8 @@ export class SelectionController {
     return await this.selectionService.refreshToken(refreshToken);
   }
 
-  @Get(':short_url/order_info')
-  @UseGuards(CustomLogin, VerifySurl)
+  @Get('order_info')
+  @UseGuards(CustomLogin)
   async getOrderInfo(@OrderInfo('orderId') orderId: number) {
     return await this.selectionService.getOrderInfo(orderId);
   }

@@ -6,6 +6,7 @@ export enum AuthErrorCode {
   LOGIN_EXPIRED = 'AUTH_LOGIN_EXPIRED',
   PASSWORD_ERROR = 'AUTH_PASSWORD_ERROR',
   INVALID_TOKEN = 'AUTH_INVALID_TOKEN',
+  PHONE_ERROR = 'AUTH_PHONE_ERROR',
 }
 
 export class AuthException extends BaseBusinessException {
@@ -26,6 +27,10 @@ export class AuthException extends BaseBusinessException {
       [AuthErrorCode.INVALID_TOKEN]: {
         msg: '无效的Token',
         status: HttpStatus.UNAUTHORIZED,
+      },
+      [AuthErrorCode.PHONE_ERROR]: {
+        msg: '手机号错误',
+        status: HttpStatus.BAD_REQUEST,
       },
     };
 

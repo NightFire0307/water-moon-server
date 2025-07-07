@@ -6,6 +6,7 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   OneToMany,
+  Unique,
 } from 'typeorm';
 import { Photo } from '../../photo/entities/photo.entity';
 import { OrderProduct } from './orderProduct.entity';
@@ -21,6 +22,7 @@ export enum OrderStatus {
 }
 
 @Entity('orders')
+@Unique(['order_number'])
 export class Order {
   @PrimaryGeneratedColumn()
   id: number;
@@ -32,6 +34,7 @@ export class Order {
   @Column()
   customer_name: string;
 
+  // 客户手机号
   @Column()
   customer_phone: string;
 
