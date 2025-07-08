@@ -29,10 +29,20 @@ export class OrderProduct {
   product: Product;
 
   // 选择的照片
-  @ManyToMany(() => Photo, (photo) => photo.id, {
+  @ManyToMany(() => Photo, (photo) => photo.order_products, {
     cascade: true,
   })
-  @JoinTable({ name: 'order_product_photos' })
+  @JoinTable({
+    name: 'order_product_photos',
+    joinColumn: {
+      name: 'order_product_id',
+      referencedColumnName: 'id',
+    },
+    inverseJoinColumn: {
+      name: 'photo_id',
+      referencedColumnName: 'id',
+    },
+  })
   selected_photos: Photo[];
 
   // 数量

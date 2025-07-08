@@ -3,7 +3,7 @@ import basex from 'base-x';
 import { Redis } from 'ioredis';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Order, OrderStatus } from '../order/entities/order.entity';
-import { In, Repository } from 'typeorm';
+import { In, Repository, DataSource } from 'typeorm';
 import { SelectionLoginDto } from './dto/selection-login.dto';
 import { JwtService } from '@nestjs/jwt';
 import { Photo } from '../photo/entities/photo.entity';
@@ -47,6 +47,8 @@ export class SelectionService {
 
   @InjectRepository(Link)
   private readonly linkRepository: Repository<Link>;
+
+  constructor(private readonly dataSource: DataSource) { }
 
   // 选片常规登录(订单号和手机号)
   async selectionLogin(dto: SelectionLoginDto) {
@@ -241,67 +243,64 @@ export class SelectionService {
         '选片结果已锁定，如需更改请联系选片师',
       );
     }
+    // 
+    await this.dataSource.transaction(async (manager) => {
 
-    // 获取订单产品
-    const orderProduct = await this.orderProductRepository.findOne({
-      where: {
-        order: { id: orderId },
-        id: orderProductId,
-      },
-      relations: ['selected_photos', 'product'],
-      select: ['id', 'selected_photos'],
-    });
+      // 获取订单产品
+      const orderProduct = await this.orderProductRepository.findOne({
+        where: {
+          order: { id: orderId },
+          id: orderProductId,
+        },
+        relations: ['selected_photos', 'product'],
+        select: ['id', 'selected_photos'],
+      });
 
-    if (!orderProduct) {
-      throw new DatabaseException(CommonErrorCode.NOT_FOUND, '订单产品不存在');
-    }
-
-    // 确保没有重复的照片ID
-    const uniquePhotoIds = new Set(photoIds);
-    if (photoIds.length !== uniquePhotoIds.size) {
-      throw new BadRequestException('包含重复的照片ID');
-    }
-
-    // 校验当前产品的数量是否超过限制
-    if (orderProduct.product.photo_limit !== 0) {
-      if (
-        uniquePhotoIds.size >
-        orderProduct.product.photo_limit * orderProduct.count
-      ) {
-        throw new DatabaseException(
-          PhotoErrorCode.PHOTO_UPDATE_FAILED,
-          '当前产品的照片数量已超过限制',
-        );
+      if (!orderProduct) {
+        throw new DatabaseException(CommonErrorCode.NOT_FOUND, '订单产品不存在');
       }
-    }
 
-    // 批量获取所有照片
-    const photos = await this.photoRepository.find({
-      where: {
-        id: In([...uniquePhotoIds]),
-      },
+      // 确保没有重复的照片ID
+      const uniquePhotoIds = new Set(photoIds);
+      if (photoIds.length !== uniquePhotoIds.size) {
+        throw new BadRequestException('包含重复的照片ID');
+      }
+
+      // 校验当前产品的数量是否超过限制
+      if (orderProduct.product.photo_limit !== 0) {
+        if (
+          uniquePhotoIds.size >
+          orderProduct.product.photo_limit * orderProduct.count
+        ) {
+          throw new DatabaseException(
+            PhotoErrorCode.PHOTO_UPDATE_FAILED,
+            '当前产品的照片数量已超过限制',
+          );
+        }
+      }
+
+      // 批量获取所有照片
+      const photos = await this.photoRepository.find({
+        where: {
+          id: In([...uniquePhotoIds]),
+        },
+      });
+
+      if (photos.length !== uniquePhotoIds.size) {
+        throw new BadRequestException('部分照片ID不存在');
+      }
+
+
+      orderProduct.selected_photos = photos;
+      await manager.save(orderProduct);
     });
 
-    if (photos.length !== uniquePhotoIds.size) {
-      throw new BadRequestException('部分照片ID不存在');
-    }
-
-    return this.orderProductRepository.manager.transaction(
-      async (transactionalEntityManager) => {
-        // 更新订单产品的选择照片
-        orderProduct.selected_photos = photos;
-
-        // 保存更新
-        await transactionalEntityManager.save(orderProduct);
-
-        return {
-          data: {
-            orderProductId: orderProduct.id,
-            selected_photos: photoIds, // 直接使用原始photoIds作为结果
-          },
-        };
+    return {
+      data: {
+        orderProductId,
+        selected_photos: photoIds,
       },
-    );
+    };
   }
 
   // 刷新access_token

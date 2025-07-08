@@ -96,11 +96,11 @@ export class SelectionController {
   @UseGuards(CustomLogin)
   async updatePhotos(
     @OrderInfo('orderId') orderId: number,
-    @Body() selectedPhotos: ProductPhotoSelectionDto,
+    @Body() dto: ProductPhotoSelectionDto,
   ) {
     return await this.selectionService.updateSelectedPhotos(
       orderId,
-      selectedPhotos,
+      dto,
     );
   }
 

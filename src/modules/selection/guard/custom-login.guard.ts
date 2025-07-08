@@ -1,9 +1,9 @@
 import {
-  BadRequestException,
   CanActivate,
   ExecutionContext,
   Inject,
   Injectable,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { SelectionService } from '../selection.service';
@@ -39,7 +39,7 @@ export class CustomLogin implements CanActivate {
     const request: Request = context.switchToHttp().getRequest();
     const authorization: string = request.headers['authorization'];
 
-    if (!authorization) throw new BadRequestException('请先登录');
+    if (!authorization) throw new UnauthorizedException('请先登录');
     const token = authorization.split(' ')[1];
 
     try {

@@ -7,7 +7,6 @@ import {
   JoinColumn,
   UpdateDateColumn,
   ManyToMany,
-  JoinTable,
 } from 'typeorm';
 import { Order } from '../../order/entities/order.entity';
 import { OrderProduct } from '../../order/entities/orderProduct.entity'; // 产品类型实体
@@ -34,10 +33,9 @@ export class Photo {
   // 产品关联照片
   @ManyToMany(
     () => OrderProduct,
-    (orderProduct) => orderProduct.selected_photos,
+    (op) => op.selected_photos,
     { onDelete: 'CASCADE' }
   )
-  @JoinTable({ name: 'order_product_photos' })
   order_products: OrderProduct[];
 
   @Column({ default: false })
