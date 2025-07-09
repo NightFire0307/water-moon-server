@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  ForbiddenException,
   Get,
   HttpCode,
   Param,
@@ -20,13 +21,11 @@ import {
   Public,
 } from '../../common/custom.decorator';
 import { CustomLogin } from './guard/custom-login.guard';
-import { VerifySurl } from './guard/verify-surl.guard';
 import { ProductPhotoSelectionDto } from './dto/selection-photos-update.dto';
 import { SelectionRemarkUpdateDto } from './dto/selection-remark-update.dto';
 import { PhotoService } from '../photo/photo.service';
 import {
   AuthErrorCode,
-  AuthException,
 } from '../../common/exceptions/auth.exception';
 
 @Controller('selection')
@@ -66,12 +65,12 @@ export class SelectionController {
     return this.selectionService.verifyToken(shortUrl);
   }
 
-  // 刷新access_token
+  // 刷新 access_token
   @Post('auth/refresh')
   async refreshToken(@Req() request: Request) {
     const refreshToken: string | undefined =
       request.cookies['selection_refresh_token'];
-    if (!refreshToken) throw new AuthException(AuthErrorCode.INVALID_TOKEN);
+    if (!refreshToken) throw new ForbiddenException(AuthErrorCode.INVALID_TOKEN);
     return await this.selectionService.refreshToken(refreshToken);
   }
 

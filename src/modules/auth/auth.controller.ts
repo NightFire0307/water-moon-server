@@ -3,6 +3,7 @@ import {
   Body,
   ClassSerializerInterceptor,
   Controller,
+  ForbiddenException,
   Get,
   HttpCode,
   Inject,
@@ -19,7 +20,6 @@ import { Public, RequireLogin } from '../../common/custom.decorator';
 import { Request, Response } from 'express';
 import {
   AuthErrorCode,
-  AuthException,
 } from '../../common/exceptions/auth.exception';
 
 interface RefreshTokenPayload {
@@ -60,6 +60,7 @@ export class AuthController {
     };
   }
 
+  // Token 刷新
   @Get('refresh')
   async refresh(@Query('refreshToken') refreshToken: string) {
     try {
@@ -67,7 +68,7 @@ export class AuthController {
         this.jwtService.verify<RefreshTokenPayload>(refreshToken);
       return await this.userService.refreshToken(userId);
     } catch {
-      throw new AuthException(AuthErrorCode.LOGIN_EXPIRED);
+      throw new ForbiddenException(AuthErrorCode.LOGIN_EXPIRED);
     }
   }
 
