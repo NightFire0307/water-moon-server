@@ -105,9 +105,9 @@ export class UserController {
   })
   async updateUser(
     @Param('id') userId: string,
-    @Body() updateUserDto: UpdateUserDto,
+    @Body() dto: UpdateUserDto,
   ) {
-    return await this.adminService.updateUser(parseInt(userId), updateUserDto);
+    return await this.adminService.updateUser(parseInt(userId), dto);
   }
 
   @Delete('/:id')

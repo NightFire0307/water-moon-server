@@ -95,7 +95,7 @@ export class UserService {
     };
 
     // 更新用户角色
-    if (dataToUpdate.roles.length > 0) {
+    if (dataToUpdate.roles && dataToUpdate.roles.length > 0) {
       const roles = await this.roleRepository.find({
         where: {
           roleId: In(dataToUpdate.roles),
