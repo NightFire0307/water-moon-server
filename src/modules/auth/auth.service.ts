@@ -1,4 +1,5 @@
 import {
+  ForbiddenException,
   HttpException,
   HttpStatus,
   Inject,
@@ -53,14 +54,19 @@ export class AuthService {
         'user.nickname',
         'user.phoneNumber',
         'user.password',
+        'user.isFrozen',
         'roles',
         'permissions',
       ])
-      .cache(60000)
+      .cache(3000)
       .getOne();
 
     if (!userInfo) {
-      throw new HttpException('用户不存在', HttpStatus.BAD_REQUEST);
+      throw new UnauthorizedException('用户不存在或密码错误');
+    }
+
+    if (userInfo.isFrozen) {
+      throw new ForbiddenException('用户已被冻结，请联系管理员');
     }
 
     compare(loginUserDto.password, userInfo.password).then((result) => {
