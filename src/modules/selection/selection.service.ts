@@ -1,4 +1,4 @@
-import { BadRequestException, Inject, Injectable } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, Logger } from '@nestjs/common';
 import basex from 'base-x';
 import { Redis } from 'ioredis';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -50,8 +50,11 @@ export class SelectionService {
 
   constructor(private readonly dataSource: DataSource) { }
 
+  private readonly logger = new Logger(SelectionService.name)
+
   // 选片常规登录(订单号和手机号)
   async selectionLogin(dto: SelectionLoginDto) {
+    this.logger.log('选片登录请求');
     const { login_type, short_url, order_number, credential } = dto
     let order: Order;
 

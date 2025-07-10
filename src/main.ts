@@ -6,9 +6,13 @@ import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { RedisExceptionFilter } from './common/redis-exception.filter';
 import * as cookieParser from 'cookie-parser';
+import { WinstonModule } from 'nest-winston';
+import { winstonLoggerOptions } from './common/logger/winston.logger';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, {
+    logger: WinstonModule.createLogger(winstonLoggerOptions)
+  });
   app.use(cookieParser());
   app.enableCors();
 
