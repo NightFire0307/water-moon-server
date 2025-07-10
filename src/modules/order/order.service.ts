@@ -4,7 +4,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Order, OrderStatus } from './entities/order.entity';
 import { In, Repository, DataSource } from 'typeorm';
 import { Product } from '../product/entities/product.entity';
-import { PaginationQuery } from '../../common/custom.decorator';
+import { PaginationQuery } from '@/common/decorators/pagination.decorator';
 import { OrderProduct } from './entities/orderProduct.entity';
 import { UpdateOrderDto } from './dto/update-order.dto';
 import { instanceToPlain } from 'class-transformer';

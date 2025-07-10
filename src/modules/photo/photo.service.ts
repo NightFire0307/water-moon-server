@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Photo } from './entities/photo.entity';
 import { In, Repository } from 'typeorm';
 import { Order } from '../order/entities/order.entity';
-import { PaginationQuery } from '../../common/custom.decorator';
+import { PaginationQuery } from '@/common/decorators/pagination.decorator';
 import { DeletePhotosDto } from './dto/delete-photos.dto';
 import { UpdatePhotoRecommendDto } from './dto/update-photo-recommend.dto';
 import { Redis } from 'ioredis';
@@ -29,7 +29,7 @@ export class PhotoService {
     @Inject(MinioService) private readonly minioService: MinioService,
     @Inject('REDIS_CLIENT') private readonly redisClient: Redis,
     @Inject(ConfigService) private readonly configService: ConfigService,
-  ) {}
+  ) { }
 
   // 获取订单信息
   async getOrderById(orderId: number) {

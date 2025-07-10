@@ -1,16 +1,25 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, type OnModuleInit } from '@nestjs/common';
 import * as Minio from 'minio';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 import * as dayjs from 'dayjs';
 
 @Injectable()
-export class MinioService {
+export class MinioService implements OnModuleInit {
   @Inject('MINIO_CLIENT')
   private readonly minioClient: Minio.Client;
 
   @Inject(ConfigService)
   private readonly configService: ConfigService;
+
+  async onModuleInit(): Promise<void> {
+    const bucketName = this.configService.get('minio_bucket');
+    const bucketExists = await this.minioClient.bucketExists(bucketName);
+    if (!bucketExists) {
+      console.log('Bucket not exists, creating...');
+      await this.minioClient.makeBucket(bucketName, 'cn-north-1');
+    }
+  }
 
   /**
    * 生成MINIO上传策略

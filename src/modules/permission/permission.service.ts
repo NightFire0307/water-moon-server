@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Permission } from '../auth/entities/permissions.entity';
 import { Repository } from 'typeorm';
-import { PaginationQuery } from '../../common/custom.decorator';
+import { PaginationQuery } from '@/common/decorators/pagination.decorator';
 
 @Injectable()
 export class PermissionService {

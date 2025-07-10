@@ -1,10 +1,7 @@
 import { Controller, Get } from '@nestjs/common';
 import { PermissionService } from './permission.service';
-import {
-  Pagination,
-  PaginationQuery,
-  RequireLogin,
-} from '../../common/custom.decorator';
+import { RequireLogin } from '@/common/decorators/auth.decorator';
+import { Pagination, type PaginationQuery } from '@/common/decorators/pagination.decorator';
 
 @Controller('admin/permissions')
 export class PermissionController {

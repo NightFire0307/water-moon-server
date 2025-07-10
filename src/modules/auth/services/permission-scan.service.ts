@@ -4,8 +4,8 @@ import {
   RequestMethod,
 } from '@nestjs/common';
 import { Reflector, ModulesContainer } from '@nestjs/core';
-import { REQUIRE_PERMISSION_KEY, type PermissionMetadata } from './custom.decorator';
-import { Permission } from '../modules/auth/entities/permissions.entity';
+import { REQUIRE_PERMISSION_KEY, type PermissionMetadata } from '../../../common/decorators/auth.decorator';
+import { Permission } from '@/modules/auth/entities/permissions.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { OmitType } from '@nestjs/swagger';

@@ -3,7 +3,7 @@ import { ProductType } from './entities/productType.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Product } from './entities/product.entity';
 import { In, Like, Repository, type DataSource } from 'typeorm';
-import { PaginationQuery } from '../../common/custom.decorator';
+import { PaginationQuery } from '@/common/decorators/pagination.decorator';
 import { CreateProductDto } from './dto/create-product.dto';
 import { CreateProductTypeDto } from './dto/create-productType.dto';
 import { UpdateProductDto } from './dto/update-product.dto';

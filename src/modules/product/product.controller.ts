@@ -9,17 +9,13 @@ import {
   Query,
 } from '@nestjs/common';
 import { ProductService } from './product.service';
-import {
-  Pagination,
-  PaginationQuery,
-  RequireLogin,
-  RequirePermission,
-} from '../../common/custom.decorator';
 import { CreateProductDto } from './dto/create-product.dto';
 import { CreateProductTypeDto } from './dto/create-productType.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { UpdateProductTypeDto } from './dto/update-productType.dto';
 import { BatchDeleteProductType } from './dto/batch-delete-productType.dto';
+import { RequirePermission, RequireLogin } from '@/common/decorators/auth.decorator';
+import { Pagination, PaginationQuery } from '@/common/decorators/pagination.decorator';
 
 @Controller('admin/product')
 @RequirePermission({

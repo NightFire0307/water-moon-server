@@ -1,9 +1,10 @@
 import { Body, Controller, Delete, Get, Param, Post, Put, Query, ValidationPipe } from '@nestjs/common';
 import { PackageService } from './package.service';
 import { CreatePackageDto } from './dto/createPackage.dto';
-import { Pagination, RequireLogin, type PaginationQuery } from '@/common/custom.decorator';
 import { UpdatePackageDto } from './dto/updatePackage.dto';
 import { QueryPackageDto } from './dto/queryPackage.dto';
+import { RequireLogin } from '@/common/decorators/auth.decorator'
+import { Pagination, PaginationQuery } from '@/common/decorators/pagination.decorator'
 
 @Controller('admin/packages')
 export class PackageController {

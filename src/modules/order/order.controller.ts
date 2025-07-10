@@ -15,18 +15,14 @@ import {
   ValidationPipe,
 } from '@nestjs/common';
 import { OrderService } from './order.service';
-import {
-  Pagination,
-  PaginationQuery,
-  RequireLogin,
-  RequirePermission,
-  UserInfo,
-} from '../../common/custom.decorator';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
 import { GetOrderListDto } from './dto/get-order-list.dto';
 import { ResetOrderStatusDto } from './dto/reset-order-status.dto';
 import { Response } from 'express';
+import { RequirePermission, RequireLogin } from '@/common/decorators/auth.decorator';
+import { UserInfo } from '@/common/decorators/context.decorator';
+import { Pagination, type PaginationQuery } from '@/common/decorators/pagination.decorator';
 
 @Controller('admin/orders')
 @RequirePermission({

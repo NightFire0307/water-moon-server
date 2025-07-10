@@ -14,19 +14,16 @@ import {
 import { SelectionService } from './selection.service';
 import { SelectionLoginDto } from './dto/selection-login.dto';
 import { Request, Response } from 'express';
-import {
-  OrderInfo,
-  Pagination,
-  PaginationQuery,
-  Public,
-} from '../../common/custom.decorator';
 import { CustomLogin } from './guard/custom-login.guard';
 import { ProductPhotoSelectionDto } from './dto/selection-photos-update.dto';
 import { SelectionRemarkUpdateDto } from './dto/selection-remark-update.dto';
 import { PhotoService } from '../photo/photo.service';
 import {
   AuthErrorCode,
-} from '../../common/exceptions/auth.exception';
+} from '@/common/exceptions/auth.exception';
+import { Public } from '@/common/decorators/auth.decorator';
+import { OrderInfo } from '@/common/decorators/context.decorator';
+import { Pagination, PaginationQuery } from '@/common/decorators/pagination.decorator';
 
 @Controller('selection')
 @Public()

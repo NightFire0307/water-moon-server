@@ -11,19 +11,15 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { UserService } from './user.service';
-import {
-  Pagination,
-  PaginationQuery,
-  RequireLogin,
-  RequirePermission,
-  UserInfo,
-} from '../../common/custom.decorator';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserPasswordDto } from './dto/update-user-password.dto';
 import { UserDetailVo } from './vo/user-detail.vo';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { ResetUserPasswordDto } from './dto/reset-user-password.dto';
+import { RequirePermission, RequireLogin } from '@/common/decorators/auth.decorator';
+import { UserInfo } from '@/common/decorators/context.decorator';
+import { Pagination, PaginationQuery } from '@/common/decorators/pagination.decorator';
 
 @ApiTags('用户管理模块')
 @ApiBearerAuth()

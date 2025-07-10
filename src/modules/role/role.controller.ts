@@ -8,15 +8,11 @@ import {
   Put,
 } from '@nestjs/common';
 import { RoleService } from './role.service';
-import {
-  Pagination,
-  PaginationQuery,
-  RequireLogin,
-  RequirePermission,
-  UserInfo,
-} from '../../common/custom.decorator';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto, UpdateRolePermissionsDto } from './dto/update-role.dto';
+import { RequirePermission, RequireLogin } from '@/common/decorators/auth.decorator';
+import { UserInfo } from '@/common/decorators/context.decorator';
+import { Pagination, type PaginationQuery } from '@/common/decorators/pagination.decorator';
 
 @Controller('admin/roles')
 @RequirePermission({

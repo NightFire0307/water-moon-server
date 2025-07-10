@@ -5,15 +5,15 @@ import { Link, LinkStatus } from './entities/link.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Order } from '../order/entities/order.entity';
-import { generatePassword } from '../../common/utils/generatePassword';
-import { PaginationQuery } from '../../common/custom.decorator';
-import { RedisService } from '../../redis/redis.service';
+import { generatePassword } from '@/common/utils/generatePassword';
+import { PaginationQuery } from '@/common/decorators/pagination.decorator';
+import { RedisService } from '@/redis/redis.service';
 import * as dayjs from 'dayjs';
 import * as crypto from 'node:crypto';
 import {
   CommonErrorCode,
   DatabaseException,
-} from '../../common/exceptions/database.exception';
+} from '@/common/exceptions/database.exception';
 
 const BASE62 = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
 const bs62 = basex(BASE62);

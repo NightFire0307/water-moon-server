@@ -10,7 +10,7 @@ import { JwtService } from '@nestjs/jwt';
 import { Reflector } from '@nestjs/core';
 import { Request } from 'express';
 import { AuthErrorCode, AuthException } from '../exceptions/auth.exception';
-import { REQUIRE_LOGIN_KEY } from '../custom.decorator';
+import { REQUIRE_LOGIN_KEY } from '../decorators/auth.decorator';
 
 export interface JwtUserData {
   userId: number;

@@ -11,11 +11,10 @@ import {
 import { LinkService } from './link.service';
 import { CreateLinkDto } from './dto/create-link.dto';
 import {
-  Pagination,
-  PaginationQuery,
   RequireLogin,
   RequirePermission,
-} from '../../common/custom.decorator';
+} from '@/common/decorators/auth.decorator';
+import { Pagination, PaginationQuery } from '@/common/decorators/pagination.decorator'
 
 @Controller('admin/order/link')
 @RequirePermission({

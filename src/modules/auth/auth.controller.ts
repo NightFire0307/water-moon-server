@@ -16,7 +16,7 @@ import {
 import { AuthService } from './auth.service';
 import { AdminLoginDto } from './dto/admin-login.dto';
 import { JwtService } from '@nestjs/jwt';
-import { Public, RequireLogin } from '../../common/custom.decorator';
+import { Public, RequireLogin } from '@/common/decorators/auth.decorator';
 import { Request, Response } from 'express';
 import {
   AuthErrorCode,

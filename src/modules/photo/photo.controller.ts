@@ -15,13 +15,6 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { PhotoService } from './photo.service';
-import {
-  Pagination,
-  PaginationQuery,
-  Public,
-  RequireLogin,
-  RequirePermission,
-} from '../../common/custom.decorator';
 import { DeletePhotosDto } from './dto/delete-photos.dto';
 import { UpdatePhotoRecommendDto } from './dto/update-photo-recommend.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -29,6 +22,8 @@ import { Express } from 'express';
 import { FileTypeValidationPipe } from './file-type-validation.pipe';
 import { map, Observable } from 'rxjs';
 import { CompressPhotoProcessor } from './compress-photo.processor';
+import { RequirePermission, RequireLogin, Public } from '@/common/decorators/auth.decorator';
+import { Pagination, type PaginationQuery } from '@/common/decorators/pagination.decorator';
 
 @Controller('admin/photos')
 @RequirePermission({

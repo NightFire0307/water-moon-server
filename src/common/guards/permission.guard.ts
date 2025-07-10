@@ -12,7 +12,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { User } from '../../modules/auth/entities/user.entity';
 import { Repository } from 'typeorm';
 import { AuthService } from '../../modules/auth/auth.service';
-import { IS_PUBLIC_KEY, REQUIRE_PERMISSION_KEY, type PermissionMetadata } from '../custom.decorator';
+import { IS_PUBLIC_KEY, REQUIRE_PERMISSION_KEY, type PermissionMetadata } from '../decorators/auth.decorator';
 
 @Injectable()
 export class PermissionGuard implements CanActivate {

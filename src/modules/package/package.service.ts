@@ -6,7 +6,7 @@ import { ProductPackageItem } from './entities/product-package-item.entity';
 import { Product } from '../product/entities/product.entity';
 import { In, Repository } from 'typeorm';
 import { CommonErrorCode, DatabaseException } from '@/common/exceptions/database.exception';
-import type { PaginationQuery } from '@/common/custom.decorator';
+import type { PaginationQuery } from '@/common/decorators/pagination.decorator';
 import type { UpdatePackageDto } from './dto/updatePackage.dto';
 import type { QueryPackageDto } from './dto/queryPackage.dto';
 

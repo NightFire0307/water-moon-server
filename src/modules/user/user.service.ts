@@ -2,7 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from '../auth/entities/user.entity';
 import { In, Like, Repository } from 'typeorm';
-import { PaginationQuery } from '../../common/custom.decorator';
+import { PaginationQuery } from '@/common/decorators/pagination.decorator';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserPasswordDto } from './dto/update-user-password.dto';
 import { hash } from 'bcrypt';
@@ -13,7 +13,7 @@ import { ResetUserPasswordDto } from './dto/reset-user-password.dto';
 import {
   CommonErrorCode,
   DatabaseException,
-} from '../../common/exceptions/database.exception';
+} from '@/common/exceptions/database.exception';
 
 @Injectable()
 export class UserService {
