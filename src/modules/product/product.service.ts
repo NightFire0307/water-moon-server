@@ -53,12 +53,10 @@ export class ProductService {
     }, []);
 
     return {
-      data: {
-        list: reducedList,
-        total,
-        ...pagination,
-      },
-    };
+      list: reducedList,
+      total,
+      ...pagination,
+    }
   }
 
   async getProductDetail(id: number) {
@@ -70,9 +68,7 @@ export class ProductService {
     });
 
     if (!product) return '产品不存在';
-    return {
-      data: product,
-    };
+    return product
   }
 
   async createProduct(createProductDto: CreateProductDto) {
@@ -116,7 +112,7 @@ export class ProductService {
 
     try {
       await this.productRepository.save(product);
-      return { data: '', message: '修改成功' };
+      return '修改成功'
     } catch (e) {
       throw new DatabaseException(CommonErrorCode.DATABASE_ERROR, e);
     }
@@ -145,12 +141,10 @@ export class ProductService {
     });
 
     return {
-      data: {
-        list,
-        total,
-        ...pagination,
-      },
-    };
+      list,
+      total,
+      ...pagination,
+    }
   }
 
   async getProductTypeDetail(id: number) {
@@ -161,9 +155,7 @@ export class ProductService {
     });
 
     if (!productType) return '产品类型不存在';
-    return {
-      data: productType,
-    };
+    return productType;
   }
 
   async createProductType(createProductTypeDto: CreateProductTypeDto) {
@@ -215,10 +207,7 @@ export class ProductService {
 
     try {
       await this.productTypeRepository.remove(productType);
-      return {
-        data: '',
-        message: '删除成功',
-      };
+      return '删除成功';
     } catch (e) {
       // 当有产品使用了这个类型时，删除会失败
       throw new DatabaseException(
@@ -285,8 +274,6 @@ export class ProductService {
       }
     }
 
-    return {
-      data: Array.from(map.values())
-    }
+    return Array.from(map.values())
   }
 }
