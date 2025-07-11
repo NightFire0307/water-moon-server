@@ -1,3 +1,9 @@
+/**
+ * 格式化响应拦截器
+ * 用于统一格式化响应数据
+ * 如果响应数据是字符串，则直接作为 msg 返回
+ * 如果响应数据是对象，且包含 msg 和 data 字段，则格式化返回
+ */
 import {
   CallHandler,
   ExecutionContext,
@@ -20,18 +26,45 @@ export class FormatResponseInterceptor implements NestInterceptor {
         ?.toString()
         .includes('attachment');
 
+    // 如果是流式响应（如文件下载），则不进行格式化
     if (isStream) {
       console.log('isStream', isStream);
-      return next.handle(); // 不包装
+      return next.handle();
     }
 
     return next.handle().pipe(
-      map(({ data, msg }) => {
+      map((data) => {
+
+        // 如果响应数据是字符串，则直接作为 msg 返回
+        if (typeof data === 'string') {
+          return {
+            code: response.statusCode,
+            msg: data ?? '请求成功',
+            data: null
+          }
+        }
+
+        // 如果响应数据是对象，且包含 msg 和 data 字段，则格式化返回
+        if (data && typeof data === 'object' && 'msg' in data && 'data' in data) {
+          return {
+            code: response.statusCode,
+            ...data
+          }
+        }
+
+        // 如果响应数据是对象，且包含所有字段，则格式化返回
+        if (data && typeof data === 'object' && 'code' in data && 'msg' in data && 'data' in data) {
+          return {
+            ...data,
+          }
+        }
+
+        // 默认格式化返回
         return {
           code: response.statusCode,
-          msg: msg ?? '请求成功',
-          data: data ?? '',
-        };
+          msg: '请求成功',
+          data: data ?? null,
+        }
       }),
     );
   }
