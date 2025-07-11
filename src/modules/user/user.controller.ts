@@ -64,19 +64,7 @@ export class UserController {
     }
 
     const user = await this.adminService.findUserDetailById(+id);
-
-    if (user) {
-      const vo = new UserDetailVo();
-      vo.id = user.user_id;
-      vo.username = user.username;
-      vo.nickname = user.nickname;
-      vo.isFrozen = user.isFrozen;
-      vo.updateTime = user.updateTime;
-      vo.createTime = user.createTime;
-      return vo;
-    } else {
-      return '用户不存在';
-    }
+    return new UserDetailVo(user)
   }
 
   @Post()

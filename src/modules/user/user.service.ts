@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { User } from '../auth/entities/user.entity';
+import { User } from './entities/user.entity';
 import { In, Like, Repository } from 'typeorm';
 import { PaginationQuery } from '@/common/decorators/pagination.decorator';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -55,12 +55,18 @@ export class UserService {
   }
 
   async findUserDetailById(userId: number) {
-    return await this.userRepository.findOne({
+    const user = await this.userRepository.findOne({
       where: {
         user_id: userId,
       },
       relations: ['roles'],
     });
+
+    if (!user) {
+      throw new DatabaseException(CommonErrorCode.NOT_FOUND, '用户不存在');
+    }
+
+    return user
   }
 
   async createUser(createUserDto: CreateUserDto) {

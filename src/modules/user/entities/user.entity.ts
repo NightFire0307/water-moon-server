@@ -35,7 +35,7 @@ export class User {
     length: 20,
     comment: '手机号',
   })
-  phoneNumber: string;
+  phone: string;
 
   @Column({
     length: 150,

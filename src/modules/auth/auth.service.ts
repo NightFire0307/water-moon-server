@@ -7,7 +7,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { User } from './entities/user.entity';
+import { User } from '../user/entities/user.entity';
 import { Role } from '../role/entities/role.entity';
 import { Repository } from 'typeorm';
 import { Permission } from './entities/permissions.entity';
@@ -69,11 +69,11 @@ export class AuthService {
       throw new ForbiddenException('用户已被冻结，请联系管理员');
     }
 
-    compare(loginUserDto.password, userInfo.password).then((result) => {
-      if (!result) {
-        throw new HttpException('密码错误', HttpStatus.BAD_REQUEST);
-      }
-    });
+    // 验证密码
+    const match = await compare(loginUserDto.password, userInfo.password)
+    if (!match) {
+      throw new UnauthorizedException('用户名或密码错误');
+    }
 
     // 遍历用户角色，获取权限
     const permissions = new Set<string>();

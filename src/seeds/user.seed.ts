@@ -1,7 +1,7 @@
 import { INestApplicationContext } from "@nestjs/common";
 import type { ConfigService } from "@nestjs/config";
 import { hash } from 'bcrypt'
-import { User } from "../modules/auth/entities/user.entity";
+import { User } from "../modules/user/entities/user.entity";
 import { DataSource } from "typeorm";
 import { Role } from "../modules/role/entities/role.entity";
 

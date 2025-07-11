@@ -9,7 +9,7 @@ import { Reflector } from '@nestjs/core';
 import { Request } from 'express';
 import { Redis } from 'ioredis';
 import { InjectRepository } from '@nestjs/typeorm';
-import { User } from '../../modules/auth/entities/user.entity';
+import { User } from '../../modules/user/entities/user.entity';
 import { Repository } from 'typeorm';
 import { AuthService } from '../../modules/auth/auth.service';
 import { IS_PUBLIC_KEY, REQUIRE_PERMISSION_KEY, type PermissionMetadata } from '../decorators/auth.decorator';

@@ -1,6 +1,6 @@
 import { DataSource } from 'typeorm';
 import { Permission } from './modules/auth/entities/permissions.entity';
-import { User } from './modules/auth/entities/user.entity';
+import { User } from './modules/user/entities/user.entity';
 import { Link } from './modules/link/entities/link.entity';
 import { Order } from './modules/order/entities/order.entity';
 import { OrderProduct } from './modules/order/entities/orderProduct.entity';
