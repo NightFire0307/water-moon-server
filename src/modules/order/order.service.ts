@@ -129,12 +129,10 @@ export class OrderService {
       });
 
       return {
-        data: {
-          list: order_map,
-          total,
-          ...pagination,
-        },
-      };
+        list: order_map,
+        total,
+        ...pagination,
+      }
     } catch {
       throw new DatabaseException(PhotoErrorCode.PHOTO_UPDATE_FAILED);
     }
@@ -239,21 +237,19 @@ export class OrderService {
     });
 
     return {
-      data: {
-        ...order,
-        order_products: order.order_products.map((item) => {
-          const { product } = item;
-          const { product_type, ...rest } = product;
-          return {
-            id: item.id,
-            count: item.count,
-            type: product_type.name,
-            ...rest,
-          };
-        }),
-        total_photos,
-      },
-    };
+      ...order,
+      order_products: order.order_products.map((item) => {
+        const { product } = item;
+        const { product_type, ...rest } = product;
+        return {
+          id: item.id,
+          count: item.count,
+          type: product_type.name,
+          ...rest,
+        };
+      }),
+      total_photos,
+    }
   }
 
   async updateOrder(id: number, updateOrderDto: UpdateOrderDto) {
@@ -325,10 +321,7 @@ export class OrderService {
       }
 
       await queryRunner.commitTransaction();
-      return {
-        data: [],
-        msg: '订单更新成功',
-      }
+      return '订单更新成功'
     } catch (err) {
       console.log(err)
       await queryRunner.rollbackTransaction()
