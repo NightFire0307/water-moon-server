@@ -29,13 +29,11 @@ export class RoleService {
       take: pagination.pageSize,
     });
     return {
-      data: {
-        list,
-        total,
-        pageSize: pagination.pageSize,
-        current: pagination.current,
-      },
-    };
+      list,
+      total,
+      pageSize: pagination.pageSize,
+      current: pagination.current,
+    }
   }
 
   async createRole({ code, name, description = '', permissionIds }: CreateRoleDto) {
