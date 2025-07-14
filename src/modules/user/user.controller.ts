@@ -5,6 +5,7 @@ import {
   Delete,
   Get,
   Param,
+  Patch,
   Post,
   Put,
   Query,
@@ -121,7 +122,7 @@ export class UserController {
     return await this.adminService.updateUserRoles(parseInt(userId), roleIds);
   }
 
-  @Post('/update_password')
+  @Patch('/change-password')
   @RequireLogin()
   @RequirePermission({
     name: '修改密码',
@@ -129,14 +130,14 @@ export class UserController {
     type: 'button',
     description: '修改用户密码',
   })
-  async updatePassword(
+  async changePassword(
     @UserInfo('userId') userId: number,
-    @Body() passwordDto: UpdateUserPasswordDto,
+    @Body() changePasswordDto: UpdateUserPasswordDto,
   ) {
-    return await this.adminService.updatePassword(userId, passwordDto);
+    return await this.adminService.changePassword(userId, changePasswordDto);
   }
 
-  @Post('/reset_password')
+  @Patch('/:id/reset-password')
   @RequireLogin()
   @RequirePermission({
     name: '重置密码',
@@ -145,10 +146,10 @@ export class UserController {
     description: '重置用户密码',
   })
   async resetPassword(
-    @UserInfo('userId') userId: number,
-    @UserInfo('isAdmin') isAdmin: boolean,
-    @Body() passwordDto: ResetUserPasswordDto,
+    @UserInfo('userId') operatorId: number,
+    @Param('id') targetUserId: string,
+    @Body() resetPasswordDto: ResetUserPasswordDto,
   ) {
-    return await this.adminService.resetPassword(passwordDto, userId, isAdmin);
+    return await this.adminService.resetPassword(resetPasswordDto, targetUserId, operatorId);
   }
 }

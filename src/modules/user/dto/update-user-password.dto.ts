@@ -7,5 +7,11 @@ export class UpdateUserPasswordDto {
   @MinLength(6, {
     message: '密码最短不能少于6位',
   })
-  password: string;
+  newPassword: string;
+
+
+  @IsNotEmpty({
+    message: '旧密码不能为空',
+  })
+  oldPassword: string;
 }

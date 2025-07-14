@@ -1,8 +1,5 @@
 import { UpdateUserPasswordDto } from './update-user-password.dto';
-import { IsNotEmpty, IsNumber } from 'class-validator';
+import { OmitType } from '@nestjs/swagger';
 
-export class ResetUserPasswordDto extends UpdateUserPasswordDto {
-  @IsNumber()
-  @IsNotEmpty()
-  userId: number;
+export class ResetUserPasswordDto extends OmitType(UpdateUserPasswordDto, ['oldPassword'] as const) {
 }

@@ -5,7 +5,7 @@ import { In, Like, Repository } from 'typeorm';
 import { PaginationQuery } from '@/common/decorators/pagination.decorator';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserPasswordDto } from './dto/update-user-password.dto';
-import { hash } from 'bcrypt';
+import { hash, compare } from 'bcrypt';
 import { ConfigService } from '@nestjs/config';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { Role } from '../role/entities/role.entity';
@@ -44,14 +44,15 @@ export class UserService {
       relations: ['roles'],
     });
 
+    // 过滤掉超级管理员
+    const filterData = data.filter(user => user.roles.some(role => role.code !== 'super_admin'));
+
     return {
-      data: {
-        list: data,
-        current,
-        pageSize,
-        total,
-      },
-    };
+      list: filterData,
+      current,
+      pageSize,
+      total,
+    }
   }
 
   async findUserDetailById(userId: number) {
@@ -79,7 +80,10 @@ export class UserService {
       roleId: In(roles),
     });
 
-    console.log(roleEntities);
+    // 如果有超级管理员角色，则拒绝
+    if (roleEntities.some(role => role.code === 'super_admin')) {
+      throw new DatabaseException(CommonErrorCode.NO_PERMISSION, '不允许创建超级管理员角色');
+    }
 
     try {
       const user = this.userRepository.create({
@@ -95,6 +99,21 @@ export class UserService {
   }
 
   async updateUser(userId: number, dto: UpdateUserDto) {
+    const user = await this.userRepository.findOne({
+      where: { user_id: userId },
+      relations: ['roles'],
+    });
+
+
+    if (!user) {
+      throw new DatabaseException(CommonErrorCode.NOT_FOUND, '未查询到该用户');
+    }
+
+    // 确保更新的用户是非超级管理员
+    if (user.roles.some(role => role.code === 'super_admin')) {
+      throw new DatabaseException(CommonErrorCode.NO_PERMISSION, '不允许更新超级管理员角色');
+    }
+
     const dataToUpdate: Partial<User> = {
       ...dto,
       updateTime: new Date(),
@@ -112,17 +131,14 @@ export class UserService {
         throw new DatabaseException(CommonErrorCode.NOT_FOUND, '角色不存在');
       }
 
-      dataToUpdate.roles = roles;
+      if (roles.some(role => role.code === 'super_admin')) {
+        throw new DatabaseException(CommonErrorCode.NO_PERMISSION, '不允许分配超级管理员角色');
+      }
+
+      user.roles = roles;
     }
 
-    const user = await this.userRepository.preload({
-      user_id: userId,
-      ...dataToUpdate,
-    });
-
-    if (!user) {
-      throw new DatabaseException(CommonErrorCode.NOT_FOUND, '未查询到该用户');
-    }
+    Object.assign(user, dataToUpdate);
 
     await this.userRepository.save(user);
 
@@ -133,7 +149,10 @@ export class UserService {
   }
 
   async deleteUser(userId: number) {
-    const foundUser = await this.userRepository.findOneBy({ user_id: userId });
+    const foundUser = await this.userRepository.findOne({
+      where: { user_id: userId },
+      relations: ['roles'],
+    });
 
     if (!foundUser) return '未查询到用户';
     if (!foundUser.isDelete) {
@@ -141,14 +160,24 @@ export class UserService {
       await this.userRepository.save(foundUser);
     }
 
+    // 确保删除的用户是非超级管理员
+    if (foundUser.roles.some(role => role.code === 'super_admin')) {
+      throw new DatabaseException(CommonErrorCode.NO_PERMISSION, '不能删除超级管理员');
+    }
+
     return '删除成功';
   }
 
-  async updatePassword(userId: number, passwordDto: UpdateUserPasswordDto) {
+  // 修改密码
+  async changePassword(userId: number, passwordDto: UpdateUserPasswordDto) {
     const foundUser = await this.userRepository.findOneBy({ user_id: userId });
     const saltRounds: string = this.configService.get('hash_salt_rounds');
 
-    foundUser.password = await hash(passwordDto.password, parseInt(saltRounds));
+    // 判断旧密码是否正确
+    const isPasswordValid = await compare(passwordDto.oldPassword, foundUser.password);
+    if (!isPasswordValid) throw new DatabaseException(CommonErrorCode.INVALID_PASSWORD, '旧密码不正确');
+
+    foundUser.password = await hash(passwordDto.newPassword, parseInt(saltRounds));
 
     try {
       await this.userRepository.save(foundUser);
@@ -168,6 +197,11 @@ export class UserService {
       },
     });
 
+    // 如果被更新的角色是超级管理员，则拒绝
+    if (roles.some(role => role.code === 'super_admin')) {
+      throw new DatabaseException(CommonErrorCode.NO_PERMISSION, '不允许分配超级管理员角色');
+    }
+
     foundUser.roles = roles;
     await this.userRepository.save(foundUser);
 
@@ -175,23 +209,34 @@ export class UserService {
   }
 
   async resetPassword(
-    resetPasswordDto: ResetUserPasswordDto,
-    curUserId: number,
-    isAdmin: boolean,
+    dto: ResetUserPasswordDto,
+    targetUserId: string,
+    operatorId: number,
   ) {
-    const { userId, password } = resetPasswordDto;
-    if (userId !== curUserId && !isAdmin)
-      throw new DatabaseException(CommonErrorCode.NO_PERMISSION);
+    const { newPassword } = dto;
 
-    const foundUser = await this.userRepository.findOneBy({ user_id: userId });
+    const targetUser = await this.userRepository.findOne({
+      where: { user_id: Number(targetUserId) },
+      relations: ['roles'],
+    });
+
+    // 判断当前用户是否有权限修改目标用户密码
+    if (targetUser.roles.some(role => role.code === 'super_admin')) {
+      throw new DatabaseException(CommonErrorCode.NO_PERMISSION, '不允许重置超级管理员密码');
+    }
+
+    // 如果当前登录的用户和被修改密码的用户是同一个用户，则拒绝
+    if (targetUser.user_id === operatorId)
+      throw new DatabaseException(CommonErrorCode.NO_PERMISSION, '不能重置自己的密码, 请使用修改密码功能');
+
     const saltRounds: string = this.configService.get('hash_salt_rounds');
-    foundUser.password = await hash(password, parseInt(saltRounds));
+    targetUser.password = await hash(newPassword, parseInt(saltRounds));
 
     try {
-      await this.userRepository.save(foundUser);
-      return { data: foundUser.user_id, msg: '密码重置成功' };
+      await this.userRepository.save(targetUser);
+      return { data: targetUser.user_id, msg: '密码重置成功' };
     } catch {
-      return { data: foundUser.user_id, msg: '密码重置失败' };
+      return { data: targetUser.user_id, msg: '密码重置失败' };
     }
   }
 }
