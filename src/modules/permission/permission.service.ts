@@ -50,8 +50,6 @@ export class PermissionService {
 
     const tree = buildTree(result);
 
-    return {
-      data: tree,
-    };
+    return tree;
   }
 }

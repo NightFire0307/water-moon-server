@@ -169,10 +169,8 @@ export class RoleService {
     const permissionIds = permissions.map((permission) => permission.id);
 
     return {
-      data: {
-        ...rest,
-        permissionIds,
-      },
+      ...rest,
+      permissionIds,
     };
   }
 }
