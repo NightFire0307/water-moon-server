@@ -28,7 +28,7 @@ export class UserSeed {
       await userRepo.save({
         username: 'admin',
         nickname: '超级管理员',
-        phoneNumber: '13800138000',
+        phone: '13800138000',
         password,
         roles: [role]
       })

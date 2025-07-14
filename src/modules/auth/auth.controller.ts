@@ -53,10 +53,8 @@ export class AuthController {
     });
 
     return {
-      data: {
-        userInfo,
-        accessToken,
-      },
+      userInfo,
+      accessToken,
     };
   }
 

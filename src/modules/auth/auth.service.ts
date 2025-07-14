@@ -52,7 +52,7 @@ export class AuthService {
         'user.user_id',
         'user.username',
         'user.nickname',
-        'user.phoneNumber',
+        'user.phone',
         'user.password',
         'user.isFrozen',
         'roles',
