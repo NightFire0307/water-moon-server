@@ -2,7 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Order, OrderStatus } from './entities/order.entity';
-import { In, Repository, DataSource } from 'typeorm';
+import { In, Repository, DataSource, Between } from 'typeorm';
 import { Product } from '../product/entities/product.entity';
 import { PaginationQuery } from '@/common/decorators/pagination.decorator';
 import { OrderProduct } from './entities/orderProduct.entity';
@@ -22,6 +22,11 @@ import * as archiver from 'archiver';
 import { PassThrough } from 'node:stream';
 import { ConfigService } from '@nestjs/config';
 import { MinioService } from '../../minio/minio.service';
+import * as dayjs from 'dayjs';
+import * as iosWeek from 'dayjs/plugin/isoWeek.js'
+
+dayjs.extend(iosWeek);
+
 
 interface OrderProductCount {
   orderId: number;
@@ -555,12 +560,44 @@ export class OrderService {
       .getRawOne();
 
     return {
-      data: {
-        totalOrderCount: Number(result.totalOrderCount),
-        inProgressOrderCount: Number(result.inProgressOrderCount),
-        completedOrderCount: Number(result.completedOrderCount),
-        todayOrderCount: Number(result.todayOrderCount),
-      }
+      totalOrderCount: Number(result.totalOrderCount),
+      inProgressOrderCount: Number(result.inProgressOrderCount),
+      completedOrderCount: Number(result.completedOrderCount),
+      todayOrderCount: Number(result.todayOrderCount),
+    }
+  }
+
+  async getWeeklyOrderStats() {
+    const now = dayjs()
+
+    const lastWeekMonday = now.startOf('isoWeek').subtract(1, 'week').startOf('day');
+    const lastWeekFriday = lastWeekMonday.add(6, 'day').endOf('day');
+
+    console.log(`上周一: ${lastWeekMonday.format('YYYY-MM-DD dddd')}`);
+    console.log(`上周五: ${lastWeekFriday.format('YYYY-MM-DD dddd')}`);
+
+    const rawStats = await this.orderRepository
+      .createQueryBuilder('order')
+      .select("DATE_FORMAT(order.created_at, '%Y-%m-%d')", 'date')
+      .addSelect('COUNT(*)', 'count')
+      .where('order.created_at BETWEEN :start AND :end', {
+        start: lastWeekMonday.toDate(),
+        end: lastWeekFriday.toDate(),
+      })
+      .groupBy('date')
+      .getRawMany();
+
+    // 转换为 Map 提高查找效率
+    const statMap = new Map(rawStats.map(item => [item.date, Number(item.count)]));
+
+    // 构造完整 7 天的日期数组，并填充 count（无则为 0）
+    const lastWeekOrderCounts = Array.from({ length: 7 }, (_, i) => {
+      const date = lastWeekMonday.add(i, 'day').format('YYYY-MM-DD');
+      return statMap.get(date) ?? 0
+    });
+
+    return {
+      lastWeekOrderCounts
     }
   }
 }

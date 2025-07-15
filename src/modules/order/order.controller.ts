@@ -34,6 +34,7 @@ import { Pagination, type PaginationQuery } from '@/common/decorators/pagination
 export class OrderController {
   constructor(private readonly orderService: OrderService) { }
 
+  // 获取订单统计信息
   @Get('/summary')
   @RequireLogin()
   @RequirePermission({
@@ -44,6 +45,13 @@ export class OrderController {
   })
   async getDashboardOrderSummary() {
     return await this.orderService.getOrderSummary()
+  }
+
+  // 获取订单周统计数据
+  @Get('/weekly-stats')
+  @RequireLogin()
+  async getWeeklyOrderStats() {
+    return await this.orderService.getWeeklyOrderStats();
   }
 
   // 获取订单列表
