@@ -210,22 +210,20 @@ export class SelectionService {
       throw new DatabaseException(CommonErrorCode.NOT_FOUND, { orderId });
 
     return {
-      data: {
-        ...order,
-        order_products: order.order_products.map((order_product) => {
-          return {
-            ...order_product,
-            product: {
-              ...order_product.product,
-              product_type: order_product.product.product_type.name,
-            },
-            selected_photos: order_product.selected_photos.map(
-              (photo) => photo.id,
-            ),
-          };
-        }),
-        total_photos,
-      },
+      ...order,
+      order_products: order.order_products.map((order_product) => {
+        return {
+          ...order_product,
+          product: {
+            ...order_product.product,
+            product_type: order_product.product.product_type.name,
+          },
+          selected_photos: order_product.selected_photos.map(
+            (photo) => photo.id,
+          ),
+        };
+      }),
+      total_photos,
     };
   }
 
@@ -299,10 +297,8 @@ export class SelectionService {
     });
 
     return {
-      data: {
-        orderProductId,
-        selected_photos: photoIds,
-      },
+      orderProductId,
+      selected_photos: photoIds,
     };
   }
 
@@ -312,12 +308,10 @@ export class SelectionService {
     try {
       const data = await this.jwtService.verifyAsync(refreshToken);
       return {
-        data: {
-          access_token: await this.jwtService.signAsync(
-            { orderId: data.orderId, short_url: data.surl },
-            { expiresIn: '2h' },
-          ),
-        },
+        access_token: await this.jwtService.signAsync(
+          { orderId: data.orderId, short_url: data.surl },
+          { expiresIn: '2h' },
+        ),
       };
     } catch {
       throw new BadRequestException('无效的 refresh token');
@@ -359,9 +353,7 @@ export class SelectionService {
       },
     );
 
-    return {
-      msg: '成功移除所有与该照片关联的订单产品',
-    };
+    return '成功移除所有与该照片关联的订单产品';
   }
 
   // 锁定选片结果
@@ -440,10 +432,8 @@ export class SelectionService {
     const photo = await this.getPhotoById(photoId);
 
     return {
-      data: {
-        id: photo.id,
-        remark: photo.remark,
-      },
+      id: photo.id,
+      remark: photo.remark,
     };
   }
 

@@ -95,12 +95,10 @@ export class PhotoService {
     }
 
     return {
-      data: {
-        list: oss_lists,
-        current: pagination.current,
-        pageSize: pagination.pageSize,
-        total,
-      },
+      list: oss_lists,
+      current: pagination.current,
+      pageSize: pagination.pageSize,
+      total,
     };
   }
 

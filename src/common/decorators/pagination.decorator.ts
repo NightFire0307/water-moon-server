@@ -33,7 +33,7 @@ export const Pagination = createParamDecorator(
     const {
       defaultCurrent = 1,
       defaultPageSize = 10,
-      maxPageSize = 100,
+      maxPageSize = 200,
       minPageSize = 1,
     } = options
 

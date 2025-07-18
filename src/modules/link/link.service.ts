@@ -93,12 +93,10 @@ export class LinkService {
     });
 
     return {
-      data: {
-        list: links,
-        total,
-        current,
-        pageSize,
-      },
+      list: links,
+      total,
+      current,
+      pageSize,
     };
   }
 
