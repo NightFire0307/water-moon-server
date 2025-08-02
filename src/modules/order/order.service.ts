@@ -292,7 +292,7 @@ export class OrderService {
           where: { id: orderProduct.id },
           relations: ['selected_photos'],
         });
-        const photoIds = orderProductWithPhotos.selected_photos.map(photo => photo.id);
+        const photoIds = orderProductWithPhotos.order_product_photos.map(photo => photo.id);
 
         // 如果有已关联的照片，则解除关联
         if (photoIds.length > 0) {
@@ -375,7 +375,7 @@ export class OrderService {
               .createQueryBuilder()
               .relation(Photo, 'order_products')
               .of(photo.id)
-              .remove(photo.order_products);
+              .remove(photo.order_product_photos);
           }
         });
       }
@@ -448,11 +448,11 @@ export class OrderService {
       return {
         ...photo,
         thumbnail_url,
-        status: photo.order_products.length > 0 ? 'selected' : 'unSelected',
-        order_products: photo.order_products.map((orderProduct) => {
+        status: photo.order_product_photos.length > 0 ? 'selected' : 'unSelected',
+        order_product_photos: photo.order_product_photos.map((orderProduct) => {
           return {
             id: orderProduct.id,
-            name: orderProduct.product.name,
+            name: '',
           };
         }),
       };
@@ -499,17 +499,17 @@ export class OrderService {
     // 按照产品分类照片
     const productMap = new Map<string, string[]>();
 
-    for (const photo of order.photos) {
-      if (photo.order_products.length > 0) {
-        for (const orderProduct of photo.order_products) {
-          if (!productMap.has(orderProduct.product.name)) {
-            productMap.set(orderProduct.product.name, [photo.oss_file_key]);
-          } else {
-            productMap.get(orderProduct.product.name)?.push(photo.oss_file_key);
-          }
-        }
-      }
-    }
+    // for (const photo of order.photos) {
+    //   if (photo.order_product_photos.length > 0) {
+    //     for (const orderProduct of photo.order_product_photos) {
+    //       if (!productMap.has(orderProduct.product.name)) {
+    //         productMap.set(orderProduct.product.name, [photo.oss_file_key]);
+    //       } else {
+    //         productMap.get(orderProduct.product.name)?.push(photo.oss_file_key);
+    //       }
+    //     }
+    //   }
+    // }
 
     // 下载照片并添加到 ZIP 包中
     for (const [productName, ossFileKeys] of productMap.entries()) {
@@ -551,7 +551,7 @@ export class OrderService {
         `SUM(CASE WHEN order.created_at >= :today AND order.created_at < :tomorrow THEN 1 ELSE 0 END) AS todayOrderCount`,
       ])
       .setParameters({
-        inProgress: OrderStatus.IN_PROGRESS,
+        isPending: OrderStatus.PENDING,
         completed: OrderStatus.FINISHED,
         today,
         tomorrow,
@@ -561,7 +561,7 @@ export class OrderService {
 
     return {
       totalOrderCount: Number(result.totalOrderCount),
-      inProgressOrderCount: Number(result.inProgressOrderCount),
+      isPendingOrderCount: Number(result.isPendingOrderCount),
       completedOrderCount: Number(result.completedOrderCount),
       todayOrderCount: Number(result.todayOrderCount),
     }

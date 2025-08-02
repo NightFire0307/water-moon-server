@@ -15,10 +15,11 @@ import { Exclude } from 'class-transformer'; // 引用照片集实体
 
 export enum OrderStatus {
   PENDING = 0, // 订单已创建，等待用户选片
-  IN_PROGRESS = 1, // 用户正在选片
-  SUBMITTED = 2, // 选片已提交，订单已锁定
-  CANCEL = 3, // 订单取消
-  FINISHED = 4, // 订单完成
+  PRE_SELECT = 1, // 预选阶段
+  PRODUCT_SELECT = 2, // 产品选片阶段
+  SUBMITTED = 3, // 已提交，订单锁定
+  CANCEL = 4, // 订单取消
+  FINISHED = 5, // 订单完成
 }
 
 @Entity('orders')
@@ -54,7 +55,7 @@ export class Order {
   extra_photo_price: number; // 超出照片的单张价格
 
   @Column({ type: 'enum', enum: OrderStatus, default: OrderStatus.PENDING })
-  status: OrderStatus; // 订单状态，如：未开始、进行中、已完成
+  status: OrderStatus; // 订单状态
 
   // 订单外链
   @OneToMany(() => Link, (link) => link.order, {

@@ -36,6 +36,7 @@ import { PackageModule } from '@/modules/package/package.module';
 import { ProductPackage } from './modules/package/entities/product-package.entity';
 import { ProductPackageItem } from './modules/package/entities/product-package-item.entity';
 import { MinioService } from './minio/minio.service';
+import { OrderProductPhoto } from './modules/order/entities/orderProductPhotos.entity';
 
 console.log(`Environment: ${process.env.NODE_ENV}`);
 
@@ -68,8 +69,9 @@ console.log(`Environment: ${process.env.NODE_ENV}`);
             ProductPackage,
             ProductPackageItem,
             Order,
-            Photo,
             OrderProduct,
+            OrderProductPhoto,
+            Photo,
             Link,
           ],
           poolSize: 10,

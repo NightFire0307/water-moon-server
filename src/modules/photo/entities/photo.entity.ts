@@ -6,10 +6,16 @@ import {
   CreateDateColumn,
   JoinColumn,
   UpdateDateColumn,
-  ManyToMany,
+  OneToMany,
 } from 'typeorm';
-import { Order } from '../../order/entities/order.entity';
-import { OrderProduct } from '../../order/entities/orderProduct.entity'; // 产品类型实体
+import { Order } from '@/modules/order/entities/order.entity';
+import { OrderProductPhoto } from '@/modules/order/entities/orderProductPhotos.entity';
+
+export enum PreSelectStatus {
+  PENDING = 'pending',
+  SELECTED = 'selected',
+  EXCLUDED = 'excluded',
+}
 
 @Entity('photos')
 export class Photo {
@@ -20,7 +26,7 @@ export class Photo {
   name: string; // 照片名称
 
   @Column()
-  oss_file_key: string;
+  oss_file_key: string; // OSS存储的文件键
 
   @Column()
   size: number;
@@ -31,15 +37,19 @@ export class Photo {
   order: Order;
 
   // 产品关联照片
-  @ManyToMany(
-    () => OrderProduct,
-    (op) => op.selected_photos,
-    { onDelete: 'CASCADE' }
+  @OneToMany(
+    () => OrderProductPhoto,
+    (op) => op.photo,
+    { cascade: true }
   )
-  order_products: OrderProduct[];
+  order_product_photos: OrderProductPhoto[];
 
-  @Column({ default: false })
-  is_selected: boolean; // 是否被选中
+  @Column({
+    type: 'enum',
+    enum: PreSelectStatus,
+    default: PreSelectStatus.PENDING,
+  })
+  pre_select_status: PreSelectStatus; // 预选状态
 
   @Column({ default: false })
   is_recommended: boolean; // 是否推荐

@@ -102,7 +102,7 @@ export class SelectionService {
 
     // 更新订单状态
     if (order.status === OrderStatus.PENDING) {
-      order.status = OrderStatus.IN_PROGRESS;
+      order.status = OrderStatus.PRE_SELECT;
       await this.orderRepository.save(order);
     }
 
@@ -218,7 +218,7 @@ export class SelectionService {
             ...order_product.product,
             product_type: order_product.product.product_type.name,
           },
-          selected_photos: order_product.selected_photos.map(
+          selected_photos: order_product.order_product_photos.map(
             (photo) => photo.id,
           ),
         };
@@ -253,8 +253,8 @@ export class SelectionService {
           order: { id: orderId },
           id: orderProductId,
         },
-        relations: ['selected_photos', 'product'],
-        select: ['id', 'selected_photos'],
+        relations: ['order_product_photos', 'product'],
+        select: ['id', 'order_product_photos'],
       });
 
       if (!orderProduct) {
@@ -292,7 +292,7 @@ export class SelectionService {
       }
 
 
-      orderProduct.selected_photos = photos;
+      // orderProduct.selected_photos = photos;
       await manager.save(orderProduct);
     });
 
@@ -339,19 +339,19 @@ export class SelectionService {
       throw new BadRequestException('没有找到与该照片关联的订单产品');
     }
 
-    console.log(orderProducts[0].selected_photos);
+    // console.log(orderProducts[0].selected_photos);
 
-    await this.orderProductRepository.manager.transaction(
-      async (transactionalEntityManager) => {
-        for (const orderProduct of orderProducts) {
-          orderProduct.selected_photos = orderProduct.selected_photos.filter(
-            (photo) => photo.id !== photoId,
-          );
-          console.log(orderProduct.selected_photos);
-          await transactionalEntityManager.save(orderProduct);
-        }
-      },
-    );
+    // await this.orderProductRepository.manager.transaction(
+    //   async (transactionalEntityManager) => {
+    //     for (const orderProduct of orderProducts) {
+    //       orderProduct.selected_photos = orderProduct.selected_photos.filter(
+    //         (photo) => photo.id !== photoId,
+    //       );
+    //       console.log(orderProduct.selected_photos);
+    //       await transactionalEntityManager.save(orderProduct);
+    //     }
+    //   },
+    // );
 
     return '成功移除所有与该照片关联的订单产品';
   }
@@ -360,7 +360,7 @@ export class SelectionService {
   async submitOrder(orderId: number) {
     const order = await this.findOrderById(orderId);
 
-    if (order.status === OrderStatus.IN_PROGRESS) {
+    if (order.status === OrderStatus.PRODUCT_SELECT) {
       order.status = OrderStatus.SUBMITTED;
       await this.orderRepository.save(order);
       return {
