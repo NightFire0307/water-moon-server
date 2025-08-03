@@ -12,10 +12,9 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { SelectionService } from './selection.service';
-import { SelectionLoginDto } from './dto/selection-login.dto';
+import { SelectionLoginDto } from './dto/login.dto';
 import { Request, Response } from 'express';
 import { CustomLogin } from './guard/custom-login.guard';
-import { ProductPhotoSelectionDto } from './dto/selection-photos-update.dto';
 import { SelectionRemarkUpdateDto } from './dto/selection-remark-update.dto';
 import { PhotoService } from '../photo/photo.service';
 import {
@@ -24,7 +23,8 @@ import {
 import { Public } from '@/common/decorators/auth.decorator';
 import { OrderInfo } from '@/common/decorators/context.decorator';
 import { Pagination, PaginationQuery } from '@/common/decorators/pagination.decorator';
-import { BulkUpdatePhotoPreselectStatusDto } from './dto/bulk-update-photo-preselect-status.dto';
+import { BulkUpdatePhotoPreselectStatusDto } from './dto/update-photo-preselect-status.dto';
+import type { AssignOrderProductPhotosDto } from './dto/assign-order-product-photos.dto';
 
 @Controller('selection')
 @Public()
@@ -95,6 +95,16 @@ export class SelectionController {
     @OrderInfo('orderId') orderId: number,
     @Body() dto: BulkUpdatePhotoPreselectStatusDto) {
     return await this.photoService.updatePhotoPreSelectStatus(orderId, dto);
+  }
+
+  // 更新产品照片
+  @Post('order-product/photos')
+  @UseGuards(CustomLogin)
+  async bulkAssignPhotosToOrderProduct(
+    @OrderInfo('orderId') orderId: number,
+    @Body() dto: AssignOrderProductPhotosDto
+  ) {
+    console.log(orderId, dto)
   }
 
   // 更新照片备注

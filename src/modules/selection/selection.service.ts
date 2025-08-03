@@ -4,7 +4,7 @@ import { Redis } from 'ioredis';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Order, OrderStatus } from '../order/entities/order.entity';
 import { In, Repository, DataSource } from 'typeorm';
-import { SelectionLoginDto } from './dto/selection-login.dto';
+import { SelectionLoginDto } from './dto/login.dto';
 import { JwtService } from '@nestjs/jwt';
 import { Photo } from '../photo/entities/photo.entity';
 import { Product } from '../product/entities/product.entity';

@@ -17,7 +17,7 @@ import {
   CommonErrorCode,
   DatabaseException,
 } from '../../common/exceptions/database.exception';
-import type { BulkUpdatePhotoPreselectStatusDto } from '../selection/dto/bulk-update-photo-preselect-status.dto';
+import type { BulkUpdatePhotoPreselectStatusDto } from '../selection/dto/update-photo-preselect-status.dto';
 
 @Injectable()
 export class PhotoService {
