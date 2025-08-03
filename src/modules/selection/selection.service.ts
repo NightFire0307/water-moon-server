@@ -412,7 +412,6 @@ export class SelectionService {
 
     try {
       await this.redisClient.hset(key, field, JSON.stringify(photoInfo));
-      photo.remark = remark;
       await this.photoRepository.save(photo);
     } catch (err) {
       // 可以加一行日志记录一下
@@ -433,7 +432,6 @@ export class SelectionService {
 
     return {
       id: photo.id,
-      remark: photo.remark,
     };
   }
 

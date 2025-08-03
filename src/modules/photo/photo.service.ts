@@ -17,6 +17,7 @@ import {
   CommonErrorCode,
   DatabaseException,
 } from '../../common/exceptions/database.exception';
+import type { BulkUpdatePhotoPreselectStatusDto } from '../selection/dto/bulk-update-photo-preselect-status.dto';
 
 @Injectable()
 export class PhotoService {
@@ -237,5 +238,40 @@ export class PhotoService {
         taskId: compressJob.id,
       },
     };
+  }
+
+  // 更新照片预选状态
+  async updatePhotoPreSelectStatus(orderId: number, dto: BulkUpdatePhotoPreselectStatusDto) {
+    // 查找订单下匹配的照片
+    const matchedPhotos = await this.photoRepository.find({
+      where: {
+        id: In(dto.photos.map(photo => photo.id)),
+        order: { id: orderId },
+      },
+    });
+
+    // 判断是否有不存在的照片
+    if (matchedPhotos.length !== dto.photos.length) {
+      throw new DatabaseException(CommonErrorCode.NOT_FOUND, '部分照片不存在或不属于该订单');
+    }
+
+    // 更新照片预选状态
+    const updatedPhotos = matchedPhotos.map(photo => {
+      const dtoPhoto = dto.photos.find(p => p.id === photo.id);
+      if (dtoPhoto) {
+        photo.pre_select_status = dtoPhoto.status;
+      }
+      return photo
+    })
+
+
+    const result = await this.photoRepository.save(updatedPhotos);
+    return {
+      data: result.map(photo => ({
+        id: photo.id,
+        status: photo.pre_select_status
+      })),
+      msg: '更新预选状态成功',
+    }
   }
 }

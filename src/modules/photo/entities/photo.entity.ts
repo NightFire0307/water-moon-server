@@ -57,9 +57,6 @@ export class Photo {
   @Column({ type: 'boolean', default: false })
   is_deleted: boolean; // 是否删除
 
-  @Column({ default: '' })
-  remark: string;
-
   @CreateDateColumn()
   created_at: Date;
 

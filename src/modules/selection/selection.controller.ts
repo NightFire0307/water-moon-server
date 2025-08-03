@@ -24,6 +24,7 @@ import {
 import { Public } from '@/common/decorators/auth.decorator';
 import { OrderInfo } from '@/common/decorators/context.decorator';
 import { Pagination, PaginationQuery } from '@/common/decorators/pagination.decorator';
+import { BulkUpdatePhotoPreselectStatusDto } from './dto/bulk-update-photo-preselect-status.dto';
 
 @Controller('selection')
 @Public()
@@ -52,7 +53,7 @@ export class SelectionController {
         accessToken,
         order,
       },
-      message: '登录成功',
+      msg: '登录成功',
     }
   }
 
@@ -87,17 +88,13 @@ export class SelectionController {
     return await this.photoService.getPhotosByOrderId(orderId, pagination);
   }
 
-  // 更新照片选择
-  @Patch('photos')
+  // 更新照片预选标记
+  @Patch('photos/pre-select-status')
   @UseGuards(CustomLogin)
-  async updatePhotos(
+  async updatePhotoPreSelectStatus(
     @OrderInfo('orderId') orderId: number,
-    @Body() dto: ProductPhotoSelectionDto,
-  ) {
-    return await this.selectionService.updateSelectedPhotos(
-      orderId,
-      dto,
-    );
+    @Body() dto: BulkUpdatePhotoPreselectStatusDto) {
+    return await this.photoService.updatePhotoPreSelectStatus(orderId, dto);
   }
 
   // 更新照片备注
