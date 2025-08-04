@@ -124,13 +124,6 @@ export class SelectionController {
     return await this.selectionService.bulkAssignPhotosToOrderProduct(orderId, dto);
   }
 
-  // 获取照片备注
-  @Get('photos/:photoId/remark')
-  @UseGuards(CustomLogin)
-  async getPhotoRemarkById(@Param('photoId') photoId: number) {
-    return 'msg'
-  }
-
   // 锁定选片结果
   @Post(':orderId')
   @UseGuards(CustomLogin)

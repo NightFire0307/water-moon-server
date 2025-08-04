@@ -69,21 +69,21 @@ export class OrderService {
     is_admin: boolean = false,
   ) {
     try {
-      const { order_number, customer_name, customer_phone, status } = query;
+      const { orderNumber, customerName, customerPhone, status } = query;
 
       // 构建查询条件
       const where: any = {};
-      if (order_number) where.order_number = order_number;
-      if (customer_name) where.customer_name = customer_name;
-      if (customer_phone) where.customer_phone = customer_phone;
+      if (orderNumber) where.orderNumber = orderNumber;
+      if (customerName) where.customerName = customerName;
+      if (customerPhone) where.customerPhone = customerPhone;
       if (status !== undefined) where.status = status;
-      if (!is_admin) where.is_deleted = false;
+      if (!is_admin) where.isDeleted = false;
 
       const [orders, total] = await this.orderRepository.findAndCount({
         where,
         take: pagination.pageSize,
         skip: (pagination.current - 1) * pagination.pageSize,
-        order: { created_at: 'DESC' },
+        order: { createdAt: 'DESC' },
       });
 
       // Exit early if no orders found
@@ -104,11 +104,11 @@ export class OrderService {
         .createQueryBuilder('order')
         .where('order.id IN (:...orderIds)', { orderIds })
         .leftJoinAndSelect('order.photos', 'photos')
-        .leftJoinAndSelect('order.order_products', 'order_products')
+        .leftJoinAndSelect('order.orderProducts', 'orderProducts')
         .leftJoinAndSelect('order.links', 'link')
         .select('order.id', 'orderId')
         .addSelect('COUNT(DISTINCT photos.id)', 'total_photos')
-        .addSelect('COUNT(DISTINCT order_products.id)', 'product_count')
+        .addSelect('COUNT(DISTINCT orderProducts.id)', 'product_count')
         .addSelect('COUNT(DISTINCT link.id)', 'order_link_count')
         .groupBy('order.id')
         .cache(300);
@@ -145,12 +145,12 @@ export class OrderService {
 
   async createOrder(createOrderDto: CreateOrderDto) {
     const {
-      order_number,
-      customer_name,
-      customer_phone,
-      order_products,
-      max_select_photos,
-      extra_photo_price,
+      orderNumber,
+      customerName,
+      customerPhone,
+      orderProducts,
+      extraPhotoPrice,
+      maxSelectPhotos,
     } = createOrderDto;
 
     const queryRunner =
@@ -160,26 +160,26 @@ export class OrderService {
 
     const foundOrder = await this.orderRepository.findOne({
       where: {
-        order_number,
-        is_deleted: false,
+        orderNumber,
+        isDeleted: false,
       },
     });
 
     if (foundOrder) {
-      throw new DatabaseException(OrderErrorCode.ORDER_NUMBER_ALREADY_EXISTS);
+      throw new DatabaseException(OrderErrorCode.ORDER_NUMBER_ALREADY_EXISTS, '订单号已存在');
     }
 
     const order = this.orderRepository.create({
-      order_number,
-      customer_name,
-      customer_phone,
-      max_select_photos,
-      extra_photo_price,
+      orderNumber,
+      customerName,
+      customerPhone,
+      extraPhotoPrice,
+      maxSelectPhotos,
     });
     await queryRunner.manager.save(order);
 
-    // 获取order_products中的产品id
-    const productIds = [...new Set(order_products.map((item) => item.id))];
+    // 获取orderProducts中的产品id
+    const productIds = [...new Set(orderProducts.map((item) => item.id))];
 
     const foundProduct = await this.productRepository.find({
       where: {
@@ -191,8 +191,8 @@ export class OrderService {
       throw new DatabaseException(CommonErrorCode.NOT_FOUND, '查询不到产品');
     }
 
-    // 保存order_products
-    const order_products_data = order_products.map((item) => {
+    // 保存orderProducts
+    const orderProducts_data = orderProducts.map((item) => {
       const product = foundProduct.find((product) => product.id === item.id);
       if (!product) {
         throw new Error(`查询不到产品id: ${item.id}`);
@@ -205,14 +205,14 @@ export class OrderService {
       });
     });
     try {
-      await queryRunner.manager.save(order_products_data);
+      await queryRunner.manager.save(orderProducts_data);
 
       await queryRunner.commitTransaction();
 
       return {
         data: {
           ...order,
-          order_products: instanceToPlain(order_products_data),
+          orderProducts: instanceToPlain(orderProducts_data),
         },
       };
     } catch (e) {
@@ -228,9 +228,9 @@ export class OrderService {
       where: { id },
       relations: [
         'links',
-        'order_products',
-        'order_products.product',
-        'order_products.product.product_type',
+        'orderProducts',
+        'orderProducts.product',
+        'orderProducts.product.product_type',
       ],
     });
 
@@ -238,12 +238,12 @@ export class OrderService {
       throw new DatabaseException(CommonErrorCode.NOT_FOUND, '订单不存在');
 
     const [, total_photos] = await this.photoRepository.findAndCount({
-      where: { order: { id: order.id }, is_deleted: false },
+      where: { order: { id: order.id }, isDeleted: false },
     });
 
     return {
       ...order,
-      order_products: order.order_products.map((item) => {
+      orderProducts: order.orderProducts.map((item) => {
         const { product } = item;
         const { product_type, ...rest } = product;
         return {
@@ -262,12 +262,12 @@ export class OrderService {
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
-    const { order_products, ...rest } = updateOrderDto;
+    const { orderProducts, ...rest } = updateOrderDto;
     try {
       const order = await queryRunner.manager.findOne(Order,
         {
-          where: { id, is_deleted: false },
-          relations: ['order_products', 'order_products.product']
+          where: { id, isDeleted: false },
+          relations: ['orderProducts', 'orderProducts.product']
         }
       );
 
@@ -286,13 +286,13 @@ export class OrderService {
       await queryRunner.manager.update(Order, { id }, rest);
 
       // 删除原先订单产品关联的照片
-      for (const orderProduct of order.order_products) {
+      for (const orderProduct of order.orderProducts) {
         // 查询所有已关联的照片ID
         const orderProductWithPhotos = await queryRunner.manager.findOne(OrderProduct, {
           where: { id: orderProduct.id },
           relations: ['selected_photos'],
         });
-        const photoIds = orderProductWithPhotos.order_product_photos.map(photo => photo.id);
+        const photoIds = orderProductWithPhotos.orderProductPhotos.map(photo => photo.id);
 
         // 如果有已关联的照片，则解除关联
         if (photoIds.length > 0) {
@@ -307,7 +307,7 @@ export class OrderService {
       await queryRunner.manager.delete(OrderProduct, { order: { id } });
 
       // 添加新订单产品
-      for (const item of order_products) {
+      for (const item of orderProducts) {
         const product = await queryRunner.manager.findOne(Product, {
           where: { id: item.id }
         })
@@ -343,7 +343,7 @@ export class OrderService {
       throw new Error('订单不存在');
     }
 
-    await this.orderRepository.update({ id }, { is_deleted: true });
+    await this.orderRepository.update({ id }, { isDeleted: true });
 
     return '订单删除成功';
   }
@@ -359,7 +359,7 @@ export class OrderService {
       .createQueryBuilder('order')
       .where('order.id = :id', { id: orderId })
       .leftJoinAndSelect('order.photos', 'photo')
-      .leftJoinAndSelect('photo.order_products', 'photo_order_product')
+      .leftJoinAndSelect('photo.orderProducts', 'photo_order_product')
       .getOne();
 
     if (!order)
@@ -373,9 +373,9 @@ export class OrderService {
           for (const photo of order.photos) {
             await this.photoRepository
               .createQueryBuilder()
-              .relation(Photo, 'order_products')
+              .relation(Photo, 'orderProducts')
               .of(photo.id)
-              .remove(photo.order_product_photos);
+              .remove(photo.orderProductPhotos);
           }
         });
       }
@@ -401,13 +401,13 @@ export class OrderService {
       .createQueryBuilder('order')
       .where('order.id = :id', { id: orderId })
       .leftJoinAndSelect('order.photos', 'photo')
-      .leftJoinAndSelect('photo.order_products', 'photo_order_product')
+      .leftJoinAndSelect('photo.orderProducts', 'photo_order_product')
       .leftJoinAndSelect('photo_order_product.product', 'product')
       .select([
         'order.id',
-        'order.order_number',
-        'order.max_select_photos',
-        'order.extra_photo_price',
+        'order.orderNumber',
+        'order.extraPhotoPrice',
+        'order.extraPhotoPrice',
         'order.status',
         'photo.id',
         'photo.remark',
@@ -429,7 +429,7 @@ export class OrderService {
 
     // 获取 Redis 中订单所属的图片信息
     const redisOrderPhotos = await this.redisClient.hgetall(
-      `photos_url:${order.order_number}`,
+      `photos_url:${order.orderNumber}`,
     );
 
     // 转换照片链接信息
@@ -448,8 +448,8 @@ export class OrderService {
       return {
         ...photo,
         thumbnail_url,
-        status: photo.order_product_photos.length > 0 ? 'selected' : 'unSelected',
-        order_product_photos: photo.order_product_photos.map((orderProduct) => {
+        status: photo.orderProductPhotos.length > 0 ? 'selected' : 'unSelected',
+        orderProductPhotos: photo.orderProductPhotos.map((orderProduct) => {
           return {
             id: orderProduct.id,
             name: '',
@@ -476,8 +476,8 @@ export class OrderService {
       where: { id: orderId },
       relations: [
         'photos',
-        'photos.order_products',
-        'photos.order_products.product',
+        'photos.orderProducts',
+        'photos.orderProducts.product',
       ],
     });
 
@@ -500,8 +500,8 @@ export class OrderService {
     const productMap = new Map<string, string[]>();
 
     // for (const photo of order.photos) {
-    //   if (photo.order_product_photos.length > 0) {
-    //     for (const orderProduct of photo.order_product_photos) {
+    //   if (photo.orderProductPhotos.length > 0) {
+    //     for (const orderProduct of photo.orderProductPhotos) {
     //       if (!productMap.has(orderProduct.product.name)) {
     //         productMap.set(orderProduct.product.name, [photo.oss_file_key]);
     //       } else {
@@ -524,7 +524,7 @@ export class OrderService {
     }
 
     return {
-      orderNumber: order.order_number,
+      orderNumber: order.orderNumber,
       zipStream: passThrough,
       archive,
     };

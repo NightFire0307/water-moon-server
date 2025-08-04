@@ -56,7 +56,7 @@ export class SelectionService {
   // 选片常规登录(订单号和手机号)
   async selectionLogin(dto: SelectionLoginDto) {
     this.logger.log('选片登录请求');
-    const { login_type, short_url, order_number, credential } = dto
+    const { login_type, short_url, orderNumber, credential } = dto
     let order: Order;
 
     if (login_type === 'link') {
@@ -83,7 +83,7 @@ export class SelectionService {
       // 常规登录处理
       order = await this.orderRepository.findOne({
         where: {
-          order_number
+          orderNumber
         }
       })
 
@@ -93,7 +93,7 @@ export class SelectionService {
       }
 
       // 验证手机号
-      if (order.customer_phone !== credential) {
+      if (order.customerPhone !== credential) {
         throw new AuthException(AuthErrorCode.PHONE_ERROR, '手机号不匹配');
       }
 
@@ -178,25 +178,25 @@ export class SelectionService {
 
     const order = await this.orderRepository
       .createQueryBuilder('order')
-      .leftJoinAndSelect('order.order_products', 'order_products')
-      .leftJoinAndSelect('order_products.product', 'product')
+      .leftJoinAndSelect('order.orderProducts', 'orderProducts')
+      .leftJoinAndSelect('orderProducts.product', 'product')
       .leftJoinAndSelect('product.product_type', 'product_type')
-      .leftJoinAndSelect('order_products.selected_photos', 'select_photos')
+      .leftJoinAndSelect('orderProducts.orderProductPhotos', 'orderProductPhotos')
       .where('order.id = :orderId', { orderId })
       .select([
         'order.id',
-        'order.max_select_photos',
-        'order.extra_photo_price',
-        'order.order_number',
-        'order.customer_name',
-        'order.customer_phone',
+        'order.extraPhotoPrice',
+        'order.extraPhotoPrice',
+        'order.orderNumber',
+        'order.customerName',
+        'order.customerPhone',
         'order.status',
-        'order_products',
+        'orderProducts',
         'product.id',
         'product.name',
         'product.photo_limit',
         'product_type.name',
-        'select_photos.id',
+        'orderProductPhotos.id',
       ])
       .cache(true)
       .getOne();
@@ -212,19 +212,19 @@ export class SelectionService {
 
     return {
       ...order,
-      order_products: order.order_products.map((order_product) => {
-        return {
-          ...order_product,
-          product: {
-            ...order_product.product,
-            product_type: order_product.product.product_type.name,
-          },
-          selected_photos: order_product.order_product_photos.map(
-            (photo) => photo.id,
-          ),
-        };
-      }),
-      total_photos,
+      orderProducts: order.orderProducts.map((order_product) => ({
+        id: order_product.id,
+        count: order_product.count,
+        productId: order_product.product.id,
+        productName: order_product.product.name,
+        productType: order_product.product.product_type.name,
+        selectedPhotos: order_product.orderProductPhotos.map(photo => ({
+          id: photo.photo.id,
+          remark: photo.remark,
+        })),
+        photoLimit: order_product.product.photo_limit,
+      })),
+      totalPhotos: total_photos,
     };
   }
 
@@ -254,8 +254,8 @@ export class SelectionService {
           order: { id: orderId },
           id: orderProductId,
         },
-        relations: ['order_product_photos', 'product'],
-        select: ['id', 'order_product_photos'],
+        relations: ['orderProductPhotos', 'product'],
+        select: ['id', 'orderProductPhotos'],
       });
 
       if (!orderProduct) {
@@ -382,7 +382,7 @@ export class SelectionService {
         where: {
           order: { id: orderId },
         },
-        relations: ['order_product_photos']
+        relations: ['orderProductPhotos']
       })
 
       if (orderProducts.length === 0) {
@@ -391,7 +391,7 @@ export class SelectionService {
 
       // 清除所有订单产品照片
       await manager.getRepository(OrderProductPhoto).delete({
-        order_product: { id: In(orderProducts.map(op => op.id)) }
+        orderProduct: { id: In(orderProducts.map(op => op.id)) }
       })
     })
   }
@@ -406,7 +406,7 @@ export class SelectionService {
           id: In(dto.items.map(item => item.orderProductId)),
           order: { id: orderId }
         },
-        relations: ['order_product_photos', 'order_product_photos.photo', 'product'],
+        relations: ['orderProductPhotos', 'orderProductPhotos.photo', 'product'],
       })
 
       if (products.length !== dto.items.length) {
@@ -438,7 +438,7 @@ export class SelectionService {
 
         // 插入或更新订单产品照片
         const orderProductPhotos = item.photos.map(photo => {
-          const existingPhoto = orderProduct.order_product_photos.find(opPhoto => opPhoto.photo.id === photo.id);
+          const existingPhoto = orderProduct.orderProductPhotos.find(opPhoto => opPhoto.photo.id === photo.id);
           if (existingPhoto) {
             // 如果照片已经存在，则更新
             existingPhoto.remark = photo.remark
@@ -448,24 +448,24 @@ export class SelectionService {
             const newOrderProductPhoto = new OrderProductPhoto();
             newOrderProductPhoto.photo = photos.find(p => p.id === photo.id);
             newOrderProductPhoto.remark = photo.remark;
-            newOrderProductPhoto.order_product = orderProduct
+            newOrderProductPhoto.orderProduct = orderProduct
             return newOrderProductPhoto;
           }
         });
 
         // 更新订单产品的照片列表
-        orderProduct.order_product_photos = orderProductPhotos
+        orderProduct.orderProductPhotos = orderProductPhotos
 
         // 获取当前订单产品的照片ID列表
         const currentPhotoIds = item.photos.map(photo => photo.id);
         // 删除不存在前端数据的照片
-        const toDelete = orderProduct.order_product_photos.filter(orderProductPhoto => !currentPhotoIds.includes(orderProductPhoto.photo.id));
+        const toDelete = orderProduct.orderProductPhotos.filter(orderProductPhoto => !currentPhotoIds.includes(orderProductPhoto.photo.id));
         if (toDelete.length > 0) {
           await manager.remove(OrderProductPhoto, toDelete);
         }
 
         // 保存
-        await manager.save(orderProduct.order_product_photos)
+        await manager.save(orderProduct.orderProductPhotos)
       }
     })
 

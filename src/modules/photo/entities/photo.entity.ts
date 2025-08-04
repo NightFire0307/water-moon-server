@@ -42,7 +42,7 @@ export class Photo {
     (op) => op.photo,
     { cascade: true }
   )
-  order_product_photos: OrderProductPhoto[];
+  orderProductPhotos: OrderProductPhoto[];
 
   @Column({
     type: 'enum',
@@ -55,7 +55,7 @@ export class Photo {
   is_recommended: boolean; // 是否推荐
 
   @Column({ type: 'boolean', default: false })
-  is_deleted: boolean; // 是否删除
+  isDeleted: boolean; // 是否删除
 
   @CreateDateColumn()
   created_at: Date;

@@ -13,7 +13,7 @@ export class FileDto {
 export class FileArrayDto {
   @IsString()
   @IsNotEmpty()
-  order_number: string;
+  orderNumber: string;
 
   @IsArray()
   @IsNotEmpty()

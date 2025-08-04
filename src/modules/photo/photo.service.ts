@@ -52,7 +52,7 @@ export class PhotoService {
 
     // 获取 Redis 中订单照片 OSS URL
     const oss_all_lists = await this.redisClient.hgetall(
-      `photos_url:${order.order_number}`,
+      `photos_url:${order.orderNumber}`,
     );
 
     const total = Object.keys(oss_all_lists).length;
@@ -73,15 +73,15 @@ export class PhotoService {
       if (expireAt.diff(now, 's') <= 10) {
         console.log('链接过期，重新生成链接');
         photo.thumbnail_url = await this.minioService.generateGetUrl(
-          `${order.order_number}/thumbnail_${photo.file_name}`,
+          `${order.orderNumber}/thumbnail_${photo.file_name}`,
         );
         photo.original_url = await this.minioService.generateGetUrl(
-          `${order.order_number}/${photo.file_name}`,
+          `${order.orderNumber}/${photo.file_name}`,
         );
 
         // 更新 Redis 中照片 URL
         await this.redisClient.hset(
-          `photos_url:${order.order_number}`,
+          `photos_url:${order.orderNumber}`,
           photo.id,
           JSON.stringify({
             file_name: photo.file_name,
@@ -110,7 +110,7 @@ export class PhotoService {
     const order = await this.getOrderById(orderId);
 
     // 删除 Redis 中的照片 URL
-    const photoUrlsRedisKey = `photos_url:${order.order_number}`;
+    const photoUrlsRedisKey = `photos_url:${order.orderNumber}`;
     const photoUrlsHash = await this.redisClient.hgetall(photoUrlsRedisKey);
     const redisPipeline = this.redisClient.pipeline();
     for (const photoId in photoUrlsHash) {
@@ -126,7 +126,7 @@ export class PhotoService {
         const batch = photoIds.slice(i, i + batchSize);
         await this.photoRepository.update(
           { id: In(batch), order: { id: orderId } },
-          { is_deleted: true },
+          { isDeleted: true },
         );
       }
     } catch (e) {
@@ -149,7 +149,7 @@ export class PhotoService {
 
     // 修改 Redis 中照片推荐状态
     const photosUrl = await this.redisClient.hgetall(
-      `photos_url:${order.order_number}`,
+      `photos_url:${order.orderNumber}`,
     );
     const pipeline = this.redisClient.pipeline();
     for (const photoId in photosUrl) {
@@ -157,7 +157,7 @@ export class PhotoService {
         const photo = JSON.parse(photosUrl[photoId]);
         photo.is_recommend = isRecommended;
         pipeline.hset(
-          `photos_url:${order.order_number}`,
+          `photos_url:${order.orderNumber}`,
           photoId,
           JSON.stringify(photo),
         );
@@ -204,7 +204,7 @@ export class PhotoService {
       newPhoto.name = file_name;
       newPhoto.size = file.size;
       newPhoto.order = order;
-      newPhoto.oss_file_key = `${order.order_number}/${file.originalname}`;
+      newPhoto.oss_file_key = `${order.orderNumber}/${file.originalname}`;
       photo = await this.photoRepository.save(newPhoto);
     }
 
@@ -213,7 +213,7 @@ export class PhotoService {
       id: photo.id,
       uid,
       file_buffer: file.buffer,
-      order_number: order.order_number,
+      orderNumber: order.orderNumber,
       is_recommend: photo.is_recommended,
       file_name,
       remark: '',

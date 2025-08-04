@@ -11,7 +11,7 @@ import {
 import { Photo } from '../../photo/entities/photo.entity';
 import { OrderProduct } from './orderProduct.entity';
 import { Link } from '../../link/entities/link.entity';
-import { Exclude } from 'class-transformer'; // 引用照片集实体
+import { Exclude, Expose } from 'class-transformer'; // 引用照片集实体
 
 export enum OrderStatus {
   PENDING = 0, // 订单已创建，等待用户选片
@@ -23,21 +23,21 @@ export enum OrderStatus {
 }
 
 @Entity('orders')
-@Unique(['order_number'])
+@Unique(['orderNumber'])
 export class Order {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column()
-  order_number: string;
+  @Column({ name: 'order_number' })
+  orderNumber: string;
 
   // 客户姓名
-  @Column()
-  customer_name: string;
+  @Column({ name: 'customer_name' })
+  customerName: string;
 
   // 客户手机号
-  @Column()
-  customer_phone: string;
+  @Column({ name: 'customer_phone' })
+  customerPhone: string;
 
   @OneToMany(() => Photo, (photo) => photo.order, { cascade: true })
   @JoinColumn({ name: 'order_photos' })
@@ -46,13 +46,14 @@ export class Order {
   @OneToMany(() => OrderProduct, (orderProduct) => orderProduct.order, {
     cascade: true,
   })
-  order_products: OrderProduct[];
+  @JoinColumn({ name: 'order_products' })
+  orderProducts: OrderProduct[];
 
-  @Column({ type: 'int', default: 0 })
-  max_select_photos: number; // 最多可选照片数
+  @Column({ name: 'max_select_photos', type: 'int', default: 0 })
+  maxSelectPhotos: number; // 最多可选照片数
 
-  @Column({ type: 'float', default: 0 })
-  extra_photo_price: number; // 超出照片的单张价格
+  @Column({ name: 'extra_photo_price', type: 'float', default: 0 })
+  extraPhotoPrice: number; // 超出照片的单张价格
 
   @Column({ type: 'enum', enum: OrderStatus, default: OrderStatus.PENDING })
   status: OrderStatus; // 订单状态
@@ -63,13 +64,13 @@ export class Order {
   })
   links: Link[];
 
-  @Column({ type: 'boolean', default: false })
+  @Column({ name: 'is_deleted', type: 'boolean', default: false })
   @Exclude()
-  is_deleted: boolean; // 是否已删除
+  isDeleted: boolean; // 是否已删除
 
-  @CreateDateColumn()
-  created_at: Date;
+  @CreateDateColumn({ name: 'created_at' })
+  createdAt: Date;
 
-  @UpdateDateColumn()
-  updated_at: Date;
+  @UpdateDateColumn({ name: 'updated_at' })
+  updatedAt: Date;
 }

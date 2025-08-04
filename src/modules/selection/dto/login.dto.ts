@@ -10,7 +10,7 @@ export class SelectionLoginDto {
 
   @IsString()
   @IsOptional()
-  order_number?: string
+  orderNumber?: string
 
   @IsString()
   credential: string;

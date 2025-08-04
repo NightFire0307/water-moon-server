@@ -47,7 +47,7 @@ export class LinkService {
 
     // 生成短链接
     const buffer = Buffer.from(
-      `${order.id}_${order.order_number}_${crypto.randomBytes(6)}`,
+      `${order.id}_${order.orderNumber}_${crypto.randomBytes(6)}`,
       'utf-8',
     );
     const short_url = bs62.encode(buffer);
@@ -64,7 +64,7 @@ export class LinkService {
     const result = await this.linkRepository.save(link);
 
     await this.redisService.addShareLink(
-      order.order_number,
+      order.orderNumber,
       link.share_url,
       link.share_password,
       access_limit ?? 0,

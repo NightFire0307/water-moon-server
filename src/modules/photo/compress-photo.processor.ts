@@ -20,7 +20,7 @@ export interface CompressPhotoJobData {
   uid: string;
   file_name: string;
   file_buffer: Buffer;
-  order_number: string;
+  orderNumber: string;
   is_recommend: boolean;
   thumbnail_url?: string;
   original_url?: string;
@@ -75,7 +75,7 @@ export class CompressPhotoProcessor extends WorkerHost {
     const { orderId, photoIds, isRecommended } = data;
     try {
       await this.photoRepository.update(
-        { id: In(photoIds), order: { id: orderId }, is_deleted: false },
+        { id: In(photoIds), order: { id: orderId }, isDeleted: false },
         { is_recommended: isRecommended },
       );
     } catch (e) {
@@ -90,7 +90,7 @@ export class CompressPhotoProcessor extends WorkerHost {
       uid,
       file_name,
       file_buffer,
-      order_number,
+      orderNumber,
       is_recommend,
       remark,
     } = data;
@@ -108,33 +108,33 @@ export class CompressPhotoProcessor extends WorkerHost {
       await Promise.all([
         this.minioService.uploadImage(
           compressImageBuffer,
-          `${order_number}/thumbnail_${file_name}`,
+          `${orderNumber}/thumbnail_${file_name}`,
         ),
         this.minioService.uploadImage(
           Buffer.from(file_buffer),
-          `${order_number}/${file_name}`,
+          `${orderNumber}/${file_name}`,
         ),
       ]);
 
       // Redis 存储上传完成的图片数量
-      await this.redisClient.incr(`photos_count:${order_number}`);
+      await this.redisClient.incr(`photos_count:${orderNumber}`);
 
       // 设置图片过期时间
       const expires = 24 * 60 * 60 * 7;
 
       // 获取下载链接
       const thumbnail_url = await this.minioService.generateGetUrl(
-        `${order_number}/thumbnail_${file_name}`,
+        `${orderNumber}/thumbnail_${file_name}`,
         expires,
       );
       const original_url = await this.minioService.generateGetUrl(
-        `${order_number}/${file_name}`,
+        `${orderNumber}/${file_name}`,
         expires,
       );
 
       // 图片临时链接存入 Redis
       await this.redisClient.hset(
-        `photos_url:${order_number}`,
+        `photos_url:${orderNumber}`,
         id,
         JSON.stringify({
           file_name,
@@ -151,7 +151,7 @@ export class CompressPhotoProcessor extends WorkerHost {
         id,
         uid,
         is_recommend,
-        order_number,
+        orderNumber,
         file_name,
         thumbnail_url,
         original_url,
@@ -166,13 +166,13 @@ export class CompressPhotoProcessor extends WorkerHost {
   async urlRefreshJob({ orderId, photoId }: UrlRefreshJobData) {
     try {
       const order = await this.orderRepository.findOne({
-        where: { id: orderId, is_deleted: false },
+        where: { id: orderId, isDeleted: false },
       });
 
       if (!order) return;
 
       const photo = await this.photoRepository.findOne({
-        where: { id: photoId, order: { id: orderId }, is_deleted: false },
+        where: { id: photoId, order: { id: orderId }, isDeleted: false },
       });
 
       if (!photo) return;
@@ -182,17 +182,17 @@ export class CompressPhotoProcessor extends WorkerHost {
 
       // 重新创建链接
       const thumbnail_url = await this.minioService.generateGetUrl(
-        `${order.order_number}/thumbnail_${photo.name}`,
+        `${order.orderNumber}/thumbnail_${photo.name}`,
         expires,
       );
       const original_url = await this.minioService.generateGetUrl(
-        `${order.order_number}/${photo.name}`,
+        `${order.orderNumber}/${photo.name}`,
         expires,
       );
 
       // 更新 Redis 中照片 URL
       await this.redisClient.hset(
-        `photos_url:${order.order_number}`,
+        `photos_url:${order.orderNumber}`,
         photo.id,
         JSON.stringify({
           file_name: photo.name,
