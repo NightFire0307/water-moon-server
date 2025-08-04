@@ -204,7 +204,7 @@ export class PhotoService {
       newPhoto.name = file_name;
       newPhoto.size = file.size;
       newPhoto.order = order;
-      newPhoto.oss_file_key = `${order.orderNumber}/${file.originalname}`;
+      newPhoto.ossFileKey = `${order.orderNumber}/${file.originalname}`;
       photo = await this.photoRepository.save(newPhoto);
     }
 
@@ -214,7 +214,7 @@ export class PhotoService {
       uid,
       file_buffer: file.buffer,
       orderNumber: order.orderNumber,
-      is_recommend: photo.is_recommended,
+      is_recommend: photo.isRecommended,
       file_name,
       remark: '',
     });
@@ -259,7 +259,7 @@ export class PhotoService {
     const updatedPhotos = matchedPhotos.map(photo => {
       const dtoPhoto = dto.photos.find(p => p.id === photo.id);
       if (dtoPhoto) {
-        photo.pre_select_status = dtoPhoto.status;
+        photo.preSelectStatus = dtoPhoto.status;
       }
       return photo
     })
@@ -269,7 +269,7 @@ export class PhotoService {
     return {
       data: result.map(photo => ({
         id: photo.id,
-        status: photo.pre_select_status
+        status: photo.preSelectStatus
       })),
       msg: '更新预选状态成功',
     }

@@ -25,8 +25,8 @@ export class Photo {
   @Column()
   name: string; // 照片名称
 
-  @Column()
-  oss_file_key: string; // OSS存储的文件键
+  @Column({ name: 'oss_file_key' })
+  ossFileKey: string; // OSS存储的文件键
 
   @Column()
   size: number;
@@ -45,21 +45,22 @@ export class Photo {
   orderProductPhotos: OrderProductPhoto[];
 
   @Column({
+    name: 'pre_select_status',
     type: 'enum',
     enum: PreSelectStatus,
     default: PreSelectStatus.PENDING,
   })
-  pre_select_status: PreSelectStatus; // 预选状态
+  preSelectStatus: PreSelectStatus; // 预选状态
 
-  @Column({ default: false })
-  is_recommended: boolean; // 是否推荐
+  @Column({ name: 'is_recommended', default: false })
+  isRecommended: boolean; // 是否推荐
 
   @Column({ type: 'boolean', default: false })
   isDeleted: boolean; // 是否删除
 
-  @CreateDateColumn()
-  created_at: Date;
+  @CreateDateColumn({ name: 'created_at' })
+  createdAt: Date;
 
-  @UpdateDateColumn()
-  updated_at: Date;
+  @UpdateDateColumn({ name: 'updated_at' })
+  updatedAt: Date;
 }

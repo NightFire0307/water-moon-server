@@ -174,8 +174,6 @@ export class SelectionService {
 
   // 获取选片订单信息
   async getOrderInfo(orderId: number) {
-    console.log(orderId);
-
     const order = await this.orderRepository
       .createQueryBuilder('order')
       .leftJoinAndSelect('order.orderProducts', 'orderProducts')
@@ -209,6 +207,8 @@ export class SelectionService {
 
     if (!order)
       throw new DatabaseException(CommonErrorCode.NOT_FOUND, { orderId });
+
+    console.log(order)
 
     return {
       ...order,
@@ -355,7 +355,7 @@ export class SelectionService {
       const photos = await manager.getRepository(Photo).find({
         where: {
           order: { id: orderId },
-          pre_select_status: Not(PreSelectStatus.PENDING)
+          preSelectStatus: Not(PreSelectStatus.PENDING)
         }
       })
 
@@ -365,7 +365,7 @@ export class SelectionService {
 
       // 清除照片的预选状态
       for (const photo of photos) {
-        photo.pre_select_status = PreSelectStatus.PENDING;
+        photo.preSelectStatus = PreSelectStatus.PENDING;
       }
 
       await manager.save(photos);
@@ -424,7 +424,7 @@ export class SelectionService {
         where: {
           id: In(photoIds),
           order: { id: orderId },
-          pre_select_status: PreSelectStatus.SELECTED
+          preSelectStatus: PreSelectStatus.SELECTED
         }
       })
 

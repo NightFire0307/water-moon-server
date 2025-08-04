@@ -2,7 +2,7 @@ import { Photo } from "@/modules/photo/entities/photo.entity";
 import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
 import { OrderProduct } from "./orderProduct.entity";
 
-@Entity('orderProductPhotos')
+@Entity('order_product_photos')
 export class OrderProductPhoto {
   @PrimaryGeneratedColumn()
   id: number

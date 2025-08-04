@@ -11,7 +11,7 @@ import {
 import { Photo } from '../../photo/entities/photo.entity';
 import { OrderProduct } from './orderProduct.entity';
 import { Link } from '../../link/entities/link.entity';
-import { Exclude, Expose } from 'class-transformer'; // 引用照片集实体
+import { Exclude } from 'class-transformer'; // 引用照片集实体
 
 export enum OrderStatus {
   PENDING = 0, // 订单已创建，等待用户选片
@@ -40,13 +40,11 @@ export class Order {
   customerPhone: string;
 
   @OneToMany(() => Photo, (photo) => photo.order, { cascade: true })
-  @JoinColumn({ name: 'order_photos' })
   photos: Photo[];
 
   @OneToMany(() => OrderProduct, (orderProduct) => orderProduct.order, {
     cascade: true,
   })
-  @JoinColumn({ name: 'order_products' })
   orderProducts: OrderProduct[];
 
   @Column({ name: 'max_select_photos', type: 'int', default: 0 })

@@ -2,7 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Order, OrderStatus } from './entities/order.entity';
-import { In, Repository, DataSource, Between } from 'typeorm';
+import { In, Repository, DataSource } from 'typeorm';
 import { Product } from '../product/entities/product.entity';
 import { PaginationQuery } from '@/common/decorators/pagination.decorator';
 import { OrderProduct } from './entities/orderProduct.entity';
@@ -70,6 +70,7 @@ export class OrderService {
   ) {
     try {
       const { orderNumber, customerName, customerPhone, status } = query;
+      const { pageSize, current, skip, take } = pagination
 
       // 构建查询条件
       const where: any = {};
@@ -81,8 +82,8 @@ export class OrderService {
 
       const [orders, total] = await this.orderRepository.findAndCount({
         where,
-        take: pagination.pageSize,
-        skip: (pagination.current - 1) * pagination.pageSize,
+        take,
+        skip,
         order: { createdAt: 'DESC' },
       });
 
@@ -127,16 +128,17 @@ export class OrderService {
 
         return {
           ...order,
-          total_photos: +count_item.total_photos,
-          product_count: +count_item.product_count,
-          link_status: +count_item.order_link_count > 0,
+          totalPhotos: +count_item.total_photos,
+          productCount: +count_item.product_count,
+          linkStatus: +count_item.order_link_count > 0,
         };
       });
 
       return {
         list: order_map,
         total,
-        ...pagination,
+        pageSize,
+        current,
       }
     } catch {
       throw new DatabaseException(PhotoErrorCode.PHOTO_UPDATE_FAILED);
@@ -503,9 +505,9 @@ export class OrderService {
     //   if (photo.orderProductPhotos.length > 0) {
     //     for (const orderProduct of photo.orderProductPhotos) {
     //       if (!productMap.has(orderProduct.product.name)) {
-    //         productMap.set(orderProduct.product.name, [photo.oss_file_key]);
+    //         productMap.set(orderProduct.product.name, [photo.ossFileKey]);
     //       } else {
-    //         productMap.get(orderProduct.product.name)?.push(photo.oss_file_key);
+    //         productMap.get(orderProduct.product.name)?.push(photo.ossFileKey);
     //       }
     //     }
     //   }

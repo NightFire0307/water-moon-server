@@ -11,7 +11,7 @@ import { Order } from './order.entity';
 import { Exclude } from 'class-transformer';
 import { OrderProductPhoto } from './orderProductPhotos.entity'
 
-@Entity('orderProducts')
+@Entity('order_products')
 export class OrderProduct {
   @PrimaryGeneratedColumn()
   @Exclude()
@@ -20,16 +20,16 @@ export class OrderProduct {
   @ManyToOne(() => Order, (order) => order.orderProducts, {
     onDelete: 'CASCADE',
   })
-  @Exclude()
+  @JoinColumn({ name: 'order_id' })
   order: Order;
 
   @ManyToOne(() => Product, (product) => product.orderProducts, {
     onDelete: 'CASCADE',
   })
+  @JoinColumn({ name: 'product_id' })
   product: Product;
 
   @OneToMany(() => OrderProductPhoto, (opp) => opp.orderProduct, { cascade: true })
-  @JoinColumn({ name: 'order_product_photos' })
   orderProductPhotos: OrderProductPhoto[]; // 关联的照片
 
   // 数量

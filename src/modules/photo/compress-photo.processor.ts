@@ -76,7 +76,7 @@ export class CompressPhotoProcessor extends WorkerHost {
     try {
       await this.photoRepository.update(
         { id: In(photoIds), order: { id: orderId }, isDeleted: false },
-        { is_recommended: isRecommended },
+        { isRecommended: isRecommended },
       );
     } catch (e) {
       throw new DatabaseException(CommonErrorCode.DATABASE_ERROR, e);
@@ -198,7 +198,7 @@ export class CompressPhotoProcessor extends WorkerHost {
           file_name: photo.name,
           thumbnail_url,
           original_url,
-          is_recommend: photo.is_recommended,
+          is_recommend: photo.isRecommended,
           expires: dayjs().add(30, 's').valueOf(),
           remark: '',
         }),
