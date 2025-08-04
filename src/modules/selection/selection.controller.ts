@@ -15,7 +15,6 @@ import { SelectionService } from './selection.service';
 import { SelectionLoginDto } from './dto/login.dto';
 import { Request, Response } from 'express';
 import { CustomLogin } from './guard/custom-login.guard';
-import { SelectionRemarkUpdateDto } from './dto/selection-remark-update.dto';
 import { PhotoService } from '../photo/photo.service';
 import {
   AuthErrorCode,
@@ -97,6 +96,24 @@ export class SelectionController {
     return await this.photoService.updatePhotoPreSelectStatus(orderId, dto);
   }
 
+  // 重置预选照片
+  @Post('photos/pre-select/reset')
+  @UseGuards(CustomLogin)
+  async resetOrderPreSelect(
+    @OrderInfo('orderId') orderId: number
+  ) {
+    return await this.selectionService.resetOrderPreSelect(orderId);
+  }
+
+  // 重置产品选片
+  @Post('order-product/reset')
+  @UseGuards(CustomLogin)
+  async resetOrderProductPhotos(
+    @OrderInfo('orderId') orderId: number,
+  ) {
+    return await this.selectionService.resetOrderProductPhotos(orderId);
+  }
+
   // 更新产品照片
   @Post('order-product/photos')
   @UseGuards(CustomLogin)
@@ -107,34 +124,11 @@ export class SelectionController {
     return await this.selectionService.bulkAssignPhotosToOrderProduct(orderId, dto);
   }
 
-  // 更新照片备注
-  @Patch('photos/remark')
-  @UseGuards(CustomLogin)
-  async updatePhotoRemark(
-    @OrderInfo('orderId') orderId: number,
-    @Body() remarkUpdateDto: SelectionRemarkUpdateDto,
-  ) {
-    return await this.selectionService.updatePhotoRemark(
-      orderId,
-      remarkUpdateDto,
-    );
-  }
-
   // 获取照片备注
-  @Get('photos/:photoId/remark/')
+  @Get('photos/:photoId/remark')
   @UseGuards(CustomLogin)
   async getPhotoRemarkById(@Param('photoId') photoId: number) {
-    return await this.selectionService.getPhotoRemarkById(photoId);
-  }
-
-  // 移除照片下所有的标记
-  @Patch('photos/:photoId/remove-all-tag')
-  @UseGuards(CustomLogin)
-  async removeAllTags(
-    @OrderInfo('orderId') orderId: number,
-    @Param('photoId') photoId: number,
-  ) {
-    return await this.selectionService.removeAllTags(orderId, photoId);
+    return 'msg'
   }
 
   // 锁定选片结果

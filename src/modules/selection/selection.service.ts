@@ -3,14 +3,13 @@ import basex from 'base-x';
 import { Redis } from 'ioredis';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Order, OrderStatus } from '../order/entities/order.entity';
-import { In, Repository, DataSource } from 'typeorm';
+import { In, Repository, DataSource, Not } from 'typeorm';
 import { SelectionLoginDto } from './dto/login.dto';
 import { JwtService } from '@nestjs/jwt';
 import { Photo, PreSelectStatus } from '../photo/entities/photo.entity';
 import { Product } from '../product/entities/product.entity';
 import { OrderProduct } from '../order/entities/orderProduct.entity';
 import { ProductPhotoSelectionDto } from './dto/selection-photos-update.dto';
-import { SelectionRemarkUpdateDto } from './dto/selection-remark-update.dto';
 import {
   CommonErrorCode,
   DatabaseException,
@@ -328,36 +327,6 @@ export class SelectionService {
     return order;
   }
 
-  // 移除照片所有的产品标记
-  async removeAllTags(orderId: number, photoId: number) {
-    const orderProducts = await this.orderProductRepository.find({
-      where: {
-        order: { id: orderId },
-      },
-      relations: ['selected_photos'],
-    });
-
-    if (orderProducts.length === 0) {
-      throw new BadRequestException('没有找到与该照片关联的订单产品');
-    }
-
-    // console.log(orderProducts[0].selected_photos);
-
-    // await this.orderProductRepository.manager.transaction(
-    //   async (transactionalEntityManager) => {
-    //     for (const orderProduct of orderProducts) {
-    //       orderProduct.selected_photos = orderProduct.selected_photos.filter(
-    //         (photo) => photo.id !== photoId,
-    //       );
-    //       console.log(orderProduct.selected_photos);
-    //       await transactionalEntityManager.save(orderProduct);
-    //     }
-    //   },
-    // );
-
-    return '成功移除所有与该照片关联的订单产品';
-  }
-
   // 锁定选片结果
   async submitOrder(orderId: number) {
     const order = await this.findOrderById(orderId);
@@ -376,79 +345,55 @@ export class SelectionService {
     throw new BadRequestException('当前订单状态不允许锁定');
   }
 
-  async updatePhotoRemark(
-    orderId: number,
-    { photoId, remark }: SelectionRemarkUpdateDto,
-  ) {
-    const order = await this.orderRepository.findOneBy({ id: orderId });
+  /**
+   * 重置照片预选状态
+   * 注：重置照片预选需要一并清除照片的产品标记
+   * @param orderId 
+   */
+  async resetOrderPreSelect(orderId: number) {
+    await this.dataSource.transaction(async (manager) => {
+      const photos = await manager.getRepository(Photo).find({
+        where: {
+          order: { id: orderId },
+          pre_select_status: Not(PreSelectStatus.PENDING)
+        }
+      })
 
-    if (!order) {
-      throw new DatabaseException(CommonErrorCode.NOT_FOUND, '当前订单不存在');
-    }
+      if (photos.length === 0) {
+        throw new DatabaseException(CommonErrorCode.NOT_FOUND, '没有找到符合重置条件的预选照片');
+      }
 
-    const photo = await this.getPhotoById(photoId);
-    const key = `photos_url:${order.order_number}`;
-    const field = photoId.toString();
+      // 清除照片的预选状态
+      for (const photo of photos) {
+        photo.pre_select_status = PreSelectStatus.PENDING;
+      }
 
-    const jsonStr = await this.redisClient.hget(key, field);
-
-    // 判断 Redis 中是否有数据
-    if (!jsonStr) {
-      throw new DatabaseException(
-        CommonErrorCode.NOT_FOUND,
-        '照片数据不存在或已失效',
-      );
-    }
-
-    let photoInfo;
-    try {
-      photoInfo = JSON.parse(jsonStr);
-    } catch {
-      throw new DatabaseException(
-        CommonErrorCode.DATABASE_ERROR,
-        '照片数据格式错误',
-      );
-    }
-
-    photoInfo.remark = remark;
-
-    try {
-      await this.redisClient.hset(key, field, JSON.stringify(photoInfo));
-      await this.photoRepository.save(photo);
-    } catch (err) {
-      // 可以加一行日志记录一下
-      throw new DatabaseException(
-        CommonErrorCode.DATABASE_ERROR,
-        err?.message ?? '更新失败',
-      );
-    }
-
-    return {
-      data: photoId,
-      msg: '更新备注成功',
-    };
+      await manager.save(photos);
+    })
   }
 
-  async getPhotoRemarkById(photoId: number) {
-    const photo = await this.getPhotoById(photoId);
+  /**
+   * 重置订单产品所有的照片分配
+   */
+  async resetOrderProductPhotos(orderId: number) {
+    // 开始事务更新
+    await this.dataSource.transaction(async (manager) => {
+      const orderProducts = await manager.getRepository(OrderProduct).find({
+        where: {
+          order: { id: orderId },
+        },
+        relations: ['order_product_photos']
+      })
 
-    return {
-      id: photo.id,
-    };
-  }
+      if (orderProducts.length === 0) {
+        throw new DatabaseException(CommonErrorCode.NOT_FOUND, '订单产品不存在');
+      }
 
-  private async getPhotoById(photoId: number) {
-    const photo = await this.photoRepository.findOne({
-      where: {
-        id: photoId,
-      },
-    });
-
-    if (!photo) {
-      throw new DatabaseException(CommonErrorCode.NOT_FOUND, '照片不存在');
-    }
-
-    return photo;
+      // 清除所有订单产品照片
+      await manager.getRepository(OrderProductPhoto).delete({
+        order_product: { id: In(orderProducts.map(op => op.id)) }
+      })
+    })
   }
 
   // 批量分配照片到订单产品
@@ -490,9 +435,6 @@ export class SelectionService {
       for (const item of dto.items) {
         // 获取对应的订单产品
         const orderProduct = products.find(product => product.id === item.orderProductId)
-
-        console.log(photos)
-        console.log(orderProduct.order_product_photos)
 
         // 插入或更新订单产品照片
         const orderProductPhotos = item.photos.map(photo => {
