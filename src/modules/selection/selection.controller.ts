@@ -104,7 +104,7 @@ export class SelectionController {
     @OrderInfo('orderId') orderId: number,
     @Body() dto: AssignOrderProductPhotosDto
   ) {
-    console.log(orderId, dto)
+    return await this.selectionService.bulkAssignPhotosToOrderProduct(orderId, dto);
   }
 
   // 更新照片备注

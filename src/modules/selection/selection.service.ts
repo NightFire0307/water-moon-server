@@ -6,7 +6,7 @@ import { Order, OrderStatus } from '../order/entities/order.entity';
 import { In, Repository, DataSource } from 'typeorm';
 import { SelectionLoginDto } from './dto/login.dto';
 import { JwtService } from '@nestjs/jwt';
-import { Photo } from '../photo/entities/photo.entity';
+import { Photo, PreSelectStatus } from '../photo/entities/photo.entity';
 import { Product } from '../product/entities/product.entity';
 import { OrderProduct } from '../order/entities/orderProduct.entity';
 import { ProductPhotoSelectionDto } from './dto/selection-photos-update.dto';
@@ -24,6 +24,8 @@ import {
 } from '../../common/exceptions/auth.exception';
 import { Link } from '../link/entities/link.entity';
 import * as dayjs from 'dayjs';
+import type { AssignOrderProductPhotosDto } from './dto/assign-order-product-photos.dto';
+import { OrderProductPhoto } from '../order/entities/orderProductPhotos.entity';
 
 @Injectable()
 export class SelectionService {
@@ -447,5 +449,84 @@ export class SelectionService {
     }
 
     return photo;
+  }
+
+  // 批量分配照片到订单产品
+  async bulkAssignPhotosToOrderProduct(orderId: number, dto: AssignOrderProductPhotosDto) {
+    // 开始事务更新
+    await this.dataSource.transaction(async (manager) => {
+      // 验证所要更新的产品是否都存在
+      const products = await manager.getRepository(OrderProduct).find({
+        where: {
+          id: In(dto.items.map(item => item.orderProductId)),
+          order: { id: orderId }
+        },
+        relations: ['order_product_photos', 'order_product_photos.photo', 'product'],
+      })
+
+      if (products.length !== dto.items.length) {
+        throw new DatabaseException(CommonErrorCode.NOT_FOUND, '部分订单产品不存在');
+      }
+
+      // 验证照片是否存在或者重复 并且预选状态为选中
+      const photoIds = dto.items.flatMap(item => item.photos.map(photo => photo.id));
+
+      if (photoIds.length !== new Set(photoIds).size) {
+        throw new BadRequestException('包含重复的照片ID');
+      }
+
+      const photos = await manager.getRepository(Photo).find({
+        where: {
+          id: In(photoIds),
+          order: { id: orderId },
+          pre_select_status: PreSelectStatus.SELECTED
+        }
+      })
+
+      if (photos.length !== photoIds.length) {
+        throw new DatabaseException(CommonErrorCode.NOT_FOUND, '部分照片不存在或未选中');
+      }
+
+      for (const item of dto.items) {
+        // 获取对应的订单产品
+        const orderProduct = products.find(product => product.id === item.orderProductId)
+
+        console.log(photos)
+        console.log(orderProduct.order_product_photos)
+
+        // 插入或更新订单产品照片
+        const orderProductPhotos = item.photos.map(photo => {
+          const existingPhoto = orderProduct.order_product_photos.find(opPhoto => opPhoto.photo.id === photo.id);
+          if (existingPhoto) {
+            // 如果照片已经存在，则更新
+            existingPhoto.remark = photo.remark
+            return existingPhoto;
+          } else {
+            // 如果照片不存在，则创建新的订单产品照片
+            const newOrderProductPhoto = new OrderProductPhoto();
+            newOrderProductPhoto.photo = photos.find(p => p.id === photo.id);
+            newOrderProductPhoto.remark = photo.remark;
+            newOrderProductPhoto.order_product = orderProduct
+            return newOrderProductPhoto;
+          }
+        });
+
+        // 更新订单产品的照片列表
+        orderProduct.order_product_photos = orderProductPhotos
+
+        // 获取当前订单产品的照片ID列表
+        const currentPhotoIds = item.photos.map(photo => photo.id);
+        // 删除不存在前端数据的照片
+        const toDelete = orderProduct.order_product_photos.filter(orderProductPhoto => !currentPhotoIds.includes(orderProductPhoto.photo.id));
+        if (toDelete.length > 0) {
+          await manager.remove(OrderProductPhoto, toDelete);
+        }
+
+        // 保存
+        await manager.save(orderProduct.order_product_photos)
+      }
+    })
+
+    return null
   }
 }
