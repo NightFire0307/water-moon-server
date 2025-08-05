@@ -84,7 +84,7 @@ export class PhotoService {
           `photos_url:${order.orderNumber}`,
           photo.id,
           JSON.stringify({
-            file_name: photo.file_name,
+            fileName: photo.file_name,
             thumbnail_url: photo.thumbnail_url,
             original_url: photo.original_url,
             is_recommend: photo.is_recommend,

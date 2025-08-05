@@ -309,7 +309,7 @@ export class SelectionService {
     try {
       const data = await this.jwtService.verifyAsync(refreshToken);
       return {
-        access_token: await this.jwtService.signAsync(
+        accessToken: await this.jwtService.signAsync(
           { orderId: data.orderId, short_url: data.surl },
           { expiresIn: '2h' },
         ),
