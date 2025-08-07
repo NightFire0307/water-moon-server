@@ -98,21 +98,31 @@ export class CompressPhotoProcessor extends WorkerHost {
     try {
       // 拷贝图片 Buffer
       const imageBuffer = Buffer.from(file_buffer);
-      // 压缩图片
-      const compressImageBuffer = await sharp(imageBuffer)
-        .resize({ width: 800, fit: 'inside' })
-        .jpeg({ quality: 80 })
+      // 缩略图
+      const thumbnailWebp = await sharp(imageBuffer)
+        .resize({ width: 300, fit: 'inside' }) // 控制图片最大宽度为 1600px
+        .webp({ quality: 80 }) // 使用 WebP 格式压缩图片
+        .toBuffer();
+
+      // 预览大图
+      const mediumWebp = await sharp(imageBuffer)
+        .resize({ width: 1920, fit: 'inside' })
+        .webp({ quality: 80 }) // 使用 WebP 格式压缩图片
         .toBuffer();
 
       // 上传原图和缩略图
       await Promise.all([
         this.minioService.uploadImage(
-          compressImageBuffer,
-          `${orderNumber}/thumbnail_${file_name}`,
+          thumbnailWebp,
+          `${orderNumber}/thumbnail/${file_name}`,
         ),
         this.minioService.uploadImage(
           Buffer.from(file_buffer),
           `${orderNumber}/${file_name}`,
+        ),
+        this.minioService.uploadImage(
+          mediumWebp,
+          `${orderNumber}/medium/${file_name}`,
         ),
       ]);
 
@@ -124,11 +134,15 @@ export class CompressPhotoProcessor extends WorkerHost {
 
       // 获取下载链接
       const thumbnail_url = await this.minioService.generateGetUrl(
-        `${orderNumber}/thumbnail_${file_name}`,
+        `${orderNumber}/thumbnail/${file_name}`,
         expires,
       );
       const original_url = await this.minioService.generateGetUrl(
         `${orderNumber}/${file_name}`,
+        expires,
+      );
+      const medium_url = await this.minioService.generateGetUrl(
+        `${orderNumber}/medium/${file_name}`,
         expires,
       );
 
@@ -140,6 +154,7 @@ export class CompressPhotoProcessor extends WorkerHost {
           file_name,
           thumbnail_url,
           original_url,
+          medium_url,
           expires: dayjs().add(6, 'd').valueOf(),
           is_recommend,
           remark,
@@ -155,6 +170,7 @@ export class CompressPhotoProcessor extends WorkerHost {
         file_name,
         thumbnail_url,
         original_url,
+        medium_url,
       });
       console.log('通知完成');
     } catch (e) {
@@ -182,11 +198,15 @@ export class CompressPhotoProcessor extends WorkerHost {
 
       // 重新创建链接
       const thumbnail_url = await this.minioService.generateGetUrl(
-        `${order.orderNumber}/thumbnail_${photo.name}`,
+        `${order.orderNumber}/thumbnail/${photo.name}`,
         expires,
       );
       const original_url = await this.minioService.generateGetUrl(
         `${order.orderNumber}/${photo.name}`,
+        expires,
+      );
+      const medium_url = await this.minioService.generateGetUrl(
+        `${order.orderNumber}/medium/${photo.name}`,
         expires,
       );
 
@@ -198,6 +218,7 @@ export class CompressPhotoProcessor extends WorkerHost {
           file_name: photo.name,
           thumbnail_url,
           original_url,
+          medium_url,
           is_recommend: photo.isRecommended,
           expires: dayjs().add(30, 's').valueOf(),
           remark: '',
