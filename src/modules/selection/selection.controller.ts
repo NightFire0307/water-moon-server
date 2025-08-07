@@ -39,7 +39,7 @@ export class SelectionController {
     @Body() dto: SelectionLoginDto,
     @Res({ passthrough: true }) response: Response,
   ) {
-    const { accessToken, refreshToken, order } = await this.selectionService.selectionLogin(dto)
+    const { accessToken, refreshToken } = await this.selectionService.selectionLogin(dto)
 
     // 设置cookie
     response.cookie('selection_refresh_token', refreshToken, {
@@ -50,7 +50,6 @@ export class SelectionController {
     return {
       data: {
         accessToken,
-        order,
       },
       msg: '登录成功',
     }
@@ -71,7 +70,7 @@ export class SelectionController {
     return await this.selectionService.refreshToken(refreshToken);
   }
 
-  @Get('order_info')
+  @Get('order')
   @UseGuards(CustomLogin)
   async getOrderInfo(@OrderInfo('orderId') orderId: number) {
     return await this.selectionService.getOrderInfo(orderId);
@@ -88,7 +87,7 @@ export class SelectionController {
   }
 
   // 更新照片预选标记
-  @Patch('photos/pre-select-status')
+  @Patch('preselected-photos')
   @UseGuards(CustomLogin)
   async updatePhotoPreSelectStatus(
     @OrderInfo('orderId') orderId: number,
@@ -115,7 +114,7 @@ export class SelectionController {
   }
 
   // 更新产品照片
-  @Post('order-product/photos')
+  @Post('product-photos')
   @UseGuards(CustomLogin)
   async bulkAssignPhotosToOrderProduct(
     @OrderInfo('orderId') orderId: number,

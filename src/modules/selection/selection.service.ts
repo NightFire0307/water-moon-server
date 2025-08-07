@@ -118,7 +118,6 @@ export class SelectionService {
     return {
       accessToken,
       refreshToken,
-      order
     }
   }
 
@@ -180,6 +179,7 @@ export class SelectionService {
       .leftJoinAndSelect('orderProducts.product', 'product')
       .leftJoinAndSelect('product.product_type', 'product_type')
       .leftJoinAndSelect('orderProducts.orderProductPhotos', 'orderProductPhotos')
+      .leftJoinAndSelect('orderProductPhotos.photo', 'photo')
       .where('order.id = :orderId', { orderId })
       .select([
         'order.id',
@@ -194,7 +194,8 @@ export class SelectionService {
         'product.name',
         'product.photo_limit',
         'product_type.name',
-        'orderProductPhotos.id',
+        'orderProductPhotos',
+        'photo'
       ])
       .cache(true)
       .getOne();
@@ -208,19 +209,16 @@ export class SelectionService {
     if (!order)
       throw new DatabaseException(CommonErrorCode.NOT_FOUND, { orderId });
 
-    console.log(order)
-
     return {
       ...order,
       orderProducts: order.orderProducts.map((order_product) => ({
         id: order_product.id,
         count: order_product.count,
-        productId: order_product.product.id,
         productName: order_product.product.name,
         productType: order_product.product.product_type.name,
-        selectedPhotos: order_product.orderProductPhotos.map(photo => ({
-          id: photo.photo.id,
-          remark: photo.remark,
+        selectedPhotos: order_product.orderProductPhotos.map(orderProductPhoto => ({
+          photoId: orderProductPhoto.photo.id,
+          remark: orderProductPhoto.remark,
         })),
         photoLimit: order_product.product.photo_limit,
       })),

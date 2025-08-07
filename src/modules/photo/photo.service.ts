@@ -259,6 +259,7 @@ export class PhotoService {
     const updatedPhotos = matchedPhotos.map(photo => {
       const dtoPhoto = dto.photos.find(p => p.id === photo.id);
       if (dtoPhoto) {
+        console.log(dtoPhoto)
         photo.preSelectStatus = dtoPhoto.status;
       }
       return photo
