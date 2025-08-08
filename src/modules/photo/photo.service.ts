@@ -67,6 +67,9 @@ export class PhotoService {
         const originalUrl = await this.minioService.generateGetUrl(
           `${order.orderNumber}/${photo.name}`,
         );
+        const mediumUrl = await this.minioService.generateGetUrl(
+          `${order.orderNumber}/medium/${photo.name}`,
+        );
 
         pipeline.hset(
           `photos_url:${order.orderNumber}`,
@@ -75,6 +78,7 @@ export class PhotoService {
             fileName: photo.name,
             thumbnailUrl,
             originalUrl,
+            mediumUrl,
             isRecommend: photo.isRecommended,
             preSelectStatus: photo.preSelectStatus,
             expires: dayjs().add(6, 'd').valueOf(),
@@ -113,6 +117,9 @@ export class PhotoService {
         photo.originalUrl = await this.minioService.generateGetUrl(
           `${order.orderNumber}/${photo.fileName}`,
         );
+        photo.mediumUrl = await this.minioService.generateGetUrl(
+          `${order.orderNumber}/medium/${photo.fileName}`,
+        );
 
         // 更新 Redis 中照片 URL
         await this.redisClient.hset(
@@ -122,6 +129,7 @@ export class PhotoService {
             fileName: photo.fileName,
             thumbnailUrl: photo.thumbnailUrl,
             originalUrl: photo.originalUrl,
+            mediumUrl: photo.mediumUrl,
             isRecommend: photo.isRecommend,
             preSelectStatus: photo.preSelectStatus,
             expires: dayjs().add(6, 'd').valueOf(),
