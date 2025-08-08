@@ -50,6 +50,41 @@ export class PhotoService {
   async getPhotosByOrderId(orderId: number, pagination: PaginationQuery) {
     const order = await this.getOrderById(orderId);
 
+    const existCount = await this.redisClient.exists(`photos_url:${order.orderNumber}`);
+
+    // 判断 redis 中是否有缓存，如果没有则从数据库中查询并缓存到 redis
+    if (existCount === 0) {
+      console.log('111')
+      const photos = await this.photoRepository.find({
+        where: { order: { id: orderId }, isDeleted: false },
+      })
+
+      const pipeline = this.redisClient.pipeline();
+      for (const photo of photos) {
+        const thumbnailUrl = await this.minioService.generateGetUrl(
+          `${order.orderNumber}/thumbnail/${photo.name}`,
+        );
+        const originalUrl = await this.minioService.generateGetUrl(
+          `${order.orderNumber}/${photo.name}`,
+        );
+
+        pipeline.hset(
+          `photos_url:${order.orderNumber}`,
+          photo.id,
+          JSON.stringify({
+            fileName: photo.name,
+            thumbnailUrl,
+            originalUrl,
+            isRecommend: photo.isRecommended,
+            preSelectStatus: photo.preSelectStatus,
+            expires: dayjs().add(6, 'd').valueOf(),
+          }),
+        );
+      }
+      await pipeline.exec();
+    }
+
+
     // 获取 Redis 中订单照片 OSS URL
     const oss_all_lists = await this.redisClient.hgetall(
       `photos_url:${order.orderNumber}`,
@@ -72,11 +107,11 @@ export class PhotoService {
       const expireAt = dayjs(photo.expires);
       if (expireAt.diff(now, 's') <= 10) {
         console.log('链接过期，重新生成链接');
-        photo.thumbnail_url = await this.minioService.generateGetUrl(
-          `${order.orderNumber}/thumbnail_${photo.file_name}`,
+        photo.thumbnailUrl = await this.minioService.generateGetUrl(
+          `${order.orderNumber}/thumbnail/${photo.fileName}`,
         );
-        photo.original_url = await this.minioService.generateGetUrl(
-          `${order.orderNumber}/${photo.file_name}`,
+        photo.originalUrl = await this.minioService.generateGetUrl(
+          `${order.orderNumber}/${photo.fileName}`,
         );
 
         // 更新 Redis 中照片 URL
@@ -84,12 +119,12 @@ export class PhotoService {
           `photos_url:${order.orderNumber}`,
           photo.id,
           JSON.stringify({
-            fileName: photo.file_name,
-            thumbnail_url: photo.thumbnail_url,
-            original_url: photo.original_url,
-            is_recommend: photo.is_recommend,
+            fileName: photo.fileName,
+            thumbnailUrl: photo.thumbnailUrl,
+            originalUrl: photo.originalUrl,
+            isRecommend: photo.isRecommend,
+            preSelectStatus: photo.preSelectStatus,
             expires: dayjs().add(6, 'd').valueOf(),
-            remark: photo.remark,
           }),
         );
       }
