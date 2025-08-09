@@ -184,7 +184,7 @@ export class SelectionService {
       .select([
         'order.id',
         'order.extraPhotoPrice',
-        'order.extraPhotoPrice',
+        'order.maxSelectPhotos',
         'order.orderNumber',
         'order.customerName',
         'order.customerPhone',

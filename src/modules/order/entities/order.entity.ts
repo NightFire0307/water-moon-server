@@ -2,7 +2,6 @@ import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
-  JoinColumn,
   CreateDateColumn,
   UpdateDateColumn,
   OneToMany,
