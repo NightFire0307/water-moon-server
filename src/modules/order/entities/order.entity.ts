@@ -13,12 +13,12 @@ import { Link } from '../../link/entities/link.entity';
 import { Exclude } from 'class-transformer'; // 引用照片集实体
 
 export enum OrderStatus {
-  PENDING = 0, // 订单已创建，等待用户选片
-  PRE_SELECT = 1, // 预选阶段
-  PRODUCT_SELECT = 2, // 产品选片阶段
-  SUBMITTED = 3, // 已提交，订单锁定
-  CANCEL = 4, // 订单取消
-  FINISHED = 5, // 订单完成
+  PENDING = 'pending', // 订单已创建，等待用户选片
+  PRE_SELECT = 'pre_select', // 预选阶段
+  PRODUCT_SELECT = 'product_select', // 产品选片阶段
+  SUBMITTED = 'submitted', // 已提交，订单锁定
+  CANCEL = 'cancel', // 订单取消
+  FINISHED = 'finished', // 订单完成
 }
 
 @Entity('orders')
