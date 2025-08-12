@@ -54,7 +54,6 @@ export class PhotoService {
 
     // 判断 redis 中是否有缓存，如果没有则从数据库中查询并缓存到 redis
     if (existCount === 0) {
-      console.log('111')
       const photos = await this.photoRepository.find({
         where: { order: { id: orderId }, isDeleted: false },
       })
@@ -85,6 +84,8 @@ export class PhotoService {
           }),
         );
       }
+
+      pipeline.expire(`photos_url:${order.orderNumber}`, 3600); // 设置过期时间为 1 天
       await pipeline.exec();
     }
 
@@ -285,6 +286,7 @@ export class PhotoService {
 
   // 更新照片预选状态
   async updatePhotoPreSelectStatus(orderId: number, dto: BulkUpdatePhotoPreselectStatusDto) {
+    const order = await this.getOrderById(orderId)
     // 查找订单下匹配的照片
     const matchedPhotos = await this.photoRepository.find({
       where: {
@@ -308,8 +310,23 @@ export class PhotoService {
       return photo
     })
 
-
     const result = await this.photoRepository.save(updatedPhotos);
+
+    // 更新 Redis 中照片预选状态
+    // const pipeline = this.redisClient.pipeline()
+    // for (const photo of matchedPhotos) {
+    //   const cachePhoto = await this.redisClient.hget(`photos_url:${order.orderNumber}`, photo.id.toString());
+
+    //   pipeline.hset(
+    //     `photos_url:${order.orderNumber}`,
+    //     photo.id,
+    //     JSON.stringify({
+    //       ...JSON.parse(cachePhoto),
+    //       preSelectStatus: photo.preSelectStatus,
+    //     })
+    //   )
+    // }
+
     return {
       data: result.map(photo => ({
         id: photo.id,

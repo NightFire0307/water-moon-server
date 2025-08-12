@@ -17,6 +17,7 @@ export enum OrderErrorCode {
   ORDER_IS_SELECTING = 'ORDER_IS_SELECTING',
   ORDER_NUMBER_ALREADY_EXISTS = 'ORDER_NUMBER_ALREADY_EXISTS',
   ORDER_PRODUCT_HAS_PHOTO = 'ORDER_PRODUCT_HAS_PHOTO',
+  INVALID_STATUS_TRANSITION = 'INVALID_STATUS_TRANSITION',
 }
 
 export enum LinkErrorCode {
@@ -100,6 +101,10 @@ export class DatabaseException extends BaseBusinessException {
       [CommonErrorCode.INVALID_PASSWORD]: {
         data: '密码不正确',
         status: HttpStatus.UNAUTHORIZED,
+      },
+      [OrderErrorCode.INVALID_STATUS_TRANSITION]: {
+        data: '无效的订单状态转换',
+        status: HttpStatus.BAD_REQUEST,
       },
     };
 
