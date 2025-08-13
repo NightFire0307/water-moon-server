@@ -304,7 +304,6 @@ export class PhotoService {
     const updatedPhotos = matchedPhotos.map(photo => {
       const dtoPhoto = dto.photos.find(p => p.id === photo.id);
       if (dtoPhoto) {
-        console.log(dtoPhoto)
         photo.preSelectStatus = dtoPhoto.status;
       }
       return photo
@@ -313,19 +312,22 @@ export class PhotoService {
     const result = await this.photoRepository.save(updatedPhotos);
 
     // 更新 Redis 中照片预选状态
-    // const pipeline = this.redisClient.pipeline()
-    // for (const photo of matchedPhotos) {
-    //   const cachePhoto = await this.redisClient.hget(`photos_url:${order.orderNumber}`, photo.id.toString());
+    const pipeline = this.redisClient.pipeline()
+    for (const photo of matchedPhotos) {
+      const cachePhoto = await this.redisClient.hget(`photos_url:${order.orderNumber}`, photo.id.toString());
+      console.log(cachePhoto)
 
-    //   pipeline.hset(
-    //     `photos_url:${order.orderNumber}`,
-    //     photo.id,
-    //     JSON.stringify({
-    //       ...JSON.parse(cachePhoto),
-    //       preSelectStatus: photo.preSelectStatus,
-    //     })
-    //   )
-    // }
+      pipeline.hset(
+        `photos_url:${order.orderNumber}`,
+        photo.id,
+        JSON.stringify({
+          ...JSON.parse(cachePhoto),
+          preSelectStatus: photo.preSelectStatus,
+        })
+      )
+    }
+
+    await pipeline.exec()
 
     return {
       data: result.map(photo => ({
