@@ -85,7 +85,7 @@ export class PhotoService {
         );
       }
 
-      pipeline.expire(`photos_url:${order.orderNumber}`, 3600); // 设置过期时间为 1 天
+      pipeline.expire(`photos_url:${order.orderNumber}`, 3600 * 6); // 设置过期时间为 6 天
       await pipeline.exec();
     }
 

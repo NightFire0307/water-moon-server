@@ -399,25 +399,12 @@ export class OrderService {
 
   // 获取订单完成结果
   async getOrderResult(orderId: number) {
-    const order = await this.orderRepository
-      .createQueryBuilder('order')
-      .where('order.id = :id', { id: orderId })
-      .leftJoinAndSelect('order.photos', 'photo')
-      .leftJoinAndSelect('photo.orderProducts', 'photo_order_product')
-      .leftJoinAndSelect('photo_order_product.product', 'product')
-      .select([
-        'order.id',
-        'order.orderNumber',
-        'order.extraPhotoPrice',
-        'order.extraPhotoPrice',
-        'order.status',
-        'photo.id',
-        'photo.remark',
-        'photo.name',
-        'photo_order_product',
-        'product.name',
-      ])
-      .getOne();
+    const order = await this.orderRepository.findOne({
+      where: {
+        id: orderId,
+      },
+      relations: ['orderProducts', 'orderProducts.orderProductPhotos', 'orderProducts.product', 'orderProducts.orderProductPhotos.photo']
+    })
 
     // 检查订单是否存在
     if (!order) {
@@ -434,40 +421,47 @@ export class OrderService {
       `photos_url:${order.orderNumber}`,
     );
 
-    // 转换照片链接信息
-    function transformPhoto(photo: Photo, redisData: object) {
-      const raw = redisData[photo.id.toString()];
-      let thumbnail_url = null;
+    // 映射照片对应选中的订单产品
+    const photoToOrderProducts = new Map<number, {
+      fileName: string
+      thumbnailUrl: string
+      orderProducts: { id: number, name: string }[]
+      remark: string
+    }>()
 
-      if (raw) {
-        try {
-          thumbnail_url = JSON.parse(raw).thumbnail_url;
-        } catch {
-          console.error(`Error parsing JSON for photo ${photo.id}`);
+    for (const orderProduct of order.orderProducts) {
+      const { product, orderProductPhotos } = orderProduct;
+      const { id, name } = product
+
+      orderProductPhotos.forEach((orderProductPhoto) => {
+        const cachePhoto = JSON.parse(redisOrderPhotos[orderProductPhoto.photo.id])
+        console.log(cachePhoto)
+
+        const m = photoToOrderProducts.get(orderProductPhoto.photo.id)
+        if (m) {
+          m.fileName = cachePhoto.fileName
+          m.thumbnailUrl = cachePhoto.thumbnailUrl
+          m.orderProducts.push({ id, name })
+          m.remark = orderProductPhoto.remark ?? ''
+        } else {
+          photoToOrderProducts.set(orderProductPhoto.photo.id, {
+            fileName: cachePhoto.fileName,
+            thumbnailUrl: cachePhoto.thumbnailUrl,
+            orderProducts: [{ id, name }],
+            remark: orderProductPhoto.remark ?? ''
+          });
         }
-      }
-
-      return {
-        ...photo,
-        thumbnail_url,
-        status: photo.orderProductPhotos.length > 0 ? 'selected' : 'unSelected',
-        orderProductPhotos: photo.orderProductPhotos.map((orderProduct) => {
-          return {
-            id: orderProduct.id,
-            name: '',
-          };
-        }),
-      };
+      })
     }
+
+    console.log(photoToOrderProducts)
 
     return {
       data: {
-        list: {
-          ...order,
-          photos: order.photos.map((photo) =>
-            transformPhoto(photo, redisOrderPhotos),
-          ),
-        },
+        list: Array.from(photoToOrderProducts.entries()).map(([photoId, rest]) => ({
+          id: photoId,
+          ...rest,
+        })),
       },
       msg: '查询成功',
     };
@@ -477,11 +471,14 @@ export class OrderService {
     const order = await this.orderRepository.findOne({
       where: { id: orderId },
       relations: [
-        'photos',
-        'photos.orderProducts',
-        'photos.orderProducts.product',
+        'orderProducts',
+        'orderProducts.product',
+        'orderProducts.orderProductPhotos',
+        'orderProducts.orderProductPhotos.photo',
       ],
     });
+
+    console.log(order)
 
     if (!order) {
       throw new DatabaseException(CommonErrorCode.NOT_FOUND, '订单不存在');
@@ -501,17 +498,17 @@ export class OrderService {
     // 按照产品分类照片
     const productMap = new Map<string, string[]>();
 
-    // for (const photo of order.photos) {
-    //   if (photo.orderProductPhotos.length > 0) {
-    //     for (const orderProduct of photo.orderProductPhotos) {
-    //       if (!productMap.has(orderProduct.product.name)) {
-    //         productMap.set(orderProduct.product.name, [photo.ossFileKey]);
-    //       } else {
-    //         productMap.get(orderProduct.product.name)?.push(photo.ossFileKey);
-    //       }
-    //     }
-    //   }
-    // }
+    for (const orderProduct of order.orderProducts) {
+      const productName = orderProduct.product.name
+      for (const opp of orderProduct.orderProductPhotos) {
+        const photo = opp.photo
+        if (!productMap.has(productName)) {
+          productMap.set(productName, [photo.ossFileKey]);
+        } else {
+          productMap.get(productName)?.push(photo.ossFileKey);
+        }
+      }
+    }
 
     // 下载照片并添加到 ZIP 包中
     for (const [productName, ossFileKeys] of productMap.entries()) {
@@ -540,26 +537,38 @@ export class OrderService {
     const yesterday = new Date(today);
     yesterday.setDate(today.getDate() - 1);
 
+
     const result = await this.orderRepository
       .createQueryBuilder('order')
       .select([
         // 总订单数量
         'COUNT(*) AS totalOrderCount',
         // 待选片订单数量
-        `SUM(CASE WHEN order.status = ':inProgress' THEN 1 ELSE 0 END) AS inProgressOrderCount`,
+        `SUM(CASE WHEN order.status = :isPending THEN 1 ELSE 0 END) AS inPendingOrderCount`,
+        // 预选阶段订单数量
+        `SUM(CASE WHEN order.status = :isPreSelect THEN 1 ELSE 0 END) AS inPreSelectOrderCount`,
+        // 产品选片阶段
+        `SUM(CASE WHEN order.status = :isProductSelect THEN 1 ELSE 0 END) AS inProductSelectOrderCount`,
+        // 已提交订单数量
+        `SUM(CASE WHEN order.status = :isSubmitted THEN 1 ELSE 0 END) AS inSubmittedOrderCount`,
         // 已完成订单数量
-        `SUM(CASE WHEN order.status = ':completed' THEN 1 ELSE 0 END) AS completedOrderCount`,
+        `SUM(CASE WHEN order.status = :completed THEN 1 ELSE 0 END) AS completedOrderCount`,
         // 今日订单数量
         `SUM(CASE WHEN order.created_at >= :today AND order.created_at < :tomorrow THEN 1 ELSE 0 END) AS todayOrderCount`,
       ])
       .setParameters({
         isPending: OrderStatus.PENDING,
+        isPreSelect: OrderStatus.PRE_SELECT,
+        isProductSelect: OrderStatus.PRODUCT_SELECT,
+        isSubmitted: OrderStatus.SUBMITTED,
         completed: OrderStatus.FINISHED,
         today,
         tomorrow,
         yesterday
       })
       .getRawOne();
+
+    console.log(result)
 
     return {
       totalOrderCount: Number(result.totalOrderCount),
