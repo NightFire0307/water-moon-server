@@ -151,12 +151,12 @@ export class CompressPhotoProcessor extends WorkerHost {
         `photos_url:${orderNumber}`,
         id,
         JSON.stringify({
-          file_name,
-          thumbnail_url,
-          original_url,
-          medium_url,
+          fileName: file_name,
+          thumbnailUrl: thumbnail_url,
+          originalUrl: original_url,
+          mediumUrl: medium_url,
           expires: dayjs().add(6, 'd').valueOf(),
-          is_recommend,
+          isRecommend: is_recommend,
           remark,
         }),
       );

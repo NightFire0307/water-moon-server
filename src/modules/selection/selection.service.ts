@@ -56,12 +56,12 @@ export class SelectionService {
   // 选片常规登录(订单号和手机号)
   async selectionLogin(dto: SelectionLoginDto) {
     this.logger.log('选片登录请求');
-    const { login_type, short_url, orderNumber, credential } = dto
+    const { loginType, shortUrl, orderNumber, credential } = dto
     let order: Order;
 
-    if (login_type === 'link') {
+    if (loginType === 'link') {
       // 短链登录处理
-      const orderId = this.decodeOrderId(short_url)
+      const orderId = this.decodeOrderId(shortUrl)
       order = await this.findOrderById(+orderId);
 
       // 验证订单是否存在
@@ -72,14 +72,14 @@ export class SelectionService {
       // 校验短链密码
       const link = await this.linkRepository.findOne({
         where: {
-          share_url: short_url,
+          share_url: shortUrl,
         },
       });
 
       if (link.share_password !== credential) {
         throw new AuthException(AuthErrorCode.PASSWORD_ERROR, '密码错误');
       }
-    } else if (login_type === 'order') {
+    } else if (loginType === 'order') {
       // 常规登录处理
       order = await this.orderRepository.findOne({
         where: {
@@ -109,7 +109,7 @@ export class SelectionService {
 
     // 生成访问令牌和刷新令牌
     const accessToken = await this.jwtService.signAsync(
-      { orderId: order.id, short_url: short_url },
+      { orderId: order.id, short_url: shortUrl },
       { expiresIn: '2h' })
     const refreshToken = await this.jwtService.signAsync(
       { orderId: order.id },

@@ -2,11 +2,11 @@ import { IsIn, IsOptional, IsString } from 'class-validator';
 
 export class SelectionLoginDto {
   @IsIn(['link', 'order'])
-  login_type: 'link' | 'order';
+  loginType: 'link' | 'order';
 
   @IsString()
   @IsOptional()
-  short_url?: string;
+  shortUrl?: string;
 
   @IsString()
   @IsOptional()
