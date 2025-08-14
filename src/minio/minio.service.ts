@@ -41,7 +41,7 @@ export class MinioService implements OnModuleInit {
   /**
    * 生成MINIO下载链接
    * @param keyName 文件名
-   * @param expires 下载链接过期时间（默认24小时）
+   * @param expires 下载链接过期时间（默认 7 天，以秒为单位）
    */
   async generateGetUrl(keyName: string, expires?: number) {
     const bucketName: string = this.configService.get('minio_bucket');

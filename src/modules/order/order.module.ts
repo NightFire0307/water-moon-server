@@ -9,12 +9,15 @@ import { Link } from '../link/entities/link.entity';
 import { Photo } from '../photo/entities/photo.entity';
 import { RedisModule } from '../../redis/redis.module';
 import { MinioModule } from '../../minio/minio.module';
+import { OrderProductPhoto } from './entities/orderProductPhotos.entity';
+import { PhotoModule } from '../photo/photo.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Order, Product, OrderProduct, Link, Photo]),
+    TypeOrmModule.forFeature([Order, Product, OrderProduct, Link, Photo, OrderProductPhoto]),
     RedisModule,
     MinioModule,
+    PhotoModule
   ],
   controllers: [OrderController],
   providers: [OrderService],

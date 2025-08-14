@@ -124,7 +124,7 @@ export class OrderController {
   }
 
   // 重置订单状态
-  @Patch('/:orderId')
+  @Post('/:orderId')
   @RequireLogin()
   @RequirePermission({
     code: 'order:reset-status',
@@ -134,12 +134,12 @@ export class OrderController {
   })
   resetOrderStatus(
     @Param('orderId') orderId: string,
-    @Body() resetOrderStatusDto: ResetOrderStatusDto,
+    @Query() { reset = false }: { reset?: boolean }
   ) {
     if (Number.isNaN(+orderId)) {
       throw new BadRequestException('Id必须是一个数字');
     }
-    return this.orderService.resetOrderStatus(+orderId, resetOrderStatusDto);
+    return this.orderService.resetOrderStatus(+orderId, reset);
   }
 
   // 删除订单

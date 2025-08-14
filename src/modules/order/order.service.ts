@@ -10,7 +10,7 @@ import { UpdateOrderDto } from './dto/update-order.dto';
 import { instanceToPlain } from 'class-transformer';
 import { GetOrderListDto } from './dto/get-order-list.dto';
 import { ResetOrderStatusDto } from './dto/reset-order-status.dto';
-import { Photo } from '../photo/entities/photo.entity';
+import { Photo, PreSelectStatus } from '../photo/entities/photo.entity';
 import {
   CommonErrorCode,
   DatabaseException,
@@ -24,6 +24,8 @@ import { ConfigService } from '@nestjs/config';
 import { MinioService } from '../../minio/minio.service';
 import * as dayjs from 'dayjs';
 import * as iosWeek from 'dayjs/plugin/isoWeek.js'
+import { PhotoService } from '../photo/photo.service';
+import { OrderProductPhoto } from './entities/orderProductPhotos.entity';
 
 dayjs.extend(iosWeek);
 
@@ -53,6 +55,9 @@ export class OrderService {
   @InjectRepository(OrderProduct)
   private readonly orderProductRepository: Repository<OrderProduct>;
 
+  @InjectRepository(OrderProductPhoto)
+  private readonly orderProductPhotoRepository: Repository<OrderProductPhoto>;
+
   @InjectRepository(Product)
   private readonly productRepository: Repository<Product>;
 
@@ -60,6 +65,7 @@ export class OrderService {
 
   @Inject(ConfigService) private readonly configService: ConfigService;
   @Inject(MinioService) private readonly minioService: MinioService;
+  @Inject(PhotoService) private readonly PhotoService: PhotoService;
 
   constructor(private readonly dataSource: DataSource) { }
 
@@ -353,37 +359,42 @@ export class OrderService {
   // 重置订单状态
   async resetOrderStatus(
     orderId: number,
-    resetOrderStatusDto: ResetOrderStatusDto,
+    reset: boolean
   ) {
-    const { resetSelection } = resetOrderStatusDto;
 
-    const order = await this.orderRepository
-      .createQueryBuilder('order')
-      .where('order.id = :id', { id: orderId })
-      .leftJoinAndSelect('order.photos', 'photo')
-      .leftJoinAndSelect('photo.orderProducts', 'photo_order_product')
-      .getOne();
+    const order = await this.orderRepository.findOne({
+      where: { id: orderId },
+      relations: ['photos', 'orderProducts', 'orderProducts.orderProductPhotos'],
+    })
 
     if (!order)
       throw new DatabaseException(CommonErrorCode.NOT_FOUND, '订单不存在');
 
     // 只有当用户提交选片结果之后才能重置
     if (order.status === OrderStatus.SUBMITTED) {
-      if (resetSelection) {
+      if (reset) {
+        console.log('重置选片结果');
         // 防止重置的照片数量过大时阻塞请求
         setImmediate(async () => {
           for (const photo of order.photos) {
-            await this.photoRepository
-              .createQueryBuilder()
-              .relation(Photo, 'orderProducts')
-              .of(photo.id)
-              .remove(photo.orderProductPhotos);
+            await Promise.all([
+              this.orderProductPhotoRepository.delete({
+                photo: { id: photo.id },
+              }),
+              this.photoRepository.update({ id: photo.id }, { preSelectStatus: PreSelectStatus.PENDING })
+            ])
           }
         });
       }
 
       order.status = OrderStatus.PENDING;
       await this.orderRepository.save(order);
+
+      // 移除 Redis 中的订单照片缓存
+      await this.redisClient.del(`photos_url:${order.orderNumber}`);
+
+      // 重新刷新 Redis 照片缓存
+      await this.PhotoService.refreshPhotosCache(order);
 
       return {
         data: orderId,
@@ -414,6 +425,12 @@ export class OrderService {
     // 检查订单状态用户是否已提交
     if (order.status !== OrderStatus.SUBMITTED) {
       throw new DatabaseException(CommonErrorCode.DATE_ERROR, '用户选片未提交');
+    }
+
+    // 判断照片缓存是否存在 redis 中
+    const existCount = await this.redisClient.exists(`photos_url:${order.orderNumber}`);
+    if (existCount === 0) {
+      await this.PhotoService.refreshPhotosCache(order)
     }
 
     // 获取 Redis 中订单所属的图片信息
@@ -454,8 +471,6 @@ export class OrderService {
       })
     }
 
-    console.log(photoToOrderProducts)
-
     return {
       data: {
         list: Array.from(photoToOrderProducts.entries()).map(([photoId, rest]) => ({
@@ -467,6 +482,7 @@ export class OrderService {
     };
   }
 
+  // 导出订单结果（打包成 ZIP 文件）
   async exportOrderResult(orderId: number) {
     const order = await this.orderRepository.findOne({
       where: { id: orderId },
@@ -477,8 +493,6 @@ export class OrderService {
         'orderProducts.orderProductPhotos.photo',
       ],
     });
-
-    console.log(order)
 
     if (!order) {
       throw new DatabaseException(CommonErrorCode.NOT_FOUND, '订单不存在');

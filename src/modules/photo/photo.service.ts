@@ -54,39 +54,7 @@ export class PhotoService {
 
     // 判断 redis 中是否有缓存，如果没有则从数据库中查询并缓存到 redis
     if (existCount === 0) {
-      const photos = await this.photoRepository.find({
-        where: { order: { id: orderId }, isDeleted: false },
-      })
-
-      const pipeline = this.redisClient.pipeline();
-      for (const photo of photos) {
-        const thumbnailUrl = await this.minioService.generateGetUrl(
-          `${order.orderNumber}/thumbnail/${photo.name}`,
-        );
-        const originalUrl = await this.minioService.generateGetUrl(
-          `${order.orderNumber}/${photo.name}`,
-        );
-        const mediumUrl = await this.minioService.generateGetUrl(
-          `${order.orderNumber}/medium/${photo.name}`,
-        );
-
-        pipeline.hset(
-          `photos_url:${order.orderNumber}`,
-          photo.id,
-          JSON.stringify({
-            fileName: photo.name,
-            thumbnailUrl,
-            originalUrl,
-            mediumUrl,
-            isRecommend: photo.isRecommended,
-            preSelectStatus: photo.preSelectStatus,
-            expires: dayjs().add(6, 'd').valueOf(),
-          }),
-        );
-      }
-
-      pipeline.expire(`photos_url:${order.orderNumber}`, 3600 * 6); // 设置过期时间为 6 天
-      await pipeline.exec();
+      await this.refreshPhotosCache(order)
     }
 
 
@@ -336,5 +304,45 @@ export class PhotoService {
       })),
       msg: '更新预选状态成功',
     }
+  }
+
+  // 刷新 Redis 中的缓存数据(没有清除旧数据)
+  async refreshPhotosCache(order: Order) {
+    const photos = await this.photoRepository.find({
+      where: { order: { id: order.id }, isDeleted: false },
+    })
+
+    const pipeline = this.redisClient.pipeline();
+
+    for (const photo of photos) {
+      const [thumbnailUrl, originalUrl, mediumUrl] = await Promise.all([
+        this.minioService.generateGetUrl(
+          `${order.orderNumber}/thumbnail/${photo.name}`,
+        ),
+        this.minioService.generateGetUrl(
+          `${order.orderNumber}/${photo.name}`,
+        ),
+        this.minioService.generateGetUrl(
+          `${order.orderNumber}/medium/${photo.name}`,
+        ),
+      ])
+
+      pipeline.hset(
+        `photos_url:${order.orderNumber}`,
+        photo.id,
+        JSON.stringify({
+          fileName: photo.name,
+          thumbnailUrl,
+          originalUrl,
+          mediumUrl,
+          isRecommend: photo.isRecommended,
+          preSelectStatus: photo.preSelectStatus,
+          expires: dayjs().add(6, 'd').valueOf(),
+        }),
+      );
+    }
+
+    pipeline.expire(`photos_url:${order.orderNumber}`, 3600 * 6); // 设置过期时间为 6 天
+    await pipeline.exec();
   }
 }
