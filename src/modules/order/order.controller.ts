@@ -6,7 +6,6 @@ import {
   Delete,
   Get,
   Param,
-  Patch,
   Post,
   Put,
   Query,
@@ -18,7 +17,6 @@ import { OrderService } from './order.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
 import { GetOrderListDto } from './dto/get-order-list.dto';
-import { ResetOrderStatusDto } from './dto/reset-order-status.dto';
 import { Response } from 'express';
 import { RequirePermission, RequireLogin } from '@/common/decorators/auth.decorator';
 import { UserInfo } from '@/common/decorators/context.decorator';
@@ -203,5 +201,12 @@ export class OrderController {
 
     zipStream.pipe(res);
     await archive.finalize();
+  }
+
+  // 获取订单所有照片ID
+  @Get('/:orderId/photo-ids')
+  @RequireLogin()
+  async getOrderPhotoIds(@Param('orderId') orderId: string) {
+    return await this.orderService.getOrderPhotoIds(+orderId);
   }
 }

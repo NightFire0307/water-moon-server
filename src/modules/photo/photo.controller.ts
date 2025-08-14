@@ -64,9 +64,7 @@ export class PhotoController {
   completions(): Observable<any> {
     return this.compressPhotoProcessor.imageProcessed$.pipe(
       map((event) => {
-        return {
-          data: event,
-        };
+        return event
       }),
     );
   }

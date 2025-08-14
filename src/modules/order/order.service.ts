@@ -625,4 +625,20 @@ export class OrderService {
       lastWeekOrderCounts
     }
   }
+
+  // 获取订单所有照片ID
+  async getOrderPhotoIds(orderId: number) {
+    const order = await this.orderRepository.findOne({
+      where: { id: orderId },
+      relations: ['photos']
+    })
+
+    if (!order) {
+      throw new DatabaseException(CommonErrorCode.NOT_FOUND, '订单不存在');
+    }
+
+    return {
+      photoIds: order.photos.map(photo => photo.id)
+    }
+  }
 }
