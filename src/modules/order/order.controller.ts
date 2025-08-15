@@ -6,6 +6,7 @@ import {
   Delete,
   Get,
   Param,
+  Patch,
   Post,
   Put,
   Query,
@@ -21,6 +22,7 @@ import { Response } from 'express';
 import { RequirePermission, RequireLogin } from '@/common/decorators/auth.decorator';
 import { UserInfo } from '@/common/decorators/context.decorator';
 import { Pagination, type PaginationQuery } from '@/common/decorators/pagination.decorator';
+import { UpdateOrderStatusDto } from './dto/order-status.dto'
 
 @Controller('admin/orders')
 @RequirePermission({
@@ -119,6 +121,16 @@ export class OrderController {
       throw new BadRequestException('Id必须是一个数字');
     }
     return await this.orderService.updateOrder(+orderId, updateOrderDto);
+  }
+
+  // 更新订单状态
+  @Patch(':orderId/status')
+  @RequireLogin()
+  async updateOrderStatus(
+    @Param('orderId') orderId: string,
+    @Body() dto: UpdateOrderStatusDto
+  ) {
+    return await this.orderService.updateOrderStatus(+orderId, dto.status);
   }
 
   // 重置订单状态

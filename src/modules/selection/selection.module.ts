@@ -9,12 +9,14 @@ import { Photo } from '../photo/entities/photo.entity';
 import { OrderProduct } from '../order/entities/orderProduct.entity';
 import { PhotoModule } from '../photo/photo.module';
 import { Link } from '../link/entities/link.entity';
+import { OrderModule } from '../order/order.module';
 
 @Module({
   imports: [
     RedisModule,
     PhotoModule,
     TypeOrmModule.forFeature([Order, OrderProduct, Product, Photo, Link]),
+    OrderModule,
   ],
   controllers: [SelectionController],
   providers: [SelectionService],

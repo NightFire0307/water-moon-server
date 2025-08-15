@@ -413,10 +413,11 @@ export class SelectionService {
 
       // 验证照片是否存在或者重复 并且预选状态为选中
       const photoIds = dto.items.flatMap(item => item.photos.map(photo => photo.id));
+      console.log(photoIds)
 
-      if (photoIds.length !== new Set(photoIds).size) {
-        throw new BadRequestException('包含重复的照片ID');
-      }
+      // if (photoIds.length !== new Set(photoIds).size) {
+      //   throw new BadRequestException('包含重复的照片ID');
+      // }
 
       const photos = await manager.getRepository(Photo).find({
         where: {
@@ -425,10 +426,11 @@ export class SelectionService {
           preSelectStatus: PreSelectStatus.SELECTED
         }
       })
+      console.log(photos)
 
-      if (photos.length !== photoIds.length) {
-        throw new DatabaseException(CommonErrorCode.NOT_FOUND, '部分照片不存在或未选中');
-      }
+      // if (photos.length !== photoIds.length) {
+      //   throw new DatabaseException(CommonErrorCode.NOT_FOUND, '部分照片不存在或未选中');
+      // }
 
       for (const item of dto.items) {
         // 获取对应的订单产品
@@ -468,48 +470,5 @@ export class SelectionService {
     })
 
     return null
-  }
-
-  // 更新订单状态
-  async updateOrderStatus(orderId: number, status: OrderStatus) {
-    const order = await this.findOrderById(orderId)
-
-    if (!order) {
-      throw new DatabaseException(CommonErrorCode.NOT_FOUND, '订单不存在');
-    }
-
-    // 检查当前订单状态是否允许更新
-    if (order.status === OrderStatus.SUBMITTED) {
-      throw new DatabaseException(OrderErrorCode.ORDER_IS_SUBMIT, '订单已锁定，无法更新状态');
-    }
-
-    // 判断状态流转是否符合预期
-    const validTransitions: { [key in OrderStatus]?: OrderStatus[] } = {
-      [OrderStatus.PENDING]: [OrderStatus.PRE_SELECT, OrderStatus.CANCEL],
-      [OrderStatus.PRE_SELECT]: [OrderStatus.PRODUCT_SELECT, OrderStatus.CANCEL],
-      [OrderStatus.PRODUCT_SELECT]: [OrderStatus.SUBMITTED, OrderStatus.CANCEL],
-      [OrderStatus.SUBMITTED]: [OrderStatus.CANCEL],
-    };
-
-    console.log(status)
-    console.log(validTransitions[order.status].includes(status))
-
-    if (validTransitions[order.status] && !validTransitions[order.status].includes(status)) {
-      throw new DatabaseException(
-        OrderErrorCode.INVALID_STATUS_TRANSITION,
-      )
-    }
-
-    // 更新订单状态
-    order.status = status
-
-    await this.orderRepository.save(order);
-    return {
-      data: {
-        orderId: order.id,
-        status: order.status
-      },
-      msg: '订单状态更新成功',
-    }
   }
 }

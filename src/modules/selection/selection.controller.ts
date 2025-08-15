@@ -25,7 +25,8 @@ import { Pagination, PaginationQuery } from '@/common/decorators/pagination.deco
 import { BulkUpdatePhotoPreselectStatusDto } from './dto/update-photo-preselect-status.dto';
 import type { AssignOrderProductPhotosDto } from './dto/assign-order-product-photos.dto';
 import type { OrderStatus } from '../order/entities/order.entity';
-import type { UpdateOrderStatusDto } from './dto/order-status.dto';
+import type { UpdateOrderStatusDto } from '../order/dto/order-status.dto';
+import { OrderService } from '../order/order.service';
 
 @Controller('selection')
 @Public()
@@ -33,6 +34,7 @@ export class SelectionController {
   constructor(
     private readonly selectionService: SelectionService,
     private readonly photoService: PhotoService,
+    private readonly orderService: OrderService
   ) { }
 
   // 订单号和手机号登录
@@ -55,6 +57,26 @@ export class SelectionController {
       },
       msg: '登录成功',
     }
+  }
+
+  @Post('logout')
+  @UseGuards(CustomLogin)
+  clientLogout(
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    // 清除cookie
+    response.clearCookie('selection_refresh_token', {
+      httpOnly: true,
+    });
+    return {
+      msg: '登出成功',
+    };
+  }
+
+  @Get('auth/validate')
+  @UseGuards(CustomLogin)
+  validateToken() {
+    return { valid: true };
   }
 
   @Post('auth/verify/:short_url')
@@ -95,7 +117,7 @@ export class SelectionController {
     @OrderInfo('orderId') orderId: number,
     @Body() dto: UpdateOrderStatusDto
   ) {
-    return await this.selectionService.updateOrderStatus(orderId, dto.status);
+    return await this.orderService.updateOrderStatus(orderId, dto.status);
   }
 
   // 更新照片预选标记

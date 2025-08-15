@@ -641,4 +641,51 @@ export class OrderService {
       photoIds: order.photos.map(photo => photo.id)
     }
   }
+
+  // 更新订单状态
+  async updateOrderStatus(orderId: number, status: OrderStatus) {
+    const order = await this.orderRepository.findOne({
+      where: {
+        id: orderId
+      }
+    })
+
+    if (!order) {
+      throw new DatabaseException(CommonErrorCode.NOT_FOUND, '订单不存在');
+    }
+
+    // 检查当前订单状态是否允许更新
+    if (order.status === OrderStatus.SUBMITTED) {
+      throw new DatabaseException(OrderErrorCode.ORDER_IS_SUBMIT, '订单已锁定，无法更新状态');
+    }
+
+    // 判断状态流转是否符合预期
+    const validTransitions: { [key in OrderStatus]?: OrderStatus[] } = {
+      [OrderStatus.PENDING]: [OrderStatus.PRE_SELECT, OrderStatus.CANCEL],
+      [OrderStatus.PRE_SELECT]: [OrderStatus.PRODUCT_SELECT, OrderStatus.CANCEL],
+      [OrderStatus.PRODUCT_SELECT]: [OrderStatus.SUBMITTED, OrderStatus.CANCEL],
+      [OrderStatus.SUBMITTED]: [OrderStatus.FINISHED, OrderStatus.CANCEL],
+    };
+
+    console.log(status)
+    console.log(validTransitions[order.status].includes(status))
+
+    if (validTransitions[order.status] && !validTransitions[order.status].includes(status)) {
+      throw new DatabaseException(
+        OrderErrorCode.INVALID_STATUS_TRANSITION,
+      )
+    }
+
+    // 更新订单状态
+    order.status = status
+
+    await this.orderRepository.save(order);
+    return {
+      data: {
+        orderId: order.id,
+        status: order.status
+      },
+      msg: '订单状态更新成功',
+    }
+  }
 }

@@ -21,5 +21,6 @@ import { PhotoModule } from '../photo/photo.module';
   ],
   controllers: [OrderController],
   providers: [OrderService],
+  exports: [OrderService]
 })
 export class OrderModule { }
