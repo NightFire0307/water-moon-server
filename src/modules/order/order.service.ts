@@ -655,8 +655,8 @@ export class OrderService {
     }
 
     // 检查当前订单状态是否允许更新
-    if (order.status === OrderStatus.SUBMITTED) {
-      throw new DatabaseException(OrderErrorCode.ORDER_IS_SUBMIT, '订单已锁定，无法更新状态');
+    if (order.status === OrderStatus.FINISHED || order.status === OrderStatus.CANCEL) {
+      throw new DatabaseException(OrderErrorCode.ORDER_ALREADY_FINISHED, '订单已完成或已取消，无法更新状态');
     }
 
     // 判断状态流转是否符合预期
