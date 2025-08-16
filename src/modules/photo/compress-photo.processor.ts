@@ -6,7 +6,7 @@ import { MinioService } from '../../minio/minio.service';
 import { Subject } from 'rxjs';
 import { Redis } from 'ioredis';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Photo } from './entities/photo.entity';
+import { Photo, PreSelectStatus } from './entities/photo.entity';
 import { In, Repository } from 'typeorm';
 import { Order } from '../order/entities/order.entity';
 import * as dayjs from 'dayjs';
@@ -133,15 +133,15 @@ export class CompressPhotoProcessor extends WorkerHost {
       const expires = 24 * 60 * 60 * 7;
 
       // 获取下载链接
-      const thumbnail_url = await this.minioService.generateGetUrl(
+      const thumbnailUrl = await this.minioService.generateGetUrl(
         `${orderNumber}/thumbnail/${file_name}`,
         expires,
       );
-      const original_url = await this.minioService.generateGetUrl(
+      const originalUrl = await this.minioService.generateGetUrl(
         `${orderNumber}/${file_name}`,
         expires,
       );
-      const medium_url = await this.minioService.generateGetUrl(
+      const mediumUrl = await this.minioService.generateGetUrl(
         `${orderNumber}/medium/${file_name}`,
         expires,
       );
@@ -152,11 +152,12 @@ export class CompressPhotoProcessor extends WorkerHost {
         id,
         JSON.stringify({
           fileName: file_name,
-          thumbnailUrl: thumbnail_url,
-          originalUrl: original_url,
-          mediumUrl: medium_url,
+          thumbnailUrl,
+          originalUrl,
+          mediumUrl,
           expires: dayjs().add(6, 'd').valueOf(),
           isRecommend: is_recommend,
+          preSelectStatus: PreSelectStatus.PENDING,
           remark,
         }),
       );
@@ -168,9 +169,9 @@ export class CompressPhotoProcessor extends WorkerHost {
         is_recommend,
         orderNumber,
         file_name,
-        thumbnail_url,
-        original_url,
-        medium_url,
+        thumbnailUrl,
+        originalUrl,
+        mediumUrl,
       });
       console.log('通知完成');
     } catch (e) {
@@ -197,15 +198,15 @@ export class CompressPhotoProcessor extends WorkerHost {
       const expires = 24 * 60 * 60 * 7;
 
       // 重新创建链接
-      const thumbnail_url = await this.minioService.generateGetUrl(
+      const thumbnailUrl = await this.minioService.generateGetUrl(
         `${order.orderNumber}/thumbnail/${photo.name}`,
         expires,
       );
-      const original_url = await this.minioService.generateGetUrl(
+      const originalUrl = await this.minioService.generateGetUrl(
         `${order.orderNumber}/${photo.name}`,
         expires,
       );
-      const medium_url = await this.minioService.generateGetUrl(
+      const mediumUrl = await this.minioService.generateGetUrl(
         `${order.orderNumber}/medium/${photo.name}`,
         expires,
       );
@@ -215,11 +216,11 @@ export class CompressPhotoProcessor extends WorkerHost {
         `photos_url:${order.orderNumber}`,
         photo.id,
         JSON.stringify({
-          file_name: photo.name,
-          thumbnail_url,
-          original_url,
-          medium_url,
-          is_recommend: photo.isRecommended,
+          fileName: photo.name,
+          thumbnailUrl,
+          originalUrl,
+          mediumUrl,
+          isRecommend: photo.isRecommended,
           expires: dayjs().add(30, 's').valueOf(),
           remark: '',
         }),
