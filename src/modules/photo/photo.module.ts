@@ -28,4 +28,4 @@ import { CompressPhotoProcessor } from './compress-photo.processor';
   providers: [PhotoService, PhotoCountSyncService, CompressPhotoProcessor],
   exports: [PhotoService],
 })
-export class PhotoModule {}
+export class PhotoModule { }

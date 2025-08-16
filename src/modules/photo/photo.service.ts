@@ -159,6 +159,17 @@ export class PhotoService {
       throw new DatabaseException(CommonErrorCode.NOT_FOUND, '订单不存在');
     }
 
+    // 更新照片推荐状态
+    await this.photoRepository.update(
+      {
+        id: In(photoIds),
+        order: { id: orderId }
+      },
+      {
+        isRecommended,
+      }
+    )
+
     // 修改 Redis 中照片推荐状态
     const photosUrl = await this.redisClient.hgetall(
       `photos_url:${order.orderNumber}`,
@@ -167,7 +178,7 @@ export class PhotoService {
     for (const photoId in photosUrl) {
       if (photoIds.includes(Number(photoId))) {
         const photo = JSON.parse(photosUrl[photoId]);
-        photo.is_recommend = isRecommended;
+        photo.isRecommend = isRecommended;
         pipeline.hset(
           `photos_url:${order.orderNumber}`,
           photoId,
@@ -176,13 +187,6 @@ export class PhotoService {
       }
     }
     await pipeline.exec();
-
-    // 推送修改数据库中照片推荐状态任务队列
-    await this.photoQueue.add(PhotoJobName.UpdateRecommend, {
-      orderId,
-      photoIds,
-      isRecommended,
-    });
 
     return {
       data: photoIds,
@@ -204,47 +208,47 @@ export class PhotoService {
     }
 
     // 去掉文件后缀名
-    const file_name = file.originalname.split('.')[0];
+    const fileName = file.originalname.split('.')[0];
     let photo = await this.photoRepository.findOneBy({
       order: { id: order.id },
-      name: file_name,
+      name: fileName,
     });
 
-    // 如果图片不存在
-    if (!photo) {
-      const newPhoto = new Photo();
-      newPhoto.name = file_name;
-      newPhoto.size = file.size;
-      newPhoto.order = order;
-      newPhoto.ossFileKey = `${order.orderNumber}/${file.originalname}`;
-      photo = await this.photoRepository.save(newPhoto);
-    }
+    // 如果存在则不重复创建
+    if (photo) return
+
+    const newPhoto = new Photo();
+    newPhoto.name = fileName;
+    newPhoto.size = file.size;
+    newPhoto.order = order;
+    newPhoto.ossFileKey = `${order.orderNumber}/${file.originalname}`;
+    photo = await this.photoRepository.save(newPhoto);
+
 
     // 推送压缩图片并上传任务队列
-    const compressJob = await this.photoQueue.add(PhotoJobName.CompressImage, {
+    const compressJob = await this.photoQueue.add(PhotoJobName.PHOTO_COMPRESS, {
       id: photo.id,
       uid,
-      file_buffer: file.buffer,
+      fileName,
+      fileBuffer: file.buffer,
+      isRecommend: photo.isRecommended,
       orderNumber: order.orderNumber,
-      is_recommend: photo.isRecommended,
-      file_name,
-      remark: '',
     });
 
     // 推送刷新 OSS URL 任务队列
-    await this.photoQueue.add(
-      PhotoJobName.UrlRefresh,
-      {
-        photoId: photo.id,
-        orderId: order.id,
-      },
-      { delay: (Number(delay) - 1) * 24 * 3600 * 1000 },
-    );
+    // await this.photoQueue.add(
+    //   PhotoJobName.UrlRefresh,
+    //   {
+    //     photoId: photo.id,
+    //     orderId: order.id,
+    //   },
+    //   { delay: (Number(delay) - 1) * 24 * 3600 * 1000 },
+    // );
 
     return {
       data: {
         id: photo.id,
-        fileName: file_name,
+        fileName,
         fileSize: file.size,
         fileType: file.mimetype,
         taskId: compressJob.id,
