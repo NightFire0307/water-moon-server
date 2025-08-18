@@ -4,10 +4,7 @@ import { Job, Queue } from 'bullmq';
 import { MinioService } from '../../minio/minio.service';
 import { Subject } from 'rxjs';
 import { Redis } from 'ioredis';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Photo, PreSelectStatus } from './entities/photo.entity';
-import { Repository } from 'typeorm';
-import { Order } from '../order/entities/order.entity';
+import { PreSelectStatus } from './entities/photo.entity';
 import * as dayjs from 'dayjs';
 import { piscina } from './piscina-poos';
 export interface PhotoJobData {
@@ -19,6 +16,8 @@ export interface PhotoJobData {
   orderNumber: string
   thumbnailBuffer?: Buffer
   mediumBuffer?: Buffer
+  thumbnailUrl?: string
+  originalUrl?: string
 }
 
 export interface UpdatePhotoRecommendJobData {
@@ -40,24 +39,26 @@ export enum PhotoJobName {
   OSS_UPLOAD = 'photo:oss:upload', // 上传图片到 OSS
 }
 
-// 任务名称映射
+// 定义 photo 推送数据类型
+export interface PhotoSseData {
+  type: "PHOTO_DONE" | 'ORDER_DONE' // PHOTO_DONE: 照片处理完成, ORDER_DONE: 订单处理完成
+  orderNumber: string // 订单号
+  status: 'done' | 'error' // done: 处理完成, error: 处理失败
+  uid?: string // 照片 UID
+  originalUrl?: string // 原图链接
+  thumbnailUrl?: string // 缩略图链接
+}
 
-@Processor('photo')
+@Processor('photo', { concurrency: 4 }) // 设置并发数为 4
 @Injectable()
 export class CompressPhotoProcessor extends WorkerHost {
-  @InjectRepository(Photo)
-  private readonly photoRepository: Repository<Photo>;
-
-  @InjectRepository(Order)
-  private readonly orderRepository: Repository<Order>;
-
   @Inject(MinioService)
   private readonly minioService: MinioService;
 
   @Inject('REDIS_CLIENT')
   private readonly redisClient: Redis;
 
-  private imageProcessedSubject = new Subject();
+  private imageProcessedSubject = new Subject<PhotoSseData>();
 
   constructor(
     @InjectQueue('photo') private photoQueue: Queue
@@ -93,7 +94,11 @@ export class CompressPhotoProcessor extends WorkerHost {
         console.log('开始处理缓存压缩图片信息任务', job.id);
         const { originalUrl, thumbnailUrl } = await this.cacheCompressInfo(job.data)
 
-        await this.photoQueue.add(PhotoJobName.NOTIFY_CLIENT, { uid: job.data.uid, originalUrl, thumbnailUrl })
+        await this.photoQueue.add(PhotoJobName.NOTIFY_CLIENT, {
+          ...job.data,
+          originalUrl,
+          thumbnailUrl,
+        })
         break;
       case PhotoJobName.NOTIFY_CLIENT:
         console.log('开始处理通知客户端任务', job.id);
@@ -201,7 +206,15 @@ export class CompressPhotoProcessor extends WorkerHost {
 
   // 4. 通知客户端图片处理完成
   notifyClient(data: PhotoJobData) {
-    this.imageProcessedSubject.next(data)
+    const { uid, thumbnailUrl, originalUrl, orderNumber } = data
+    this.imageProcessedSubject.next({
+      type: 'PHOTO_DONE',
+      orderNumber,
+      status: 'done',
+      uid,
+      thumbnailUrl,
+      originalUrl,
+    })
   }
 
   @OnWorkerEvent('completed')

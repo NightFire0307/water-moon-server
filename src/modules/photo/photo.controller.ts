@@ -22,7 +22,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { Express } from 'express';
 import { FileTypeValidationPipe } from './file-type-validation.pipe';
 import { map, Observable } from 'rxjs';
-import { CompressPhotoProcessor } from './compress-photo.processor';
+import { CompressPhotoProcessor, type PhotoSseData } from './compress-photo.processor';
 import { RequirePermission, RequireLogin, Public } from '@/common/decorators/auth.decorator';
 import { Pagination, type PaginationQuery } from '@/common/decorators/pagination.decorator';
 
@@ -61,10 +61,10 @@ export class PhotoController {
   // 服务端推送照片处理进度
   @Sse('completions')
   @Public()
-  completions(): Observable<any> {
+  completions(): Observable<PhotoSseData> {
     return this.compressPhotoProcessor.imageProcessed$.pipe(
-      map((event) => {
-        return event
+      map((data) => {
+        return data
       }),
     );
   }
