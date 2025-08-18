@@ -1,0 +1,8 @@
+ignoredBuiltDependencies:
+  - '@scarf/scarf'
+  - msgpackr-extract
+
+onlyBuiltDependencies:
+  - '@nestjs/core'
+  - bcrypt
+  - sharp
