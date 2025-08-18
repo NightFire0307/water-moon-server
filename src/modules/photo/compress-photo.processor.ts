@@ -1,7 +1,6 @@
 import { InjectQueue, OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
 import { Inject, Injectable } from '@nestjs/common';
 import { Job, Queue } from 'bullmq';
-import * as sharp from 'sharp';
 import { MinioService } from '../../minio/minio.service';
 import { Subject } from 'rxjs';
 import { Redis } from 'ioredis';
@@ -10,6 +9,7 @@ import { Photo, PreSelectStatus } from './entities/photo.entity';
 import { Repository } from 'typeorm';
 import { Order } from '../order/entities/order.entity';
 import * as dayjs from 'dayjs';
+import { piscina } from './piscina-poos';
 export interface PhotoJobData {
   id: number
   uid: string
@@ -80,7 +80,7 @@ export class CompressPhotoProcessor extends WorkerHost {
         })
         break;
       case PhotoJobName.OSS_UPLOAD:
-        console.log('开始处理上传图片到OSS任务', job.id);
+        console.log('开始处理上传图片到OSS任务');
         await this.uploadToOss({
           ...job.data,
           thumbnailBuffer: job.data.thumbnailBuffer,
@@ -91,9 +91,9 @@ export class CompressPhotoProcessor extends WorkerHost {
         break;
       case PhotoJobName.CACHE_COMPRESS_INFO:
         console.log('开始处理缓存压缩图片信息任务', job.id);
-        await this.cacheCompressInfo(job.data)
+        const { originalUrl, thumbnailUrl } = await this.cacheCompressInfo(job.data)
 
-        await this.photoQueue.add(PhotoJobName.NOTIFY_CLIENT, job.data)
+        await this.photoQueue.add(PhotoJobName.NOTIFY_CLIENT, { uid: job.data.uid, originalUrl, thumbnailUrl })
         break;
       case PhotoJobName.NOTIFY_CLIENT:
         console.log('开始处理通知客户端任务', job.id);
@@ -111,14 +111,12 @@ export class CompressPhotoProcessor extends WorkerHost {
     const copyFileBuffer = Buffer.from(fileBuffer);
 
     try {
-      const [thumbnailBuffer, mediumBuffer] = await Promise.all([
-        sharp(copyFileBuffer).resize({ width: 300, fit: 'inside' }).webp({ quality: 80 }).toBuffer(),
-        sharp(copyFileBuffer).resize({ width: 1920, fit: 'inside' }).webp({ quality: 80 }).toBuffer(),
-      ])
+      console.log('开始压缩图片', data.id);
+      const [thumbnailBuffer, mediumBuffer] = await piscina.run(copyFileBuffer)
 
       return {
-        thumbnailBuffer,
-        mediumBuffer,
+        thumbnailBuffer: Buffer.from(thumbnailBuffer),
+        mediumBuffer: Buffer.from(mediumBuffer),
       }
     } catch (e) {
       console.log(e);
@@ -128,11 +126,11 @@ export class CompressPhotoProcessor extends WorkerHost {
 
   // 2. 上传图片到 OSS
   async uploadToOss(data: PhotoJobData & { thumbnailBuffer: Buffer; mediumBuffer: Buffer }) {
+
     // 注：需要拷贝一份 Buffer，否则会报错，因为 BullMQ 会将数据序列化和反序列化，所以拿到的 Buffer 不是原始的 Buffer 
     const originalBuffer = Buffer.from(data.fileBuffer);
     const thumbnailBuffer = Buffer.from(data.thumbnailBuffer);
     const mediumBuffer = Buffer.from(data.mediumBuffer);
-
 
     try {
       await Promise.all([
@@ -150,12 +148,13 @@ export class CompressPhotoProcessor extends WorkerHost {
         )
       ])
     } catch (err) {
+      console.log('上传图片到 OSS 失败', err);
       throw err
     }
   }
 
   // 3. 缓存图片信息到 Redis
-  async cacheCompressInfo(data: PhotoJobData) {
+  async cacheCompressInfo(data: PhotoJobData): Promise<{ thumbnailUrl: string; originalUrl: string }> {
     try {
       // 获取 OSS 图片链接
       const { id, fileName, isRecommend, orderNumber } = data;
@@ -189,6 +188,11 @@ export class CompressPhotoProcessor extends WorkerHost {
           preSelectStatus: PreSelectStatus.PENDING,
         }),
       )
+
+      return {
+        thumbnailUrl,
+        originalUrl,
+      }
     } catch (e) {
       console.log(e);
       throw e
@@ -198,57 +202,6 @@ export class CompressPhotoProcessor extends WorkerHost {
   // 4. 通知客户端图片处理完成
   notifyClient(data: PhotoJobData) {
     this.imageProcessedSubject.next(data)
-  }
-
-  // 异步刷新图片链接
-  async urlRefreshJob({ orderId, photoId }: UrlRefreshJobData) {
-    try {
-      const order = await this.orderRepository.findOne({
-        where: { id: orderId, isDeleted: false },
-      });
-
-      if (!order) return;
-
-      const photo = await this.photoRepository.findOne({
-        where: { id: photoId, order: { id: orderId }, isDeleted: false },
-      });
-
-      if (!photo) return;
-
-      // 设置图片过期时间
-      const expires = 24 * 60 * 60 * 7;
-
-      // 重新创建链接
-      const thumbnailUrl = await this.minioService.generateGetUrl(
-        `${order.orderNumber}/thumbnail/${photo.name}`,
-        expires,
-      );
-      const originalUrl = await this.minioService.generateGetUrl(
-        `${order.orderNumber}/${photo.name}`,
-        expires,
-      );
-      const mediumUrl = await this.minioService.generateGetUrl(
-        `${order.orderNumber}/medium/${photo.name}`,
-        expires,
-      );
-
-      // 更新 Redis 中照片 URL
-      await this.redisClient.hset(
-        `photos_url:${order.orderNumber}`,
-        photo.id,
-        JSON.stringify({
-          fileName: photo.name,
-          thumbnailUrl,
-          originalUrl,
-          mediumUrl,
-          isRecommend: photo.isRecommended,
-          expires: dayjs().add(30, 's').valueOf(),
-          remark: '',
-        }),
-      );
-    } catch (e) {
-      console.log('刷新图片链接失败', e);
-    }
   }
 
   @OnWorkerEvent('completed')
