@@ -19,6 +19,7 @@ export enum OrderErrorCode {
   ORDER_PRODUCT_HAS_PHOTO = 'ORDER_PRODUCT_HAS_PHOTO', // 订单产品已存在照片
   INVALID_STATUS_TRANSITION = 'INVALID_STATUS_TRANSITION', // 无效的订单状态转换
   ORDER_ALREADY_FINISHED = 'ORDER_ALREADY_FINISHED', // 订单已完成，不能修改状态
+  ORDER_IS_EXPIRED = 'ORDER_IS_EXPIRED', // 订单已过期
 }
 
 export enum LinkErrorCode {
@@ -109,6 +110,10 @@ export class DatabaseException extends BaseBusinessException {
       },
       [OrderErrorCode.ORDER_ALREADY_FINISHED]: {
         data: '订单已完成，不能修改状态',
+        status: HttpStatus.BAD_REQUEST,
+      },
+      [OrderErrorCode.ORDER_IS_EXPIRED]: {
+        data: '订单已过期',
         status: HttpStatus.BAD_REQUEST,
       },
     };

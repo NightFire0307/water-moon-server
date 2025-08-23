@@ -2,13 +2,13 @@ import { HttpException, HttpStatus } from '@nestjs/common';
 
 interface BaseBusinessExceptionOptions {
   msg: string;
-  code: string;
+  code: string | number;
   data: any;
   status?: HttpStatus;
 }
 
 export class BaseBusinessException extends HttpException {
-  public readonly code: string;
+  public readonly code: string | number;
   public readonly msg: string;
   public readonly data: any;
 

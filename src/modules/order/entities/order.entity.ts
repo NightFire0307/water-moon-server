@@ -61,6 +61,9 @@ export class Order {
   })
   links: Link[];
 
+  @Column({ type: 'datetime', name: 'valid_until', nullable: true })
+  validUntil: Date; // 订单有效期
+
   @Column({ name: 'is_deleted', type: 'boolean', default: false })
   @Exclude()
   isDeleted: boolean; // 是否已删除

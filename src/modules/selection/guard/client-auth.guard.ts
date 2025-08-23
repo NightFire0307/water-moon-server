@@ -6,13 +6,12 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { Observable } from 'rxjs';
-import { SelectionService } from '../selection.service';
 import { JwtService } from '@nestjs/jwt';
 import { Request } from 'express';
 import {
   AuthErrorCode,
   AuthException,
-} from '../../../common/exceptions/auth.exception';
+} from '@/common/exceptions/auth.exception';
 
 interface JwtSelectData {
   orderId: number;
@@ -26,12 +25,9 @@ declare module 'express' {
 }
 
 @Injectable()
-export class CustomLogin implements CanActivate {
+export class ClientAuthGuard implements CanActivate {
   @Inject(JwtService)
   private readonly jwtService: JwtService;
-
-  @Inject(SelectionService)
-  private readonly selectionService: SelectionService;
 
   canActivate(
     context: ExecutionContext,

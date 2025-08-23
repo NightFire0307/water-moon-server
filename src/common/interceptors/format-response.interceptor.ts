@@ -12,6 +12,7 @@ import {
 } from '@nestjs/common';
 import { map, Observable } from 'rxjs';
 import { Response } from 'express';
+import { StatusCode } from '../constants/status-code';
 
 @Injectable()
 export class FormatResponseInterceptor implements NestInterceptor {
@@ -38,7 +39,7 @@ export class FormatResponseInterceptor implements NestInterceptor {
         // 如果响应数据是字符串，则直接作为 msg 返回
         if (typeof data === 'string') {
           return {
-            code: response.statusCode,
+            code: StatusCode.SUCCESS,
             msg: data ?? '请求成功',
             data: null
           }
@@ -47,7 +48,7 @@ export class FormatResponseInterceptor implements NestInterceptor {
         // 如果响应数据是对象，且包含 msg 和 data 字段，则格式化返回
         if (data && typeof data === 'object' && 'msg' in data && 'data' in data) {
           return {
-            code: response.statusCode,
+            code: StatusCode.SUCCESS,
             ...data
           }
         }
@@ -61,7 +62,7 @@ export class FormatResponseInterceptor implements NestInterceptor {
 
         // 默认格式化返回
         return {
-          code: response.statusCode,
+          code: StatusCode.SUCCESS,
           msg: '请求成功',
           data: data ?? null,
         }

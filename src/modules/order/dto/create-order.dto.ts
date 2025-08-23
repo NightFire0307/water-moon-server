@@ -1,5 +1,6 @@
 import {
   IsArray,
+  IsDate,
   IsNotEmpty,
   IsNumber,
   IsOptional,
@@ -56,4 +57,8 @@ export class CreateOrderDto {
   @IsNumber({ maxDecimalPlaces: 2 })
   @IsNotEmpty()
   extraPhotoPrice: number;
+
+  @IsString()
+  @IsNotEmpty()
+  validUntil: string;
 }

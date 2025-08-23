@@ -159,6 +159,7 @@ export class OrderService {
       orderProducts,
       extraPhotoPrice,
       maxSelectPhotos,
+      validUntil
     } = createOrderDto;
 
     const queryRunner =
@@ -183,6 +184,7 @@ export class OrderService {
       customerPhone,
       extraPhotoPrice,
       maxSelectPhotos,
+      validUntil: new Date(validUntil),
     });
     await queryRunner.manager.save(order);
 
