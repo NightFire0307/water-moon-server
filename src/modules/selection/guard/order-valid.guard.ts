@@ -4,6 +4,7 @@ import { CanActivate, type ExecutionContext } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import type { Repository } from 'typeorm';
 import { OrderExpiredException } from '../exceptions/order-expired.exception';
+import type { Request } from 'express';
 
 /**
  * 校验选片订单是否过有效期
@@ -14,12 +15,12 @@ export class OrderValidGuard implements CanActivate {
   private readonly orderRepository: Repository<Order>;
 
   async canActivate(context: ExecutionContext) {
-    const request = context.switchToHttp().getRequest();
-    const { orderId } = request.orderInfo;
+    const request: Request = context.switchToHttp().getRequest();
+    const { id } = request.order!;
 
     const order = await this.orderRepository.findOne({
       where: {
-        id: orderId
+        id
       }
     })
 

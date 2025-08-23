@@ -15,13 +15,7 @@ import {
 
 interface JwtSelectData {
   orderId: number;
-  short_url: string;
-}
-
-declare module 'express' {
-  interface Request {
-    orderInfo: JwtSelectData;
-  }
+  shortUrl: string;
 }
 
 @Injectable()
@@ -39,8 +33,8 @@ export class ClientAuthGuard implements CanActivate {
     const token = authorization.split(' ')[1];
 
     try {
-      const data = this.jwtService.verify<JwtSelectData>(token);
-      request.orderInfo = { ...data };
+      const tokenPayload = this.jwtService.verify<JwtSelectData>(token);
+      request.tokenPayload = tokenPayload
     } catch {
       throw new AuthException(AuthErrorCode.LOGIN_EXPIRED);
     }

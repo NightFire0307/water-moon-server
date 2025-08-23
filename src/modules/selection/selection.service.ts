@@ -1,13 +1,11 @@
 import { BadRequestException, Inject, Injectable, Logger } from '@nestjs/common';
 import basex from 'base-x';
-import { Redis } from 'ioredis';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Order, OrderStatus } from '../order/entities/order.entity';
 import { In, Repository, DataSource, Not } from 'typeorm';
 import { SelectionLoginDto } from './dto/login.dto';
 import { JwtService } from '@nestjs/jwt';
 import { Photo, PreSelectStatus } from '../photo/entities/photo.entity';
-import { Product } from '../product/entities/product.entity';
 import { OrderProduct } from '../order/entities/orderProduct.entity';
 import { ProductPhotoSelectionDto } from './dto/selection-photos-update.dto';
 import {
@@ -16,11 +14,11 @@ import {
   LinkErrorCode,
   OrderErrorCode,
   PhotoErrorCode,
-} from '../../common/exceptions/database.exception';
+} from '@/common/exceptions/database.exception';
 import {
   AuthErrorCode,
   AuthException,
-} from '../../common/exceptions/auth.exception';
+} from '@/common/exceptions/auth.exception';
 import { Link } from '../link/entities/link.entity';
 import * as dayjs from 'dayjs';
 import type { AssignOrderProductPhotosDto } from './dto/assign-order-product-photos.dto';
@@ -28,9 +26,6 @@ import { OrderProductPhoto } from '../order/entities/orderProductPhotos.entity';
 
 @Injectable()
 export class SelectionService {
-  @Inject('REDIS_CLIENT')
-  private readonly redisClient: Redis;
-
   @Inject(JwtService)
   private readonly jwtService: JwtService;
 
@@ -39,9 +34,6 @@ export class SelectionService {
 
   @InjectRepository(OrderProduct)
   private readonly orderProductRepository: Repository<OrderProduct>;
-
-  @InjectRepository(Product)
-  private readonly productRepository: Repository<Product>;
 
   @InjectRepository(Photo)
   private readonly photoRepository: Repository<Photo>;
@@ -62,7 +54,6 @@ export class SelectionService {
     if (loginType === 'link') {
       // 短链登录处理
       const orderId = this.decodeOrderId(shortUrl)
-      order = await this.findOrderById(+orderId);
 
       // 验证订单是否存在
       if (!order) {
@@ -145,7 +136,7 @@ export class SelectionService {
       }
     }
 
-    const order = await this.findOrderById(+orderId);
+    const order = await this.orderRepository.findOneBy({ id: Number(orderId) });
 
     return {
       data: order.id,
@@ -234,7 +225,7 @@ export class SelectionService {
     const { orderProductId, photoIds } = productPhotoSelection;
 
     // 验证订单存在
-    const order = await this.findOrderById(orderId);
+    const order = await this.orderRepository.findOneBy({ id: orderId });
 
     // 验证订单是否已经提交锁定
     if (order.status === OrderStatus.SUBMITTED) {
@@ -290,7 +281,6 @@ export class SelectionService {
         throw new BadRequestException('部分照片ID不存在');
       }
 
-
       // orderProduct.selected_photos = photos;
       await manager.save(orderProduct);
     });
@@ -317,17 +307,9 @@ export class SelectionService {
     }
   }
 
-  // 查找订单
-  private async findOrderById(id: number) {
-    const order = await this.orderRepository.findOneBy({ id });
-    if (!order)
-      throw new DatabaseException(CommonErrorCode.NOT_FOUND, '订单不存在');
-    return order;
-  }
-
   // 锁定选片结果
   async submitOrder(orderId: number) {
-    const order = await this.findOrderById(orderId);
+    const order = await this.orderRepository.findOneBy({ id: orderId });
 
     if (order.status === OrderStatus.PRODUCT_SELECT) {
       order.status = OrderStatus.SUBMITTED;

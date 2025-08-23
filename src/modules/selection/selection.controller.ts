@@ -20,14 +20,13 @@ import {
   AuthErrorCode,
 } from '@/common/exceptions/auth.exception';
 import { Public } from '@/common/decorators/auth.decorator';
-import { OrderInfo } from '@/common/decorators/context.decorator';
 import { Pagination, PaginationQuery } from '@/common/decorators/pagination.decorator';
 import { BulkUpdatePhotoPreselectStatusDto } from './dto/update-photo-preselect-status.dto';
 import type { AssignOrderProductPhotosDto } from './dto/assign-order-product-photos.dto';
-import type { OrderStatus } from '../order/entities/order.entity';
 import type { UpdateOrderStatusDto } from '../order/dto/order-status.dto';
 import { OrderService } from '../order/order.service';
 import { OrderValidGuard } from './guard/order-valid.guard';
+import { OrderLoaderGuard } from './guard/order-loader.guard';
 
 @Controller('selection')
 @Public()
@@ -96,71 +95,72 @@ export class SelectionController {
   }
 
   @Get('order')
-  @UseGuards(ClientAuthGuard, OrderValidGuard)
-  async getOrderInfo(@OrderInfo('orderId') orderId: number) {
-    return await this.selectionService.getOrderInfo(orderId);
+  @UseGuards(ClientAuthGuard, OrderLoaderGuard, OrderValidGuard)
+  async getOrderInfo(@Req() req: Request) {
+    const order = req.order
+    return await this.selectionService.getOrderInfo(order.id);
   }
 
   // 获取选片照片
   @Get('photos')
-  @UseGuards(ClientAuthGuard)
+  @UseGuards(ClientAuthGuard, OrderLoaderGuard, OrderValidGuard)
   async getPhotos(
-    @OrderInfo('orderId') orderId: number,
+    @Req() req: Request,
     @Pagination() pagination: PaginationQuery,
   ) {
-    return await this.photoService.getPhotosByOrderId(orderId, pagination);
+    return await this.photoService.getPhotosByOrderId(req.order.id, pagination);
   }
 
   // 更新订单状态
   @Patch('order/status')
-  @UseGuards(ClientAuthGuard)
+  @UseGuards(ClientAuthGuard, OrderLoaderGuard, OrderValidGuard)
   async updateOrderStatus(
-    @OrderInfo('orderId') orderId: number,
+    @Req() req: Request,
     @Body() dto: UpdateOrderStatusDto
   ) {
-    return await this.orderService.updateOrderStatus(orderId, dto.status);
+    return await this.orderService.updateOrderStatus(req.order.id, dto.status);
   }
 
   // 更新照片预选标记
   @Patch('preselected-photos')
-  @UseGuards(ClientAuthGuard)
+  @UseGuards(ClientAuthGuard, OrderLoaderGuard, OrderValidGuard)
   async updatePhotoPreSelectStatus(
-    @OrderInfo('orderId') orderId: number,
+    @Req() req: Request,
     @Body() dto: BulkUpdatePhotoPreselectStatusDto) {
-    return await this.photoService.updatePhotoPreSelectStatus(orderId, dto);
+    return await this.photoService.updatePhotoPreSelectStatus(req.order.id, dto);
   }
 
   // 重置预选照片
   @Post('photos/pre-select/reset')
-  @UseGuards(ClientAuthGuard)
+  @UseGuards(ClientAuthGuard, OrderLoaderGuard, OrderValidGuard)
   async resetOrderPreSelect(
-    @OrderInfo('orderId') orderId: number
+    @Req() req: Request
   ) {
-    return await this.selectionService.resetOrderPreSelect(orderId);
+    return await this.selectionService.resetOrderPreSelect(req.order.id);
   }
 
   // 重置产品选片
   @Post('order-product/reset')
-  @UseGuards(ClientAuthGuard)
+  @UseGuards(ClientAuthGuard, OrderLoaderGuard, OrderValidGuard)
   async resetOrderProductPhotos(
-    @OrderInfo('orderId') orderId: number,
+    @Req() req: Request,
   ) {
-    return await this.selectionService.resetOrderProductPhotos(orderId);
+    return await this.selectionService.resetOrderProductPhotos(req.order.id);
   }
 
   // 更新产品照片
   @Post('product-photos')
-  @UseGuards(ClientAuthGuard)
+  @UseGuards(ClientAuthGuard, OrderLoaderGuard, OrderValidGuard)
   async bulkAssignPhotosToOrderProduct(
-    @OrderInfo('orderId') orderId: number,
+    @Req() req: Request,
     @Body() dto: AssignOrderProductPhotosDto
   ) {
-    return await this.selectionService.bulkAssignPhotosToOrderProduct(orderId, dto);
+    return await this.selectionService.bulkAssignPhotosToOrderProduct(req.order.id, dto);
   }
 
   // 锁定选片结果
   @Post(':orderId')
-  @UseGuards(ClientAuthGuard)
+  @UseGuards(ClientAuthGuard, OrderLoaderGuard, OrderValidGuard)
   @HttpCode(200)
   async submitOrder(@Param('orderId') orderId: number) {
     return await this.selectionService.submitOrder(orderId);
