@@ -79,6 +79,8 @@ console.log(`Environment: ${process.env.NODE_ENV}`);
           extra: {
             authPlugin: 'sha256_password',
           },
+          migrations: ['dist/migration/*.js'],
+          migrationsTableName: "custom_migration_table",
         };
       },
       inject: [ConfigService],
