@@ -180,6 +180,8 @@ export class SelectionService {
         'order.customerName',
         'order.customerPhone',
         'order.status',
+        'order.validUntil',
+        'order.createdAt',
         'orderProducts',
         'product.id',
         'product.name',
