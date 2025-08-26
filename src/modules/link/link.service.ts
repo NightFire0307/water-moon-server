@@ -8,8 +8,8 @@ import { Order } from '../order/entities/order.entity';
 import { generatePassword } from '@/common/utils/generatePassword';
 import { PaginationQuery } from '@/common/decorators/pagination.decorator';
 import { RedisService } from '@/redis/redis.service';
-import * as dayjs from 'dayjs';
-import * as crypto from 'node:crypto';
+import dayjs from 'dayjs';
+import crypto from 'node:crypto';
 import {
   CommonErrorCode,
   DatabaseException,

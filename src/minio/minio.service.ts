@@ -2,7 +2,7 @@ import { Inject, Injectable, type OnModuleInit } from '@nestjs/common';
 import * as Minio from 'minio';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
-import * as dayjs from 'dayjs';
+import dayjs from 'dayjs';
 
 @Injectable()
 export class MinioService implements OnModuleInit {

@@ -1,4 +1,4 @@
-import * as sharp from 'sharp';
+import sharp from 'sharp';
 
 async function compressImage(imageBuffer: Buffer): Promise<[Buffer, Buffer]> {
   return await Promise.all([

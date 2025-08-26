@@ -5,7 +5,7 @@ import { MinioService } from '../../minio/minio.service';
 import { Subject } from 'rxjs';
 import { Redis } from 'ioredis';
 import { PreSelectStatus } from './entities/photo.entity';
-import * as dayjs from 'dayjs';
+import dayjs from 'dayjs';
 import { piscina } from './piscina-poos';
 export interface PhotoJobData {
   id: number

@@ -9,7 +9,6 @@ import { OrderProduct } from './entities/orderProduct.entity';
 import { UpdateOrderDto } from './dto/update-order.dto';
 import { instanceToPlain } from 'class-transformer';
 import { GetOrderListDto } from './dto/get-order-list.dto';
-import { ResetOrderStatusDto } from './dto/reset-order-status.dto';
 import { Photo, PreSelectStatus } from '../photo/entities/photo.entity';
 import {
   CommonErrorCode,
@@ -18,12 +17,12 @@ import {
   PhotoErrorCode,
 } from '../../common/exceptions/database.exception';
 import type Redis from 'ioredis';
-import * as archiver from 'archiver';
+import archiver from 'archiver';
 import { PassThrough } from 'node:stream';
 import { ConfigService } from '@nestjs/config';
 import { MinioService } from '../../minio/minio.service';
-import * as dayjs from 'dayjs';
-import * as iosWeek from 'dayjs/plugin/isoWeek.js'
+import dayjs from 'dayjs';
+import iosWeek from 'dayjs/plugin/isoWeek.js'
 import { PhotoService } from '../photo/photo.service';
 import { OrderProductPhoto } from './entities/orderProductPhotos.entity';
 

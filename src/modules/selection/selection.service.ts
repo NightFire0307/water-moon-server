@@ -20,7 +20,7 @@ import {
   AuthException,
 } from '@/common/exceptions/auth.exception';
 import { Link } from '../link/entities/link.entity';
-import * as dayjs from 'dayjs';
+import dayjs from 'dayjs';
 import type { AssignOrderProductPhotosDto } from './dto/assign-order-product-photos.dto';
 import { OrderProductPhoto } from '../order/entities/orderProductPhotos.entity';
 

@@ -7,8 +7,8 @@ export const appDataSource = new DataSource({
   username: 'root',
   password: '123456',
   database: 'water_moon_select_photo_system',
-  synchronize: false,
+  synchronize: true,
   logging: true,
-  entities: ['./src/modules/**/*.entity.ts'],
-  migrations: ['./src/migrations/*.ts'],
+  entities: ['./dist/modules/**/*.entity.js'],
+  migrations: ['./dist/migrations/*.js'],
 });

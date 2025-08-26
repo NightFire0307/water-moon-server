@@ -12,7 +12,7 @@ import { Queue } from 'bullmq';
 import { PhotoJobName } from './compress-photo.processor';
 import { MinioService } from '../../minio/minio.service';
 import { ConfigService } from '@nestjs/config';
-import * as dayjs from 'dayjs';
+import dayjs from 'dayjs';
 import {
   CommonErrorCode,
   DatabaseException,

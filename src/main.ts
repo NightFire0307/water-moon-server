@@ -5,7 +5,7 @@ import { FormatResponseInterceptor } from './common/interceptors/format-response
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { RedisExceptionFilter } from './common/redis-exception.filter';
-import * as cookieParser from 'cookie-parser';
+import cookieParser from 'cookie-parser';
 import { WinstonModule } from 'nest-winston';
 import { winstonLoggerOptions } from './common/logger/winston.logger';
 
