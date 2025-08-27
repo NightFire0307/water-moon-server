@@ -6,6 +6,7 @@ import * as path from 'path'
 import { appDataSource } from 'data-source'
 import { User } from "@/modules/user/entities/user.entity";
 import { Role } from "@/modules/role/entities/role.entity";
+import { Permission } from "@/modules/auth/entities/permissions.entity";
 
 @Module({
   imports: [
@@ -16,7 +17,7 @@ import { Role } from "@/modules/role/entities/role.entity";
         autoLoadEntities: true,
       })
     }),
-    TypeOrmModule.forFeature([User, Role])
+    TypeOrmModule.forFeature([User, Role, Permission])
   ],
   providers: [SeedService],
 })
