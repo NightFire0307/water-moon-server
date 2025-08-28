@@ -213,12 +213,13 @@ export class PhotoService {
         let size = 0;
 
         // 统计照片大小
-        const pass = new PassThrough()
-        pass.on('data', (chunk) => {
+        const passForSize = new PassThrough()
+
+        passForSize.on('data', (chunk) => {
           size += chunk.length;
         })
 
-        pass.on('end', async () => {
+        passForSize.on('end', async () => {
           // 缓存照片信息到 Redis
           await this.redisClient.hset(
             `photos_info:${order.orderNumber}`,
@@ -233,13 +234,14 @@ export class PhotoService {
 
           // 设置照片信息缓存过期时间
           await this.redisClient.expire(`photos_info:${order.orderNumber}`, this.REDIS_PHOTO_INFO_EXPIRE)
-
-          // 原图直接上传
-          await this.minioService.uploadImage(pass, `${order.orderNumber}/${info.filename}`)
         })
 
+        // 原图直接上传
+        console.log(passForSize)
+        await this.minioService.uploadImage(file, `${order.orderNumber}/${info.filename}`)
+
         // 创建 passThrough 流统计大小
-        file.pipe(pass)
+        file.pipe(passForSize)
       })
 
       bb.on('finish', async () => {
