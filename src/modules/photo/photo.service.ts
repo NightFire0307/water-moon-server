@@ -24,8 +24,8 @@ import { PassThrough } from 'stream';
 
 @Injectable()
 export class PhotoService {
-  private orderPhotoCache: Photo[] = [];
-  private readonly MAX_PHOTO_CACHE = 100;
+  private readonly BATCH_INSERT_SIZE = 100; // 批量插入大小
+  private readonly REDIS_PHOTO_INFO_EXPIRE = 3600 * 6; // 照片信息缓存过期时间 6小时
 
   constructor(
     @InjectQueue('photo') private readonly photoQueue: Queue,
@@ -219,29 +219,23 @@ export class PhotoService {
         })
 
         pass.on('end', async () => {
-          this.orderPhotoCache.push(
-            this.photoRepository.create({
+          // 缓存照片信息到 Redis
+          await this.redisClient.hset(
+            `photos_info:${order.orderNumber}`,
+            info.filename,
+            JSON.stringify({
               name: info.filename.split('.')[0],
               size,
-              order,
-              ossFileKey: `${order.orderNumber}/${info.filename}`,
+              orderId: order.id,
+              ossFileKey: `${order.orderNumber}/${info.filename}`
             })
           )
 
+          // 设置照片信息缓存过期时间
+          await this.redisClient.expire(`photos_info:${order.orderNumber}`, this.REDIS_PHOTO_INFO_EXPIRE)
+
           // 原图直接上传
           await this.minioService.uploadImage(pass, `${order.orderNumber}/${info.filename}`)
-
-          // 判断是否达到批量存储上限
-          if (this.orderPhotoCache.length >= this.MAX_PHOTO_CACHE) {
-            await this.bulkSavePhotos()
-          }
-        })
-
-        pass.on('finish', async () => {
-          console.log('pass流结束')
-          console.log(this.orderPhotoCache)
-
-          await this.bulkSavePhotos(true) // 传输结束，强制写入剩余缓存
         })
 
         // 创建 passThrough 流统计大小
@@ -249,8 +243,6 @@ export class PhotoService {
       })
 
       bb.on('finish', async () => {
-        console.log(this.orderPhotoCache.length)
-        // await this.bulkSavePhotos(true) // 传输结束，强制写入剩余缓存
         resolve('ok')
       })
 
@@ -264,22 +256,32 @@ export class PhotoService {
 
   /**
    * 批量存储照片信息
-   * @param forceSync 是否强制同步, 默认false
+   * @param orderId 订单ID
    * @returns Promise<void>
    */
-  private async bulkSavePhotos(forceSync: boolean = false) {
-    if (this.orderPhotoCache.length === 0) return
+  async bulkSavePhotos(orderId: number) {
+    const order = await this.getOrderById(orderId);
+    const photoList = await this.redisClient.hgetall(`photos_info:${order.orderNumber}`)
+    const photos = Object.values(photoList).map(photo => JSON.parse(photo))
 
-    if (this.orderPhotoCache.length >= this.MAX_PHOTO_CACHE || forceSync) {
-      await this.photoRepository
-        .createQueryBuilder()
+    // 分批写入数据库
+    for (let i = 0; i < photos.length; i += this.BATCH_INSERT_SIZE) {
+      const batch = photos.slice(i, i + this.BATCH_INSERT_SIZE);
+      await this.photoRepository.createQueryBuilder()
         .insert()
         .into(Photo)
-        .values(this.orderPhotoCache)
-        .orIgnore() // ✅ 遇到重复键跳过
-        .execute();
-      this.orderPhotoCache.length = 0 // 清空缓存
+        .values(batch.map(p => ({
+          name: p.name,
+          size: p.size,
+          order: { id: p.orderId },
+          ossFileKey: p.ossFileKey,
+        })))
+        .orIgnore() // 忽略重复插入
+        .execute()
     }
+
+    // 清空 Redis 中的照片信息缓存
+    await this.redisClient.del(`photos_info:${order.orderNumber}`)
   }
 
   // 服务端压缩图片并上传到 Minio

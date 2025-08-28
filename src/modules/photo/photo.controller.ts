@@ -69,6 +69,16 @@ export class PhotoController {
     );
   }
 
+  // 判断是否全部上传完成
+  @Post('/upload/commit/:orderId')
+  @RequireLogin()
+  async commitUpload(
+    @Param('orderId') orderId: string,
+  ) {
+    await this.photoService.bulkSavePhotos(Number(orderId))
+    return 'ok'
+  }
+
   @Post('/upload/:orderId')
   @RequireLogin()
   async uploadPhoto(
