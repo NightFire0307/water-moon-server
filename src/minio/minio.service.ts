@@ -3,6 +3,7 @@ import * as Minio from 'minio';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 import dayjs from 'dayjs';
+import type { Readable } from 'node:stream';
 
 @Injectable()
 export class MinioService implements OnModuleInit {
@@ -58,15 +59,11 @@ export class MinioService implements OnModuleInit {
    * @param imageBuffer 图片Buffer
    * @param keyName 图片名称
    */
-  async uploadImage(imageBuffer: Buffer, keyName: string) {
+  async uploadImage(stream: Readable | Buffer, keyName: string) {
     const bucketName = this.configService.get('minio_bucket');
     const url = await this.minioClient.presignedPutObject(bucketName, keyName);
 
-    await axios.put(url, imageBuffer, {
-      headers: {
-        'Content-Type': 'image/jpeg',
-      },
-    });
+    await this.minioClient.putObject(bucketName, keyName, stream);
   }
 
   async downloadImage(keyName: string) {

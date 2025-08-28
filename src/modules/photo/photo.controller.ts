@@ -4,27 +4,24 @@ import {
   Controller,
   Delete,
   Get,
-  HttpCode,
   Inject,
   Param,
-  Patch,
   Post,
   Put,
   Query,
+  Req,
   Sse,
-  UploadedFile,
-  UseInterceptors,
 } from '@nestjs/common';
 import { PhotoService } from './photo.service';
 import { DeletePhotosDto } from './dto/delete-photos.dto';
 import { UpdatePhotoRecommendDto } from './dto/update-photo-recommend.dto';
-import { FileInterceptor } from '@nestjs/platform-express';
-import { Express } from 'express';
-import { FileTypeValidationPipe } from './file-type-validation.pipe';
+import { Request } from 'express';
 import { map, Observable } from 'rxjs';
 import { CompressPhotoProcessor, type PhotoSseData } from './compress-photo.processor';
 import { RequirePermission, RequireLogin, Public } from '@/common/decorators/auth.decorator';
 import { Pagination, type PaginationQuery } from '@/common/decorators/pagination.decorator';
+
+import { MinioService } from '@/minio/minio.service';
 
 @Controller('admin/photos')
 @RequirePermission({
@@ -39,6 +36,9 @@ export class PhotoController {
 
   @Inject(CompressPhotoProcessor)
   private readonly compressPhotoProcessor: CompressPhotoProcessor;
+
+  @Inject(MinioService)
+  private readonly minioService: MinioService;
 
   @Get()
   @RequireLogin()
@@ -71,19 +71,12 @@ export class PhotoController {
 
   @Post('/upload/:orderId')
   @RequireLogin()
-  @UseInterceptors(
-    FileInterceptor('file', {
-      limits: { fileSize: 20 * 1024 * 1024 },
-    }),
-  )
-  @HttpCode(202)
-  uploadPhoto(
+  async uploadPhoto(
     @Param('orderId') orderId: string,
     @Body('uid') uid: string,
-    @UploadedFile(new FileTypeValidationPipe())
-    file: Express.Multer.File,
+    @Req() req: Request
   ) {
-    return this.photoService.savePhotoToMinio(+orderId, file, uid);
+    return this.photoService.uploadPhotos(Number(orderId), req)
   }
 
   @Put('/recommend/:orderId')

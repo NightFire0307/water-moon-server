@@ -25,7 +25,7 @@ export class Photo {
   @Column()
   name: string; // 照片名称
 
-  @Column({ name: 'oss_file_key' })
+  @Column({ name: 'oss_file_key', unique: true })
   ossFileKey: string; // OSS存储的文件键
 
   @Column()

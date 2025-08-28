@@ -18,9 +18,15 @@ import {
   DatabaseException,
 } from '../../common/exceptions/database.exception';
 import type { BulkUpdatePhotoPreselectStatusDto } from '../selection/dto/update-photo-preselect-status.dto';
+import Busboy from 'busboy'
+import { Request } from 'express';
+import { PassThrough } from 'stream';
 
 @Injectable()
 export class PhotoService {
+  private orderPhotoCache: Photo[] = [];
+  private readonly MAX_PHOTO_CACHE = 100;
+
   constructor(
     @InjectQueue('photo') private readonly photoQueue: Queue,
     @InjectRepository(Order)
@@ -192,6 +198,88 @@ export class PhotoService {
       data: photoIds,
       msg: '修改成功',
     };
+  }
+
+  // 
+  async uploadPhotos(orderId: number, req: Request) {
+    // 获取订单数据
+    const order = await this.getOrderById(orderId);
+
+    return new Promise(async (resolve, reject) => {
+      const bb = Busboy({ headers: req.headers });
+
+      bb.on('file', async (fieldname, file, info) => {
+        console.log('filename', info.filename)
+        let size = 0;
+
+        // 统计照片大小
+        const pass = new PassThrough()
+        pass.on('data', (chunk) => {
+          size += chunk.length;
+        })
+
+        pass.on('end', async () => {
+          this.orderPhotoCache.push(
+            this.photoRepository.create({
+              name: info.filename.split('.')[0],
+              size,
+              order,
+              ossFileKey: `${order.orderNumber}/${info.filename}`,
+            })
+          )
+
+          // 原图直接上传
+          await this.minioService.uploadImage(pass, `${order.orderNumber}/${info.filename}`)
+
+          // 判断是否达到批量存储上限
+          if (this.orderPhotoCache.length >= this.MAX_PHOTO_CACHE) {
+            await this.bulkSavePhotos()
+          }
+        })
+
+        pass.on('finish', async () => {
+          console.log('pass流结束')
+          console.log(this.orderPhotoCache)
+
+          await this.bulkSavePhotos(true) // 传输结束，强制写入剩余缓存
+        })
+
+        // 创建 passThrough 流统计大小
+        file.pipe(pass)
+      })
+
+      bb.on('finish', async () => {
+        console.log(this.orderPhotoCache.length)
+        // await this.bulkSavePhotos(true) // 传输结束，强制写入剩余缓存
+        resolve('ok')
+      })
+
+      bb.on('error', (err) => {
+        reject(err)
+      })
+
+      req.pipe(bb);
+    })
+  }
+
+  /**
+   * 批量存储照片信息
+   * @param forceSync 是否强制同步, 默认false
+   * @returns Promise<void>
+   */
+  private async bulkSavePhotos(forceSync: boolean = false) {
+    if (this.orderPhotoCache.length === 0) return
+
+    if (this.orderPhotoCache.length >= this.MAX_PHOTO_CACHE || forceSync) {
+      await this.photoRepository
+        .createQueryBuilder()
+        .insert()
+        .into(Photo)
+        .values(this.orderPhotoCache)
+        .orIgnore() // ✅ 遇到重复键跳过
+        .execute();
+      this.orderPhotoCache.length = 0 // 清空缓存
+    }
   }
 
   // 服务端压缩图片并上传到 Minio
