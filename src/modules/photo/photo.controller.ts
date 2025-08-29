@@ -22,6 +22,7 @@ import { RequirePermission, RequireLogin, Public } from '@/common/decorators/aut
 import { Pagination, type PaginationQuery } from '@/common/decorators/pagination.decorator';
 
 import { MinioService } from '@/minio/minio.service';
+import { EventService, type SSEMessage } from './event.service';
 
 @Controller('admin/photos')
 @RequirePermission({
@@ -33,6 +34,9 @@ import { MinioService } from '@/minio/minio.service';
 export class PhotoController {
   @Inject(PhotoService)
   private readonly photoService: PhotoService;
+
+  @Inject(EventService)
+  private readonly eventService: EventService;
 
   @Inject(CompressPhotoProcessor)
   private readonly compressPhotoProcessor: CompressPhotoProcessor;
@@ -61,22 +65,18 @@ export class PhotoController {
   // 服务端推送照片处理进度
   @Sse('completions')
   @Public()
-  completions(): Observable<PhotoSseData> {
-    return this.compressPhotoProcessor.imageProcessed$.pipe(
-      map((data) => {
-        return data
-      }),
-    );
+  completions(): Observable<SSEMessage> {
+    return this.eventService.getEventStream()
   }
 
-  // 判断是否全部上传完成
+  // 通知服务端开始处理照片
   @Post('/upload/commit/:orderId')
   @RequireLogin()
   async commitUpload(
     @Param('orderId') orderId: string,
   ) {
     await this.photoService.bulkSavePhotos(Number(orderId))
-    return 'ok'
+    return 'done'
   }
 
   @Post('/upload/:orderId')

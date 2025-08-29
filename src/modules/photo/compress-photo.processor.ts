@@ -2,22 +2,22 @@ import { InjectQueue, OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullm
 import { Inject, Injectable } from '@nestjs/common';
 import { Job, Queue } from 'bullmq';
 import { MinioService } from '../../minio/minio.service';
-import { Subject } from 'rxjs';
 import { Redis } from 'ioredis';
 import { PreSelectStatus } from './entities/photo.entity';
 import dayjs from 'dayjs';
-import { piscina } from './piscina-poos';
+import sharp from 'sharp';
+import { PassThrough, pipeline } from 'stream';
+import { EventService, ProcessingStatus } from './event.service';
+
 export interface PhotoJobData {
-  id: number
   uid: string
   fileName: string
-  fileBuffer: Buffer
-  isRecommend: boolean
   orderNumber: string
-  thumbnailBuffer?: Buffer
-  mediumBuffer?: Buffer
+  ossFileKey: string
+  isRecommend?: boolean
   thumbnailUrl?: string
-  originalUrl?: string
+  mediumUrl?: string
+  id?: number
 }
 
 export interface UpdatePhotoRecommendJobData {
@@ -58,7 +58,8 @@ export class CompressPhotoProcessor extends WorkerHost {
   @Inject('REDIS_CLIENT')
   private readonly redisClient: Redis;
 
-  private imageProcessedSubject = new Subject<PhotoSseData>();
+  @Inject(EventService)
+  private readonly eventService: EventService;
 
   constructor(
     @InjectQueue('photo') private photoQueue: Queue
@@ -71,38 +72,22 @@ export class CompressPhotoProcessor extends WorkerHost {
     switch (job.name) {
       case PhotoJobName.PHOTO_COMPRESS:
         console.log('开始处理图片压缩任务', job.id);
-        const { thumbnailBuffer, mediumBuffer } = await this.compressPhoto(job.data)
 
         // 开始上传 OSS Job
-        await this.photoQueue.add(PhotoJobName.OSS_UPLOAD, {
+        const [mediumUrl, thumbnailUrl] = await this.compressPhoto(job.data)
+        await this.photoQueue.add(PhotoJobName.CACHE_COMPRESS_INFO, {
           ...job.data,
-          thumbnailBuffer,
-          mediumBuffer,
+          mediumUrl,
+          thumbnailUrl
         })
-        break;
-      case PhotoJobName.OSS_UPLOAD:
-        console.log('开始处理上传图片到OSS任务');
-        await this.uploadToOss({
-          ...job.data,
-          thumbnailBuffer: job.data.thumbnailBuffer,
-          mediumBuffer: job.data.mediumBuffer,
-        })
-
-        await this.photoQueue.add(PhotoJobName.CACHE_COMPRESS_INFO, job.data)
         break;
       case PhotoJobName.CACHE_COMPRESS_INFO:
         console.log('开始处理缓存压缩图片信息任务', job.id);
-        const { originalUrl, thumbnailUrl } = await this.cacheCompressInfo(job.data)
+        await this.cacheCompressInfo(job.data)
 
-        await this.photoQueue.add(PhotoJobName.NOTIFY_CLIENT, {
-          ...job.data,
-          originalUrl,
-          thumbnailUrl,
-        })
         break;
       case PhotoJobName.NOTIFY_CLIENT:
         console.log('开始处理通知客户端任务', job.id);
-        this.notifyClient(job.data)
 
         break;
       default:
@@ -111,73 +96,73 @@ export class CompressPhotoProcessor extends WorkerHost {
   }
 
   // 1.异步压缩图片
-  async compressPhoto(data: PhotoJobData): Promise<{ thumbnailBuffer: Buffer; mediumBuffer: Buffer }> {
-    const { fileBuffer } = data;
-    const copyFileBuffer = Buffer.from(fileBuffer);
+  async compressPhoto(data: PhotoJobData) {
+    const objectStream = await this.minioService.downloadImage(data.ossFileKey)
 
-    try {
-      console.log('开始压缩图片', data.id);
-      const [thumbnailBuffer, mediumBuffer] = await piscina.run(copyFileBuffer)
+    const mediumStream = sharp()
+      .resize({ width: 1920, fit: 'inside' })
+      .webp({ quality: 70 })
+    const thumbnailStream = sharp()
+      .resize({ width: 300, fit: 'inside' })
+      .webp({ quality: 70 })
 
-      return {
-        thumbnailBuffer: Buffer.from(thumbnailBuffer),
-        mediumBuffer: Buffer.from(mediumBuffer),
+    const compressMedium = new PassThrough();
+    const compressThumbnail = new PassThrough();
+
+    pipeline(
+      objectStream,
+      mediumStream,
+      compressMedium,
+      (err) => {
+        if (err) {
+          console.error('compress failed', err);
+        } else {
+          console.log('compress succeeded.');
+        }
       }
-    } catch (e) {
-      console.log(e);
-      throw new Error('图片压缩失败')
-    }
-  }
+    )
 
-  // 2. 上传图片到 OSS
-  async uploadToOss(data: PhotoJobData & { thumbnailBuffer: Buffer; mediumBuffer: Buffer }) {
+    // 生成缩略图
+    pipeline(
+      objectStream,
+      thumbnailStream,
+      compressThumbnail,
+      (err) => {
+        if (err) {
+          console.error('thumbnail compress failed', err);
+        } else {
+          console.log('thumbnail compress succeeded.');
+        }
+      }
+    )
 
-    // 注：需要拷贝一份 Buffer，否则会报错，因为 BullMQ 会将数据序列化和反序列化，所以拿到的 Buffer 不是原始的 Buffer 
-    const originalBuffer = Buffer.from(data.fileBuffer);
-    const thumbnailBuffer = Buffer.from(data.thumbnailBuffer);
-    const mediumBuffer = Buffer.from(data.mediumBuffer);
+    await Promise.all([
+      this.minioService.uploadImage(
+        compressMedium,
+        `${data.orderNumber}/medium/${data.fileName}.webp`
+      ),
+      this.minioService.uploadImage(
+        compressThumbnail,
+        `${data.orderNumber}/thumbnail/${data.fileName}.webp`
+      )
+    ])
 
-    try {
-      await Promise.all([
-        this.minioService.uploadImage(
-          originalBuffer,
-          `${data.orderNumber}/${data.fileName}`
-        ),
-        this.minioService.uploadImage(
-          thumbnailBuffer,
-          `${data.orderNumber}/thumbnail/${data.fileName}`
-        ),
-        this.minioService.uploadImage(
-          mediumBuffer,
-          `${data.orderNumber}/medium/${data.fileName}`
-        )
-      ])
-    } catch (err) {
-      console.log('上传图片到 OSS 失败', err);
-      throw err
-    }
+    // 获取上传后的 OSS 链接
+    return await Promise.all([
+      this.minioService.generateGetUrl(
+        `${data.orderNumber}/medium/${data.fileName}.webp`
+      ),
+      this.minioService.generateGetUrl(
+        `${data.orderNumber}/thumbnail/${data.fileName}.webp`
+      )
+    ])
   }
 
   // 3. 缓存图片信息到 Redis
-  async cacheCompressInfo(data: PhotoJobData): Promise<{ thumbnailUrl: string; originalUrl: string }> {
+  async cacheCompressInfo(data: PhotoJobData) {
     try {
       // 获取 OSS 图片链接
-      const { id, fileName, isRecommend, orderNumber } = data;
-
-      const [thumbnailUrl, originalUrl, mediumUrl] = await Promise.all([
-        this.minioService.generateGetUrl(
-          `${orderNumber}/thumbnail/${fileName}`,
-          24 * 60 * 60 * 7,
-        ),
-        this.minioService.generateGetUrl(
-          `${orderNumber}/${fileName}`,
-          24 * 60 * 60 * 7,
-        ),
-        this.minioService.generateGetUrl(
-          `${orderNumber}/medium/${fileName}`,
-          24 * 60 * 60 * 7,
-        ),
-      ])
+      const { id, fileName, mediumUrl, thumbnailUrl, orderNumber } = data;
 
       // 缓存图片信息到 Redis 中
       await this.redisClient.hset(
@@ -186,44 +171,40 @@ export class CompressPhotoProcessor extends WorkerHost {
         JSON.stringify({
           fileName,
           thumbnailUrl,
-          originalUrl,
           mediumUrl,
-          isRecommend,
           expires: dayjs().add(6, 'd').valueOf(),
           preSelectStatus: PreSelectStatus.PENDING,
         }),
       )
 
-      return {
-        thumbnailUrl,
-        originalUrl,
-      }
+      // 通知客户端图片已处理完成
+      // this.eventService.pushMessage({
+      //   type: ProcessingStatus.DONE,
+      //   orderNumber,
+      //   filename: fileName,
+      //   mediumUrl,
+      //   thumbnailUrl,
+      // })
     } catch (e) {
       console.log(e);
       throw e
     }
   }
 
-  // 4. 通知客户端图片处理完成
-  notifyClient(data: PhotoJobData) {
-    const { uid, thumbnailUrl, originalUrl, orderNumber } = data
-    this.imageProcessedSubject.next({
-      type: 'PHOTO_DONE',
-      orderNumber,
-      status: 'done',
-      uid,
-      thumbnailUrl,
-      originalUrl,
-    })
-  }
-
   @OnWorkerEvent('completed')
   async onActive(job: Job<any, any, PhotoJobName>) {
-    console.log('Job completed', job.name, job.id);
-  }
-
-  // 服务端推送照片处理进度
-  get imageProcessed$() {
-    return this.imageProcessedSubject.asObservable();
+    switch (job.name) {
+      case PhotoJobName.PHOTO_COMPRESS:
+        // 通知客户端图片压缩完成
+        this.eventService.pushMessage({
+          type: ProcessingStatus.COMPRESSED,
+          orderNumber: job.data.orderNumber,
+          filename: job.data.fileName,
+          message: '图片压缩完成',
+        })
+        break;
+      default:
+        break;
+    }
   }
 }

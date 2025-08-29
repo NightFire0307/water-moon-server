@@ -21,6 +21,7 @@ import type { BulkUpdatePhotoPreselectStatusDto } from '../selection/dto/update-
 import Busboy from 'busboy'
 import { Request } from 'express';
 import { PassThrough } from 'stream';
+import { EventService, ProcessingStatus } from './event.service';
 
 @Injectable()
 export class PhotoService {
@@ -36,6 +37,7 @@ export class PhotoService {
     @Inject(MinioService) private readonly minioService: MinioService,
     @Inject('REDIS_CLIENT') private readonly redisClient: Redis,
     @Inject(ConfigService) private readonly configService: ConfigService,
+    @Inject(EventService) private readonly eventService: EventService,
   ) { }
 
   // 获取订单信息
@@ -207,13 +209,16 @@ export class PhotoService {
 
     return new Promise(async (resolve, reject) => {
       const bb = Busboy({ headers: req.headers });
+      let uid = '';
 
       bb.on('file', async (fieldname, file, info) => {
-        console.log('filename', info.filename)
         let size = 0;
 
-        // 统计照片大小
         const passForSize = new PassThrough()
+        const passForUpload = new PassThrough()
+
+        file.pipe(passForSize) // 计算文件大小
+        file.pipe(passForUpload) // 上传文件
 
         passForSize.on('data', (chunk) => {
           size += chunk.length;
@@ -237,11 +242,28 @@ export class PhotoService {
         })
 
         // 原图直接上传
-        console.log(passForSize)
-        await this.minioService.uploadImage(file, `${order.orderNumber}/${info.filename}`)
+        await this.minioService.uploadImage(passForUpload, `${order.orderNumber}/${info.filename}`)
 
-        // 创建 passThrough 流统计大小
-        file.pipe(passForSize)
+        // 推送上传完成通知
+        await this.eventService.pushMessage({
+          type: ProcessingStatus.UPLOADED,
+          orderNumber: order.orderNumber,
+          filename: info.filename,
+          message: '上传OSS完成',
+          progress: 100,
+        })
+
+        // 推送压缩图片任务
+        await this.photoQueue.add(PhotoJobName.PHOTO_COMPRESS, {
+          uid,
+          orderNumber: order.orderNumber,
+          fileName: info.filename.split('.')[0],
+          ossFileKey: `${order.orderNumber}/${info.filename}`,
+        })
+      })
+
+      bb.on('field', (fieldname, val) => {
+        if (fieldname === 'uid') uid = val
       })
 
       bb.on('finish', async () => {

@@ -10,6 +10,7 @@ import { PhotoCountSyncService } from './photo-count-sync.service';
 import { MinioModule } from '../../minio/minio.module';
 import { BullModule } from '@nestjs/bullmq';
 import { CompressPhotoProcessor } from './compress-photo.processor';
+import { EventService } from './event.service';
 
 @Module({
   imports: [
@@ -25,7 +26,7 @@ import { CompressPhotoProcessor } from './compress-photo.processor';
     MinioModule,
   ],
   controllers: [PhotoController],
-  providers: [PhotoService, PhotoCountSyncService, CompressPhotoProcessor],
+  providers: [PhotoService, PhotoCountSyncService, CompressPhotoProcessor, EventService],
   exports: [PhotoService],
 })
 export class PhotoModule { }
