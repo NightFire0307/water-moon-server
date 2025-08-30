@@ -209,7 +209,6 @@ export class PhotoService {
 
     return new Promise(async (resolve, reject) => {
       const bb = Busboy({ headers: req.headers });
-      let uid = '';
 
       bb.on('file', async (fieldname, file, info) => {
         let size = 0;
@@ -233,7 +232,7 @@ export class PhotoService {
               name: info.filename.split('.')[0],
               size,
               orderId: order.id,
-              ossFileKey: `${order.orderNumber}/${info.filename}`
+              ossKey: `${order.orderNumber}/${info.filename}`
             })
           )
 
@@ -255,15 +254,15 @@ export class PhotoService {
 
         // 推送压缩图片任务
         await this.photoQueue.add(PhotoJobName.PHOTO_COMPRESS, {
-          uid,
+          orderId: order.id,
           orderNumber: order.orderNumber,
-          fileName: info.filename.split('.')[0],
-          ossFileKey: `${order.orderNumber}/${info.filename}`,
+          name: info.filename.split('.')[0],
+          ossKey: `${order.orderNumber}/${info.filename}`,
         })
       })
 
       bb.on('field', (fieldname, val) => {
-        if (fieldname === 'uid') uid = val
+
       })
 
       bb.on('finish', async () => {

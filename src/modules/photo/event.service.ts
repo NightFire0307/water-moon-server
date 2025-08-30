@@ -8,8 +8,8 @@ export interface SSEMessage {
   type: ProcessingStatus // 事件类型
   orderNumber: string;
   filename: string;
-  mediumUrl?: string;      // 可选中等图链接
-  thumbnailUrl?: string;   // 可选缩略图链接
+  ossUrlMedium?: string;      // 可选中等图链接
+  ossUrlThumbnail?: string;   // 可选缩略图链接
   message?: string;            // 可选描述或错误信息
   progress?: number;           // 可选进度，0~100
   retry?: number;              // 可选客户端重连时间（ms）

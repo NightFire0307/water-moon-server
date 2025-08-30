@@ -29,6 +29,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     await this.subscriber.quit();
   }
 
+  // 发布消息
   async publish(channel: string, message: any) {
     return this.publisher.publish(channel, JSON.stringify(message));
   }
