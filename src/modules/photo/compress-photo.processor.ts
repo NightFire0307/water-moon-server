@@ -146,8 +146,9 @@ export class CompressPhotoProcessor extends WorkerHost {
 
       // 缓存图片信息到 Redis 中
       await this.redisClient.hset(
-        `photos_url:${orderId.toString()}:${name}`,
-        {
+        `photos_url:${orderId.toString()}`,
+        name,
+        JSON.stringify({
           uuid: uuidv4(),
           name,
           ossKey,
@@ -155,7 +156,7 @@ export class CompressPhotoProcessor extends WorkerHost {
           ossUrlThumbnail,
           expiresAt: dayjs().add(6, 'd').valueOf(),
           mark: PreSelectStatus.PENDING,
-        },
+        })
       )
 
     } catch (e) {
