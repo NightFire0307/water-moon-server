@@ -61,7 +61,7 @@ export class MinioService implements OnModuleInit {
    */
   async uploadImage(stream: Readable | Buffer, keyName: string) {
     const bucketName = this.configService.get('minio_bucket');
-    const url = await this.minioClient.presignedPutObject(bucketName, keyName);
+    // const url = await this.minioClient.presignedPutObject(bucketName, keyName);
 
     await this.minioClient.putObject(bucketName, keyName, stream);
   }

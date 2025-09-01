@@ -57,70 +57,84 @@ export class PhotoService {
   // 获取订单照片
   async getPhotosByOrderId(orderId: number, pagination: PaginationQuery) {
     const order = await this.getOrderById(orderId);
+    console.log(orderId)
 
-    const existCount = await this.redisClient.exists(`photos_url:${order.orderNumber}`);
-
-    // 判断 redis 中是否有缓存，如果没有则从数据库中查询并缓存到 redis
-    if (existCount === 0) {
-      await this.refreshPhotosCache(order)
+    const keys = await this.scanKeys(order.id)
+    if (keys.length === 0) {
+      console.log('缓存不存在，重新刷新缓存')
+      return {
+        list: []
+      }
+    } else {
+      const pipeline = this.redisClient.pipeline()
+      keys.forEach(key => pipeline.hgetall(key))
+      const results = await pipeline.exec()
+      const values = results.map(r => r[1])
+      console.log(values)
+      return {
+        list: values,
+        total: 2,
+        current: 1,
+        pageSize: 10,
+      }
     }
 
 
     // 获取 Redis 中订单照片 OSS URL
-    const oss_all_lists = await this.redisClient.hgetall(
-      `photos_url:${order.orderNumber}`,
-    );
+    // const oss_all_lists = await this.redisClient.hgetall(
+    //   `photos_url:${order.orderNumber}`,
+    // );
 
-    const total = Object.keys(oss_all_lists).length;
-    const start = (pagination.current - 1) * pagination.pageSize;
-    const end = pagination.current * pagination.pageSize;
+    // const total = Object.keys(oss_all_lists).length;
+    // const start = (pagination.current - 1) * pagination.pageSize;
+    // const end = pagination.current * pagination.pageSize;
 
-    const oss_lists = Object.entries(oss_all_lists)
-      .slice(start, end)
-      .map(([key, value]) => ({
-        id: Number(key),
-        ...JSON.parse(value),
-      }));
+    // const oss_lists = Object.entries(oss_all_lists)
+    //   .slice(start, end)
+    //   .map(([key, value]) => ({
+    //     id: Number(key),
+    //     ...JSON.parse(value),
+    //   }));
 
-    // 判断链接是否过期，如果过期则重新生成链接
-    for (const photo of oss_lists) {
-      const now = dayjs();
-      const expireAt = dayjs(photo.expires);
-      if (expireAt.diff(now, 's') <= 10) {
-        console.log('链接过期，重新生成链接');
-        photo.thumbnailUrl = await this.minioService.generateGetUrl(
-          `${order.orderNumber}/thumbnail/${photo.fileName}`,
-        );
-        photo.originalUrl = await this.minioService.generateGetUrl(
-          `${order.orderNumber}/${photo.fileName}`,
-        );
-        photo.mediumUrl = await this.minioService.generateGetUrl(
-          `${order.orderNumber}/medium/${photo.fileName}`,
-        );
+    // // 判断链接是否过期，如果过期则重新生成链接
+    // for (const photo of oss_lists) {
+    //   const now = dayjs();
+    //   const expireAt = dayjs(photo.expires);
+    //   if (expireAt.diff(now, 's') <= 10) {
+    //     console.log('链接过期，重新生成链接');
+    //     photo.thumbnailUrl = await this.minioService.generateGetUrl(
+    //       `${order.orderNumber}/thumbnail/${photo.fileName}`,
+    //     );
+    //     photo.originalUrl = await this.minioService.generateGetUrl(
+    //       `${order.orderNumber}/${photo.fileName}`,
+    //     );
+    //     photo.mediumUrl = await this.minioService.generateGetUrl(
+    //       `${order.orderNumber}/medium/${photo.fileName}`,
+    //     );
 
-        // 更新 Redis 中照片 URL
-        await this.redisClient.hset(
-          `photos_url:${order.orderNumber}`,
-          photo.id,
-          JSON.stringify({
-            fileName: photo.fileName,
-            thumbnailUrl: photo.thumbnailUrl,
-            originalUrl: photo.originalUrl,
-            mediumUrl: photo.mediumUrl,
-            isRecommend: photo.isRecommend,
-            preSelectStatus: photo.preSelectStatus,
-            expires: dayjs().add(6, 'd').valueOf(),
-          }),
-        );
-      }
-    }
+    //     // 更新 Redis 中照片 URL
+    //     await this.redisClient.hset(
+    //       `photos_url:${order.orderNumber}`,
+    //       photo.id,
+    //       JSON.stringify({
+    //         fileName: photo.fileName,
+    //         thumbnailUrl: photo.thumbnailUrl,
+    //         originalUrl: photo.originalUrl,
+    //         mediumUrl: photo.mediumUrl,
+    //         isRecommend: photo.isRecommend,
+    //         preSelectStatus: photo.preSelectStatus,
+    //         expires: dayjs().add(6, 'd').valueOf(),
+    //       }),
+    //     );
+    //   }
+    // }
 
-    return {
-      list: oss_lists,
-      current: pagination.current,
-      pageSize: pagination.pageSize,
-      total,
-    };
+    // return {
+    //   list: oss_lists,
+    //   current: pagination.current,
+    //   pageSize: pagination.pageSize,
+    //   total,
+    // };
   }
 
   async deletePhotos(orderId: number, deletePhotosDto: DeletePhotosDto) {
@@ -297,7 +311,7 @@ export class PhotoService {
           name: p.name,
           size: p.size,
           order: { id: p.orderId },
-          ossFileKey: p.ossFileKey,
+          ossFileKey: p.ossKey,
         })))
         .orIgnore() // 忽略重复插入
         .execute()
@@ -461,5 +475,25 @@ export class PhotoService {
 
     pipeline.expire(`photos_url:${order.orderNumber}`, 3600 * 6); // 设置过期时间为 6 天
     await pipeline.exec();
+  }
+
+  // 扫描缓存的图片信息
+  private async scanKeys(orderId: number) {
+    let cursor = '0';
+    const keys = [];
+
+    do {
+      const [newCursor, foundKeys] = await this.redisClient.scan(
+        cursor,
+        'MATCH', `photos_url:${orderId}:*`,
+        'COUNT',
+        '100',
+      )
+
+      cursor = newCursor;
+      keys.push(...foundKeys)
+    } while (cursor !== '0');
+
+    return keys;
   }
 }

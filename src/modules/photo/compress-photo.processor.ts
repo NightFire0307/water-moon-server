@@ -6,6 +6,7 @@ import { Redis } from 'ioredis';
 import { PreSelectStatus } from './entities/photo.entity';
 import dayjs from 'dayjs';
 import sharp from 'sharp';
+import { v4 as uuidv4 } from 'uuid'
 import { EventService, ProcessingStatus } from './event.service';
 
 export interface PhotoJobData {
@@ -147,6 +148,8 @@ export class CompressPhotoProcessor extends WorkerHost {
       await this.redisClient.hset(
         `photos_url:${orderId.toString()}:${name}`,
         {
+          uuid: uuidv4(),
+          name,
           ossKey,
           ossUrlMedium,
           ossUrlThumbnail,
