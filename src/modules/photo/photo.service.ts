@@ -57,84 +57,26 @@ export class PhotoService {
   // 获取订单照片
   async getPhotosByOrderId(orderId: number, pagination: PaginationQuery) {
     const order = await this.getOrderById(orderId);
-    console.log(orderId)
-
-    const keys = await this.scanKeys(order.id)
-    if (keys.length === 0) {
-      console.log('缓存不存在，重新刷新缓存')
-      return {
-        list: []
-      }
-    } else {
-      const pipeline = this.redisClient.pipeline()
-      keys.forEach(key => pipeline.hgetall(key))
-      const results = await pipeline.exec()
-      const values = results.map(r => r[1])
-      console.log(values)
-      return {
-        list: values,
-        total: 2,
-        current: 1,
-        pageSize: 10,
-      }
-    }
-
 
     // 获取 Redis 中订单照片 OSS URL
-    // const oss_all_lists = await this.redisClient.hgetall(
-    //   `photos_url:${order.orderNumber}`,
-    // );
+    const oss_all_lists = await this.redisClient.hgetall(
+      `photos_url:${orderId}`,
+    );
 
-    // const total = Object.keys(oss_all_lists).length;
-    // const start = (pagination.current - 1) * pagination.pageSize;
-    // const end = pagination.current * pagination.pageSize;
+    const total = Object.keys(oss_all_lists).length;
+    const start = (pagination.current - 1) * pagination.pageSize;
+    const end = pagination.current * pagination.pageSize;
 
-    // const oss_lists = Object.entries(oss_all_lists)
-    //   .slice(start, end)
-    //   .map(([key, value]) => ({
-    //     id: Number(key),
-    //     ...JSON.parse(value),
-    //   }));
+    const oss_lists = Object.entries(oss_all_lists)
+      .slice(start, end)
+      .map(([, value]) => (JSON.parse(value)));
 
-    // // 判断链接是否过期，如果过期则重新生成链接
-    // for (const photo of oss_lists) {
-    //   const now = dayjs();
-    //   const expireAt = dayjs(photo.expires);
-    //   if (expireAt.diff(now, 's') <= 10) {
-    //     console.log('链接过期，重新生成链接');
-    //     photo.thumbnailUrl = await this.minioService.generateGetUrl(
-    //       `${order.orderNumber}/thumbnail/${photo.fileName}`,
-    //     );
-    //     photo.originalUrl = await this.minioService.generateGetUrl(
-    //       `${order.orderNumber}/${photo.fileName}`,
-    //     );
-    //     photo.mediumUrl = await this.minioService.generateGetUrl(
-    //       `${order.orderNumber}/medium/${photo.fileName}`,
-    //     );
-
-    //     // 更新 Redis 中照片 URL
-    //     await this.redisClient.hset(
-    //       `photos_url:${order.orderNumber}`,
-    //       photo.id,
-    //       JSON.stringify({
-    //         fileName: photo.fileName,
-    //         thumbnailUrl: photo.thumbnailUrl,
-    //         originalUrl: photo.originalUrl,
-    //         mediumUrl: photo.mediumUrl,
-    //         isRecommend: photo.isRecommend,
-    //         preSelectStatus: photo.preSelectStatus,
-    //         expires: dayjs().add(6, 'd').valueOf(),
-    //       }),
-    //     );
-    //   }
-    // }
-
-    // return {
-    //   list: oss_lists,
-    //   current: pagination.current,
-    //   pageSize: pagination.pageSize,
-    //   total,
-    // };
+    return {
+      list: oss_lists,
+      current: pagination.current,
+      pageSize: pagination.pageSize,
+      total,
+    };
   }
 
   async deletePhotos(orderId: number, deletePhotosDto: DeletePhotosDto) {
@@ -223,6 +165,7 @@ export class PhotoService {
 
     return new Promise(async (resolve, reject) => {
       const bb = Busboy({ headers: req.headers });
+      let uid =''
 
       bb.on('file', async (fieldname, file, info) => {
         let size = 0;
@@ -268,6 +211,7 @@ export class PhotoService {
 
         // 推送压缩图片任务
         await this.photoQueue.add(PhotoJobName.PHOTO_COMPRESS, {
+          uid,
           orderId: order.id,
           orderNumber: order.orderNumber,
           name: info.filename.split('.')[0],
@@ -276,7 +220,9 @@ export class PhotoService {
       })
 
       bb.on('field', (fieldname, val) => {
-
+        if (fieldname === 'uid') {
+          uid = val
+        }
       })
 
       bb.on('finish', async () => {

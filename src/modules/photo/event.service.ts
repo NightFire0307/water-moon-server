@@ -8,6 +8,7 @@ export interface SSEMessage {
   type: ProcessingStatus // 事件类型
   orderNumber: string;
   filename: string;
+  uid?: string
   ossUrlMedium?: string;      // 可选中等图链接
   ossUrlThumbnail?: string;   // 可选缩略图链接
   message?: string;            // 可选描述或错误信息
