@@ -56,8 +56,6 @@ export class PhotoService {
 
   // 获取订单照片
   async getPhotosByOrderId(orderId: number, pagination: PaginationQuery) {
-    const order = await this.getOrderById(orderId);
-
     // 获取 Redis 中订单照片 OSS URL
     const oss_all_lists = await this.redisClient.hgetall(
       `photos_url:${orderId}`,
@@ -250,26 +248,38 @@ export class PhotoService {
     const order = await this.getOrderById(orderId);
     const photoList = await this.redisClient.hgetall(`photos_info:${order.orderNumber}`)
     const photos = Object.values(photoList).map(photo => JSON.parse(photo))
+    const insertedIds: number[] = []
 
     // 分批写入数据库
     for (let i = 0; i < photos.length; i += this.BATCH_INSERT_SIZE) {
       const batch = photos.slice(i, i + this.BATCH_INSERT_SIZE);
-      const res = await this.photoRepository.createQueryBuilder()
-        .insert()
-        .into(Photo)
-        .values(batch.map(p => ({
-          name: p.name,
-          size: p.size,
-          order: { id: p.orderId },
-          ossFileKey: p.ossKey,
-        })))
-        .orIgnore() // 忽略重复插入
-        .execute()
+      try {
+        const res = await this.photoRepository.createQueryBuilder()
+          .insert()
+          .into(Photo)
+          .values(batch.map(p => ({
+            name: p.name,
+            size: p.size,
+            order: { id: p.orderId },
+            ossFileKey: p.ossKey,
+          })))
+          .execute()
 
-      // 批量把Id 写入到 Redis
-      const insertedIds = res.identifiers.map(i => i.id)
-      const insertedPhotos = await this.photoRepository.findBy({ id: In(insertedIds) })
+        res.identifiers.forEach(i => insertedIds.push(i.id))
+      } catch (err) {
+        if (err.code === 'ER_DUP_ENTRY') {
+          console.warn(`已有重复的ossKey: ${err.sqlMessage}`)
+        }
+      }
+    }
 
+    const insertedPhotos = await this.photoRepository.findBy({ id: In(insertedIds) })
+    for (const { id, name } of insertedPhotos) {
+      const cachePhoto = await this.redisClient.hget(`photos_url:${orderId}`, name)
+      await this.redisClient.hset(`photos_url:${orderId}`, name, JSON.stringify({
+        id,
+        ...JSON.parse(cachePhoto),
+      }))
     }
 
     // 清空 Redis 中的照片信息缓存
