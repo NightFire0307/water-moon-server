@@ -10,7 +10,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { EventService, ProcessingStatus } from './event.service';
 
 export interface PhotoJobData {
-  uid?: string
+  id?: string
   orderId: number
   orderNumber: string
   name: string
@@ -85,8 +85,6 @@ export class CompressPhotoProcessor extends WorkerHost {
       case PhotoJobName.CACHE_COMPRESS_INFO:
         console.log('开始处理缓存压缩图片信息任务', job.id);
         await this.cacheCompressInfo(job.data)
-
-        await this.photoQueue.add(PhotoJobName.NOTIFY_CLIENT, job.data)
         break;
       case PhotoJobName.NOTIFY_CLIENT:
         console.log('开始处理通知客户端任务', job.id);
@@ -150,7 +148,6 @@ export class CompressPhotoProcessor extends WorkerHost {
         `photos_url:${orderId.toString()}`,
         name,
         JSON.stringify({
-          uuid: uuidv4(),
           name,
           ossKey,
           ossUrlMedium,
@@ -181,7 +178,7 @@ export class CompressPhotoProcessor extends WorkerHost {
       case PhotoJobName.NOTIFY_CLIENT:
         // 通知客户端图片处理完成
         await this.eventService.pushMessage({
-          uid: job.data.uid,
+          id: job.data.id,
           type: ProcessingStatus.DONE,
           orderNumber: job.data.orderNumber,
           filename: job.data.name,

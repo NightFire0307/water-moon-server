@@ -1,5 +1,4 @@
-import { Inject, Injectable } from "@nestjs/common";
-import Redis from "ioredis";
+import { Injectable } from "@nestjs/common";
 import { Subject } from "rxjs";
 import { RedisService } from "@/redis/redis.service";
 
@@ -8,7 +7,7 @@ export interface SSEMessage {
   type: ProcessingStatus // 事件类型
   orderNumber: string;
   filename: string;
-  uid?: string
+  uid?: string // 可选，文件唯一标识
   ossUrlMedium?: string;      // 可选中等图链接
   ossUrlThumbnail?: string;   // 可选缩略图链接
   message?: string;            // 可选描述或错误信息

@@ -206,7 +206,6 @@ export class PhotoService {
           orderNumber: order.orderNumber,
           filename: info.filename,
           message: '上传OSS完成',
-          progress: 100,
         })
 
         // 推送压缩图片任务
@@ -226,7 +225,12 @@ export class PhotoService {
       })
 
       bb.on('finish', async () => {
-        resolve('ok')
+        resolve({
+          data: {
+            uid,
+          },
+          msg: '文件上传成功，正在处理中',
+        })
       })
 
       bb.on('error', (err) => {
@@ -250,7 +254,7 @@ export class PhotoService {
     // 分批写入数据库
     for (let i = 0; i < photos.length; i += this.BATCH_INSERT_SIZE) {
       const batch = photos.slice(i, i + this.BATCH_INSERT_SIZE);
-      await this.photoRepository.createQueryBuilder()
+      const res = await this.photoRepository.createQueryBuilder()
         .insert()
         .into(Photo)
         .values(batch.map(p => ({
@@ -261,6 +265,11 @@ export class PhotoService {
         })))
         .orIgnore() // 忽略重复插入
         .execute()
+
+      // 批量把Id 写入到 Redis
+      const insertedIds = res.identifiers.map(i => i.id)
+      const insertedPhotos = await this.photoRepository.findBy({ id: In(insertedIds) })
+
     }
 
     // 清空 Redis 中的照片信息缓存
@@ -307,16 +316,6 @@ export class PhotoService {
       isRecommend: photo.isRecommended,
       orderNumber: order.orderNumber,
     });
-
-    // 推送刷新 OSS URL 任务队列
-    // await this.photoQueue.add(
-    //   PhotoJobName.UrlRefresh,
-    //   {
-    //     photoId: photo.id,
-    //     orderId: order.id,
-    //   },
-    //   { delay: (Number(delay) - 1) * 24 * 3600 * 1000 },
-    // );
 
     return {
       data: {
