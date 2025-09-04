@@ -16,8 +16,8 @@ import { PhotoService } from './photo.service';
 import { DeletePhotosDto } from './dto/delete-photos.dto';
 import { UpdatePhotoRecommendDto } from './dto/update-photo-recommend.dto';
 import { Request } from 'express';
-import { map, Observable } from 'rxjs';
-import { CompressPhotoProcessor, type PhotoSseData } from './compress-photo.processor';
+import { Observable } from 'rxjs';
+import { CompressPhotoProcessor } from './compress-photo.processor';
 import { RequirePermission, RequireLogin, Public } from '@/common/decorators/auth.decorator';
 import { Pagination, type PaginationQuery } from '@/common/decorators/pagination.decorator';
 
@@ -37,12 +37,6 @@ export class PhotoController {
 
   @Inject(EventService)
   private readonly eventService: EventService;
-
-  @Inject(CompressPhotoProcessor)
-  private readonly compressPhotoProcessor: CompressPhotoProcessor;
-
-  @Inject(MinioService)
-  private readonly minioService: MinioService;
 
   @Get()
   @RequireLogin()
@@ -114,5 +108,14 @@ export class PhotoController {
       throw new BadRequestException('订单ID必须是数字');
     }
     return this.photoService.deletePhotos(+orderId, deletePhotosDto);
+  }
+
+  // 清除指定单号所有照片
+  @Delete('/all/:orderId')
+  @RequireLogin()
+  deleteAllPhotos(
+    @Param('orderId') orderId: string
+  ) {
+    return this.photoService.deleteAllPhotos(Number(orderId))
   }
 }

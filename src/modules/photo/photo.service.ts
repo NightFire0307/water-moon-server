@@ -10,13 +10,13 @@ import { Redis } from 'ioredis';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { PhotoJobName } from './compress-photo.processor';
-import { MinioService } from '../../minio/minio.service';
+import { MinioService } from '@/minio/minio.service';
 import { ConfigService } from '@nestjs/config';
 import dayjs from 'dayjs';
 import {
   CommonErrorCode,
   DatabaseException,
-} from '../../common/exceptions/database.exception';
+} from '@/common/exceptions/database.exception';
 import type { BulkUpdatePhotoPreselectStatusDto } from '../selection/dto/update-photo-preselect-status.dto';
 import Busboy from 'busboy'
 import { Request } from 'express';
@@ -179,7 +179,7 @@ export class PhotoService {
         })
 
         passForSize.on('end', async () => {
-          // 缓存照片信息到 Redis
+          // 缓存照片信息到 Redis（用于入库）
           await this.redisClient.hset(
             `photos_info:${order.orderNumber}`,
             info.filename,
@@ -188,6 +188,16 @@ export class PhotoService {
               size,
               orderId: order.id,
               ossKey: `${order.orderNumber}/${info.filename}`
+            })
+          )
+
+          // 缓存照片信息到 Redis（用于前端展示）
+          await this.redisClient.hset(
+            `photos_url:${order.id}`,
+            info.filename.split('.')[0],
+            JSON.stringify({
+              uid,
+              name: info.filename.split('.')[0],
             })
           )
 
@@ -273,6 +283,7 @@ export class PhotoService {
       }
     }
 
+    // 更新 Redis 中照片的 ID 信息
     const insertedPhotos = await this.photoRepository.findBy({ id: In(insertedIds) })
     for (const { id, name } of insertedPhotos) {
       const cachePhoto = await this.redisClient.hget(`photos_url:${orderId}`, name)
@@ -432,23 +443,20 @@ export class PhotoService {
     await pipeline.exec();
   }
 
-  // 扫描缓存的图片信息
-  private async scanKeys(orderId: number) {
-    let cursor = '0';
-    const keys = [];
+  // 清除订单所有照片
+  async deleteAllPhotos(orderId: number) {
+    const order = await this.getOrderById(orderId)
 
-    do {
-      const [newCursor, foundKeys] = await this.redisClient.scan(
-        cursor,
-        'MATCH', `photos_url:${orderId}:*`,
-        'COUNT',
-        '100',
-      )
+    // 删除数据库中的照片记录
+    const res = await this.photoRepository.delete({ order })
+    console.log(res)
 
-      cursor = newCursor;
-      keys.push(...foundKeys)
-    } while (cursor !== '0');
+    // 删除 Redis 中的照片缓存
+    await this.redisClient.del(`photos_url:${order.id}`)
 
-    return keys;
+    return {
+      data: 'success',
+      msg: '删除成功'
+    }
   }
 }

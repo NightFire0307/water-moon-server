@@ -1,12 +1,11 @@
 import { InjectQueue, OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
 import { Inject, Injectable } from '@nestjs/common';
 import { Job, Queue } from 'bullmq';
-import { MinioService } from '../../minio/minio.service';
+import { MinioService } from '@/minio/minio.service';
 import { Redis } from 'ioredis';
 import { PreSelectStatus } from './entities/photo.entity';
 import dayjs from 'dayjs';
 import sharp from 'sharp';
-import { v4 as uuidv4 } from 'uuid'
 import { EventService, ProcessingStatus } from './event.service';
 
 export interface PhotoJobData {
@@ -22,32 +21,11 @@ export interface PhotoJobData {
   expiresAt?: number
 }
 
-export interface UpdatePhotoRecommendJobData {
-  orderId: number;
-  photoIds: number[];
-  isRecommended?: boolean;
-}
-
-export interface UrlRefreshJobData {
-  orderId: number;
-  photoId: number;
-}
-
 // 定义任务名称
 export enum PhotoJobName {
   PHOTO_COMPRESS = 'photo:compress', // 压缩图片
   CACHE_COMPRESS_INFO = 'photo:cache:compress:info', // 存储压缩后图片信息到 Redis
   NOTIFY_CLIENT = 'photo:notify:client', // 通知客户端
-}
-
-// 定义 photo 推送数据类型
-export interface PhotoSseData {
-  type: "PHOTO_DONE" | 'ORDER_DONE' // PHOTO_DONE: 照片处理完成, ORDER_DONE: 订单处理完成
-  orderNumber: string // 订单号
-  status: 'done' | 'error' // done: 处理完成, error: 处理失败
-  uid?: string // 照片 UID
-  originalUrl?: string // 原图链接
-  thumbnailUrl?: string // 缩略图链接
 }
 
 @Processor('photo', { concurrency: 2 }) // 设置并发数为 4
@@ -88,7 +66,6 @@ export class CompressPhotoProcessor extends WorkerHost {
         break;
       case PhotoJobName.NOTIFY_CLIENT:
         console.log('开始处理通知客户端任务', job.id);
-
         break;
       default:
         break;
@@ -136,20 +113,22 @@ export class CompressPhotoProcessor extends WorkerHost {
     }
   }
 
-  // 3. 缓存图片信息到 Redis
+  // 2. 缓存图片信息到 Redis
   async cacheCompressInfo(data: PhotoJobData) {
     console.log(data)
     try {
       // 获取 OSS 图片链接
-      const { name, ossUrlMedium, ossUrlThumbnail, orderId, ossKey } = data;
+      const { name, ossUrlMedium, ossUrlThumbnail, orderId } = data;
+
+      // 获取缓存的图片信息
+      const cachedPhoto = await this.redisClient.hget(`photos_url:${orderId}`, name)
 
       // 缓存图片信息到 Redis 中
       await this.redisClient.hset(
         `photos_url:${orderId.toString()}`,
         name,
         JSON.stringify({
-          name,
-          ossKey,
+          ...JSON.parse(cachedPhoto),
           ossUrlMedium,
           ossUrlThumbnail,
           expiresAt: dayjs().add(6, 'd').valueOf(),
@@ -175,17 +154,18 @@ export class CompressPhotoProcessor extends WorkerHost {
           message: '图片压缩完成',
         })
         break;
-      case PhotoJobName.NOTIFY_CLIENT:
+      case PhotoJobName.CACHE_COMPRESS_INFO:
         // 通知客户端图片处理完成
+        const cachePhoto = await this.redisClient.hget(`photos_url:${job.data.orderId}`, job.data.name)
+
         await this.eventService.pushMessage({
-          id: job.data.id,
+          ...JSON.parse(cachePhoto),
           type: ProcessingStatus.DONE,
           orderNumber: job.data.orderNumber,
           filename: job.data.name,
-          ossUrlMedium: job.data.ossUrlMedium,
-          ossUrlThumbnail: job.data.ossUrlThumbnail,
           message: '图片处理完成',
         })
+        break;
       default:
         break;
     }
