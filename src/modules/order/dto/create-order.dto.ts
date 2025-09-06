@@ -59,6 +59,6 @@ export class CreateOrderDto {
   extraPhotoPrice: number;
 
   @IsString()
-  @IsNotEmpty()
-  validUntil: string;
+  @IsOptional()
+  validUntil?: string;
 }

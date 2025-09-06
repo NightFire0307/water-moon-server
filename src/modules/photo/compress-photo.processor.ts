@@ -132,7 +132,7 @@ export class CompressPhotoProcessor extends WorkerHost {
           ossUrlMedium,
           ossUrlThumbnail,
           expiresAt: dayjs().add(6, 'd').valueOf(),
-          mark: PreSelectStatus.PENDING,
+          preSelectStatus: PreSelectStatus.PENDING,
         })
       )
 

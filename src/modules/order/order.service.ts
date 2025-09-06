@@ -299,17 +299,14 @@ export class OrderService {
         // 查询所有已关联的照片ID
         const orderProductWithPhotos = await queryRunner.manager.findOne(OrderProduct, {
           where: { id: orderProduct.id },
-          relations: ['selected_photos'],
+          relations: ['orderProductPhotos', 'orderProductPhotos.photo'],
         });
-        const photoIds = orderProductWithPhotos.orderProductPhotos.map(photo => photo.id);
+
+        const photoIds = orderProductWithPhotos.orderProductPhotos.map(photo => photo.photo.id)
 
         // 如果有已关联的照片，则解除关联
         if (photoIds.length > 0) {
-          await queryRunner.manager
-            .createQueryBuilder()
-            .relation(OrderProduct, 'selected_photos')
-            .of(orderProduct.id)
-            .remove(photoIds);
+          await queryRunner.manager.delete(OrderProductPhoto, { photo: { id: In(photoIds)}})
         }
       }
       // 清空原先所有订单产品
@@ -371,42 +368,35 @@ export class OrderService {
     if (!order)
       throw new DatabaseException(CommonErrorCode.NOT_FOUND, '订单不存在');
 
-    // 只有当用户提交选片结果之后才能重置
-    if (order.status === OrderStatus.SUBMITTED) {
-      if (reset) {
-        console.log('重置选片结果');
-        // 防止重置的照片数量过大时阻塞请求
-        setImmediate(async () => {
-          for (const photo of order.photos) {
-            await Promise.all([
-              this.orderProductPhotoRepository.delete({
-                photo: { id: photo.id },
-              }),
-              this.photoRepository.update({ id: photo.id }, { preSelectStatus: PreSelectStatus.PENDING })
-            ])
-          }
-        });
-      }
+    if (reset) {
+      console.log('重置选片结果');
+      // 防止重置的照片数量过大时阻塞请求
+      setImmediate(async () => {
+        for (const photo of order.photos) {
+          await Promise.all([
+            this.orderProductPhotoRepository.delete({
+              photo: { id: photo.id },
+            }),
+            this.photoRepository.update({ id: photo.id }, { preSelectStatus: PreSelectStatus.PENDING })
+          ])
+        }
+      });
+
 
       order.status = OrderStatus.PENDING;
       await this.orderRepository.save(order);
 
       // 移除 Redis 中的订单照片缓存
-      await this.redisClient.del(`photos_url:${order.orderNumber}`);
+      await this.redisClient.del(`photos_url:${order.id}`);
 
       // 重新刷新 Redis 照片缓存
-      await this.PhotoService.refreshPhotosCache(order);
-
-      return {
-        data: orderId,
-        msg: '订单状态重置成功',
-      };
-    } else {
-      return {
-        data: orderId,
-        msg: '用户必须提交选片结果之后才能重置订单状态',
-      };
+      // await this.PhotoService.refreshPhotosCache(order);
     }
+
+    return {
+      data: orderId,
+      msg: '订单状态重置成功',
+    };
   }
 
   // 获取订单完成结果

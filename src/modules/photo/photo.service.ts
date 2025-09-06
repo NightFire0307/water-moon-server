@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Photo } from './entities/photo.entity';
+import { Photo, PreSelectStatus } from './entities/photo.entity';
 import { In, Repository } from 'typeorm';
 import { Order } from '../order/entities/order.entity';
 import { PaginationQuery } from '@/common/decorators/pagination.decorator';
@@ -56,6 +56,32 @@ export class PhotoService {
 
   // 获取订单照片
   async getPhotosByOrderId(orderId: number, pagination: PaginationQuery) {
+    const existsCache = await this.redisClient.exists(`photos_url:${orderId}`);
+
+    // 如果 Redis 中没有缓存，则从数据库中加载照片并缓存到 Redis
+    if (existsCache === 0) {
+      const pipeline = this.redisClient.pipeline()
+
+      const order = await this.getOrderById(orderId);
+      const photos = await this.photoRepository.find({
+        where: { order: { id: order.id} },
+      });
+
+
+      for (const photo of photos) {
+        pipeline.hset(`photos_url:${orderId}`, photo.name, JSON.stringify({
+          id: photo.id,
+          name: photo.name,
+          ossUrlThumbnail: await this.minioService.generateGetUrl(`${order.orderNumber}/thumbnail/${photo.name}.webp`),
+          ossUrlMedium: await this.minioService.generateGetUrl(`${order.orderNumber}/medium/${photo.name}.webp`),
+          expiresAt: dayjs().add(6, 'd').valueOf(),
+          preSelectStatus: PreSelectStatus.PENDING,
+        }))
+      }
+
+      await pipeline.exec()
+    }
+
     // 获取 Redis 中订单照片 OSS URL
     const oss_all_lists = await this.redisClient.hgetall(
       `photos_url:${orderId}`,
@@ -379,12 +405,12 @@ export class PhotoService {
     // 更新 Redis 中照片预选状态
     const pipeline = this.redisClient.pipeline()
     for (const photo of matchedPhotos) {
-      const cachePhoto = await this.redisClient.hget(`photos_url:${order.orderNumber}`, photo.id.toString());
+      const cachePhoto = await this.redisClient.hget(`photos_url:${order.id}`, photo.name);
       console.log(cachePhoto)
 
       pipeline.hset(
-        `photos_url:${order.orderNumber}`,
-        photo.id,
+        `photos_url:${order.id}`,
+        photo.name,
         JSON.stringify({
           ...JSON.parse(cachePhoto),
           preSelectStatus: photo.preSelectStatus,
