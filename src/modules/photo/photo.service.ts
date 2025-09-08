@@ -438,12 +438,9 @@ export class PhotoService {
     const pipeline = this.redisClient.pipeline();
 
     for (const photo of photos) {
-      const [thumbnailUrl, originalUrl, mediumUrl] = await Promise.all([
+      const [ossUrlThumbnail, ossUrlMedium] = await Promise.all([
         this.minioService.generateGetUrl(
           `${order.orderNumber}/thumbnail/${photo.name}`,
-        ),
-        this.minioService.generateGetUrl(
-          `${order.orderNumber}/${photo.name}`,
         ),
         this.minioService.generateGetUrl(
           `${order.orderNumber}/medium/${photo.name}`,
@@ -451,14 +448,13 @@ export class PhotoService {
       ])
 
       pipeline.hset(
-        `photos_url:${order.orderNumber}`,
-        photo.id,
+        `photos_url:${order.id}`,
+        photo.name,
         JSON.stringify({
-          fileName: photo.name,
-          thumbnailUrl,
-          originalUrl,
-          mediumUrl,
-          isRecommend: photo.isRecommended,
+          id: photo.id,
+          name: photo.name,
+          ossUrlMedium,
+          ossUrlThumbnail,
           preSelectStatus: photo.preSelectStatus,
           expires: dayjs().add(6, 'd').valueOf(),
         }),

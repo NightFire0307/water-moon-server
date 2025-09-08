@@ -195,7 +195,7 @@ export class OrderController {
   })
   async exportOrderResult(
     @Param('orderId') orderId: string,
-    @Res({ passthrough: true }) res: Response,
+    @Res() res: Response,
   ) {
     if (Number.isNaN(+orderId)) {
       throw new BadRequestException('Id必须是一个数字');
@@ -205,14 +205,13 @@ export class OrderController {
       await this.orderService.exportOrderResult(+orderId);
 
     // 设置响应头，告诉浏览器这是一个文件下载
-    res.setHeader('Content-Type', 'application/zip');
-    res.setHeader(
-      'Content-Disposition',
-      `attachment; filename=${orderNumber}.zip`,
-    );
+    res.set({
+      'Content-Type': 'application/zip',
+      'Content-Disposition': `attachment; filename=${orderNumber}.zip`,
+    });
 
     zipStream.pipe(res);
-    await archive.finalize();
+    archive.finalize();
   }
 
   // 获取订单所有照片ID

@@ -56,7 +56,7 @@ export class MinioService implements OnModuleInit {
 
   /**
    * 上传图片到MINIO
-   * @param imageBuffer 图片Buffer
+   * @param stream 图片流
    * @param keyName 图片名称
    */
   async uploadImage(stream: Readable | Buffer, keyName: string) {

@@ -419,14 +419,14 @@ export class OrderService {
     }
 
     // 判断照片缓存是否存在 redis 中
-    const existCount = await this.redisClient.exists(`photos_url:${order.orderNumber}`);
+    const existCount = await this.redisClient.exists(`photos_url:${order.id}`);
     if (existCount === 0) {
       await this.PhotoService.refreshPhotosCache(order)
     }
 
     // 获取 Redis 中订单所属的图片信息
-    const redisOrderPhotos = await this.redisClient.hgetall(
-      `photos_url:${order.orderNumber}`,
+    const cachePhotoUrls = await this.redisClient.hgetall(
+      `photos_url:${order.id}`,
     );
 
     // 映射照片对应选中的订单产品
@@ -442,19 +442,18 @@ export class OrderService {
       const { id, name } = product
 
       orderProductPhotos.forEach((orderProductPhoto) => {
-        const cachePhoto = JSON.parse(redisOrderPhotos[orderProductPhoto.photo.id])
-        console.log(cachePhoto)
+        const cachePhoto = JSON.parse(cachePhotoUrls[orderProductPhoto.photo.name])
 
         const m = photoToOrderProducts.get(orderProductPhoto.photo.id)
         if (m) {
-          m.fileName = cachePhoto.fileName
-          m.thumbnailUrl = cachePhoto.thumbnailUrl
+          m.fileName = cachePhoto.name
+          m.thumbnailUrl = cachePhoto.ossUrlThumbnail
           m.orderProducts.push({ id, name })
           m.remark = orderProductPhoto.remark ?? ''
         } else {
           photoToOrderProducts.set(orderProductPhoto.photo.id, {
-            fileName: cachePhoto.fileName,
-            thumbnailUrl: cachePhoto.thumbnailUrl,
+            fileName: cachePhoto.name,
+            thumbnailUrl: cachePhoto.ossUrlThumbnail,
             orderProducts: [{ id, name }],
             remark: orderProductPhoto.remark ?? ''
           });
@@ -520,7 +519,7 @@ export class OrderService {
       for (const ossFileKey of ossFileKeys) {
         const ossKey = ossFileKey.split('.')[0];
         const fileName = ossKey.split('/').pop();
-        const downloadStream = await this.minioService.downloadImage(ossKey);
+        const downloadStream = await this.minioService.downloadImage(ossFileKey);
         archive.append(downloadStream, {
           name: `${productName}/${fileName}.jpg`,
         });
