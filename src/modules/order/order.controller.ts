@@ -220,4 +220,13 @@ export class OrderController {
   async getOrderPhotoIds(@Param('orderId') orderId: string) {
     return await this.orderService.getOrderPhotoIds(+orderId);
   }
+
+  // 获取PDF导出数据
+  @Get('/:orderId/export-data')
+  @RequireLogin()
+  async getOrderPdfExportData(
+    @Param("orderId")orderId: string
+  ){
+    return await this.orderService.getOrderPdfExportData(+orderId)
+  }
 }

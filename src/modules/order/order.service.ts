@@ -2,7 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Order, OrderStatus } from './entities/order.entity';
-import { In, Repository, DataSource } from 'typeorm';
+import { DataSource, In, Repository } from 'typeorm';
 import { Product } from '../product/entities/product.entity';
 import { PaginationQuery } from '@/common/decorators/pagination.decorator';
 import { OrderProduct } from './entities/orderProduct.entity';
@@ -22,12 +22,11 @@ import { PassThrough } from 'node:stream';
 import { ConfigService } from '@nestjs/config';
 import { MinioService } from '../../minio/minio.service';
 import dayjs from 'dayjs';
-import iosWeek from 'dayjs/plugin/isoWeek.js'
+import iosWeek from 'dayjs/plugin/isoWeek.js';
 import { PhotoService } from '../photo/photo.service';
 import { OrderProductPhoto } from './entities/orderProductPhotos.entity';
 
 dayjs.extend(iosWeek);
-
 
 interface OrderProductCount {
   orderId: number;
@@ -66,7 +65,7 @@ export class OrderService {
   @Inject(MinioService) private readonly minioService: MinioService;
   @Inject(PhotoService) private readonly PhotoService: PhotoService;
 
-  constructor(private readonly dataSource: DataSource) { }
+  constructor(private readonly dataSource: DataSource) {}
 
   async getOrderList(
     query: GetOrderListDto,
@@ -75,7 +74,7 @@ export class OrderService {
   ) {
     try {
       const { orderNumber, customerName, customerPhone, status } = query;
-      const { pageSize, current, skip, take } = pagination
+      const { pageSize, current, skip, take } = pagination;
 
       // 构建查询条件
       const where: any = {};
@@ -144,7 +143,7 @@ export class OrderService {
         total,
         pageSize,
         current,
-      }
+      };
     } catch {
       throw new DatabaseException(PhotoErrorCode.PHOTO_UPDATE_FAILED);
     }
@@ -158,7 +157,7 @@ export class OrderService {
       orderProducts,
       extraPhotoPrice,
       maxSelectPhotos,
-      validUntil
+      validUntil,
     } = createOrderDto;
 
     const queryRunner =
@@ -174,7 +173,10 @@ export class OrderService {
     });
 
     if (foundOrder) {
-      throw new DatabaseException(OrderErrorCode.ORDER_NUMBER_ALREADY_EXISTS, '订单号已存在');
+      throw new DatabaseException(
+        OrderErrorCode.ORDER_NUMBER_ALREADY_EXISTS,
+        '订单号已存在',
+      );
     }
 
     const order = this.orderRepository.create({
@@ -263,7 +265,7 @@ export class OrderService {
         };
       }),
       total_photos,
-    }
+    };
   }
 
   async updateOrder(id: number, updateOrderDto: UpdateOrderDto) {
@@ -273,12 +275,10 @@ export class OrderService {
 
     const { orderProducts, ...rest } = updateOrderDto;
     try {
-      const order = await queryRunner.manager.findOne(Order,
-        {
-          where: { id, isDeleted: false },
-          relations: ['orderProducts', 'orderProducts.product']
-        }
-      );
+      const order = await queryRunner.manager.findOne(Order, {
+        where: { id, isDeleted: false },
+        relations: ['orderProducts', 'orderProducts.product'],
+      });
 
       if (!order) {
         throw new Error('订单不存在');
@@ -297,16 +297,23 @@ export class OrderService {
       // 删除原先订单产品关联的照片
       for (const orderProduct of order.orderProducts) {
         // 查询所有已关联的照片ID
-        const orderProductWithPhotos = await queryRunner.manager.findOne(OrderProduct, {
-          where: { id: orderProduct.id },
-          relations: ['orderProductPhotos', 'orderProductPhotos.photo'],
-        });
+        const orderProductWithPhotos = await queryRunner.manager.findOne(
+          OrderProduct,
+          {
+            where: { id: orderProduct.id },
+            relations: ['orderProductPhotos', 'orderProductPhotos.photo'],
+          },
+        );
 
-        const photoIds = orderProductWithPhotos.orderProductPhotos.map(photo => photo.photo.id)
+        const photoIds = orderProductWithPhotos.orderProductPhotos.map(
+          (photo) => photo.photo.id,
+        );
 
         // 如果有已关联的照片，则解除关联
         if (photoIds.length > 0) {
-          await queryRunner.manager.delete(OrderProductPhoto, { photo: { id: In(photoIds)}})
+          await queryRunner.manager.delete(OrderProductPhoto, {
+            photo: { id: In(photoIds) },
+          });
         }
       }
       // 清空原先所有订单产品
@@ -315,8 +322,8 @@ export class OrderService {
       // 添加新订单产品
       for (const item of orderProducts) {
         const product = await queryRunner.manager.findOne(Product, {
-          where: { id: item.id }
-        })
+          where: { id: item.id },
+        });
 
         if (!product) {
           throw new DatabaseException(CommonErrorCode.NOT_FOUND, '产品不存在');
@@ -326,20 +333,19 @@ export class OrderService {
           order,
           product,
           count: item.count,
-        })
+        });
 
         await queryRunner.manager.save(orderProduct);
       }
 
       await queryRunner.commitTransaction();
-      return '订单更新成功'
+      return '订单更新成功';
     } catch (err) {
-      console.log(err)
-      await queryRunner.rollbackTransaction()
+      console.log(err);
+      await queryRunner.rollbackTransaction();
     } finally {
-      await queryRunner.release()
+      await queryRunner.release();
     }
-
   }
 
   async deleteOrder(id: number) {
@@ -355,15 +361,15 @@ export class OrderService {
   }
 
   // 重置订单状态
-  async resetOrderStatus(
-    orderId: number,
-    reset: boolean
-  ) {
-
+  async resetOrderStatus(orderId: number, reset: boolean) {
     const order = await this.orderRepository.findOne({
       where: { id: orderId },
-      relations: ['photos', 'orderProducts', 'orderProducts.orderProductPhotos'],
-    })
+      relations: [
+        'photos',
+        'orderProducts',
+        'orderProducts.orderProductPhotos',
+      ],
+    });
 
     if (!order)
       throw new DatabaseException(CommonErrorCode.NOT_FOUND, '订单不存在');
@@ -377,11 +383,13 @@ export class OrderService {
             this.orderProductPhotoRepository.delete({
               photo: { id: photo.id },
             }),
-            this.photoRepository.update({ id: photo.id }, { preSelectStatus: PreSelectStatus.PENDING })
-          ])
+            this.photoRepository.update(
+              { id: photo.id },
+              { preSelectStatus: PreSelectStatus.PENDING },
+            ),
+          ]);
         }
       });
-
 
       order.status = OrderStatus.PENDING;
       await this.orderRepository.save(order);
@@ -405,8 +413,13 @@ export class OrderService {
       where: {
         id: orderId,
       },
-      relations: ['orderProducts', 'orderProducts.orderProductPhotos', 'orderProducts.product', 'orderProducts.orderProductPhotos.photo']
-    })
+      relations: [
+        'orderProducts',
+        'orderProducts.orderProductPhotos',
+        'orderProducts.product',
+        'orderProducts.orderProductPhotos.photo',
+      ],
+    });
 
     // 检查订单是否存在
     if (!order) {
@@ -421,7 +434,7 @@ export class OrderService {
     // 判断照片缓存是否存在 redis 中
     const existCount = await this.redisClient.exists(`photos_url:${order.id}`);
     if (existCount === 0) {
-      await this.PhotoService.refreshPhotosCache(order)
+      await this.PhotoService.refreshPhotosCache(order);
     }
 
     // 获取 Redis 中订单所属的图片信息
@@ -430,43 +443,50 @@ export class OrderService {
     );
 
     // 映射照片对应选中的订单产品
-    const photoToOrderProducts = new Map<number, {
-      fileName: string
-      thumbnailUrl: string
-      orderProducts: { id: number, name: string }[]
-      remark: string
-    }>()
+    const photoToOrderProducts = new Map<
+      number,
+      {
+        fileName: string;
+        thumbnailUrl: string;
+        orderProducts: { id: number; name: string }[];
+        remark: string;
+      }
+    >();
 
     for (const orderProduct of order.orderProducts) {
       const { product, orderProductPhotos } = orderProduct;
-      const { id, name } = product
+      const { id, name } = product;
 
       orderProductPhotos.forEach((orderProductPhoto) => {
-        const cachePhoto = JSON.parse(cachePhotoUrls[orderProductPhoto.photo.name])
+        const cachePhoto = JSON.parse(
+          cachePhotoUrls[orderProductPhoto.photo.name],
+        );
 
-        const m = photoToOrderProducts.get(orderProductPhoto.photo.id)
+        const m = photoToOrderProducts.get(orderProductPhoto.photo.id);
         if (m) {
-          m.fileName = cachePhoto.name
-          m.thumbnailUrl = cachePhoto.ossUrlThumbnail
-          m.orderProducts.push({ id, name })
-          m.remark = orderProductPhoto.remark ?? ''
+          m.fileName = cachePhoto.name;
+          m.thumbnailUrl = cachePhoto.ossUrlThumbnail;
+          m.orderProducts.push({ id, name });
+          m.remark = orderProductPhoto.remark ?? '';
         } else {
           photoToOrderProducts.set(orderProductPhoto.photo.id, {
             fileName: cachePhoto.name,
             thumbnailUrl: cachePhoto.ossUrlThumbnail,
             orderProducts: [{ id, name }],
-            remark: orderProductPhoto.remark ?? ''
+            remark: orderProductPhoto.remark ?? '',
           });
         }
-      })
+      });
     }
 
     return {
       data: {
-        list: Array.from(photoToOrderProducts.entries()).map(([photoId, rest]) => ({
-          id: photoId,
-          ...rest,
-        })),
+        list: Array.from(photoToOrderProducts.entries()).map(
+          ([photoId, rest]) => ({
+            id: photoId,
+            ...rest,
+          }),
+        ),
       },
       msg: '查询成功',
     };
@@ -503,9 +523,9 @@ export class OrderService {
     const productMap = new Map<string, string[]>();
 
     for (const orderProduct of order.orderProducts) {
-      const productName = orderProduct.product.name
+      const productName = orderProduct.product.name;
       for (const opp of orderProduct.orderProductPhotos) {
-        const photo = opp.photo
+        const photo = opp.photo;
         if (!productMap.has(productName)) {
           productMap.set(productName, [photo.ossFileKey]);
         } else {
@@ -519,7 +539,8 @@ export class OrderService {
       for (const ossFileKey of ossFileKeys) {
         const ossKey = ossFileKey.split('.')[0];
         const fileName = ossKey.split('/').pop();
-        const downloadStream = await this.minioService.downloadImage(ossFileKey);
+        const downloadStream =
+          await this.minioService.downloadImage(ossFileKey);
         archive.append(downloadStream, {
           name: `${productName}/${fileName}.jpg`,
         });
@@ -540,7 +561,6 @@ export class OrderService {
     tomorrow.setDate(today.getDate() + 1);
     const yesterday = new Date(today);
     yesterday.setDate(today.getDate() - 1);
-
 
     const result = await this.orderRepository
       .createQueryBuilder('order')
@@ -568,24 +588,27 @@ export class OrderService {
         completed: OrderStatus.FINISHED,
         today,
         tomorrow,
-        yesterday
+        yesterday,
       })
       .getRawOne();
 
-    console.log(result)
+    console.log(result);
 
     return {
       totalOrderCount: Number(result.totalOrderCount),
       isPendingOrderCount: Number(result.isPendingOrderCount),
       completedOrderCount: Number(result.completedOrderCount),
       todayOrderCount: Number(result.todayOrderCount),
-    }
+    };
   }
 
   async getWeeklyOrderStats() {
-    const now = dayjs()
+    const now = dayjs();
 
-    const lastWeekMonday = now.startOf('isoWeek').subtract(1, 'week').startOf('day');
+    const lastWeekMonday = now
+      .startOf('isoWeek')
+      .subtract(1, 'week')
+      .startOf('day');
     const lastWeekFriday = lastWeekMonday.add(6, 'day').endOf('day');
 
     console.log(`上周一: ${lastWeekMonday.format('YYYY-MM-DD dddd')}`);
@@ -603,79 +626,142 @@ export class OrderService {
       .getRawMany();
 
     // 转换为 Map 提高查找效率
-    const statMap = new Map(rawStats.map(item => [item.date, Number(item.count)]));
+    const statMap = new Map(
+      rawStats.map((item) => [item.date, Number(item.count)]),
+    );
 
     // 构造完整 7 天的日期数组，并填充 count（无则为 0）
     const lastWeekOrderCounts = Array.from({ length: 7 }, (_, i) => {
       const date = lastWeekMonday.add(i, 'day').format('YYYY-MM-DD');
-      return statMap.get(date) ?? 0
+      return statMap.get(date) ?? 0;
     });
 
     return {
-      lastWeekOrderCounts
-    }
+      lastWeekOrderCounts,
+    };
   }
 
   // 获取订单所有照片ID
   async getOrderPhotoIds(orderId: number) {
     const order = await this.orderRepository.findOne({
       where: { id: orderId },
-      relations: ['photos']
-    })
+      relations: ['photos'],
+    });
 
     if (!order) {
       throw new DatabaseException(CommonErrorCode.NOT_FOUND, '订单不存在');
     }
 
     return {
-      photoIds: order.photos.map(photo => photo.id)
-    }
+      photoIds: order.photos.map((photo) => photo.id),
+    };
   }
 
   // 更新订单状态
   async updateOrderStatus(orderId: number, status: OrderStatus) {
     const order = await this.orderRepository.findOne({
       where: {
-        id: orderId
-      }
-    })
+        id: orderId,
+      },
+    });
 
     if (!order) {
       throw new DatabaseException(CommonErrorCode.NOT_FOUND, '订单不存在');
     }
 
     // 检查当前订单状态是否允许更新
-    if (order.status === OrderStatus.FINISHED || order.status === OrderStatus.CANCEL) {
-      throw new DatabaseException(OrderErrorCode.ORDER_ALREADY_FINISHED, '订单已完成或已取消，无法更新状态');
+    if (
+      order.status === OrderStatus.FINISHED ||
+      order.status === OrderStatus.CANCEL
+    ) {
+      throw new DatabaseException(
+        OrderErrorCode.ORDER_ALREADY_FINISHED,
+        '订单已完成或已取消，无法更新状态',
+      );
     }
 
     // 判断状态流转是否符合预期
     const validTransitions: { [key in OrderStatus]?: OrderStatus[] } = {
       [OrderStatus.PENDING]: [OrderStatus.PRE_SELECT, OrderStatus.CANCEL],
-      [OrderStatus.PRE_SELECT]: [OrderStatus.PRODUCT_SELECT, OrderStatus.CANCEL],
+      [OrderStatus.PRE_SELECT]: [
+        OrderStatus.PRODUCT_SELECT,
+        OrderStatus.CANCEL,
+      ],
       [OrderStatus.PRODUCT_SELECT]: [OrderStatus.SUBMITTED, OrderStatus.CANCEL],
       [OrderStatus.SUBMITTED]: [OrderStatus.FINISHED, OrderStatus.CANCEL],
     };
 
-    console.log(status)
-    console.log(validTransitions[order.status].includes(status))
+    console.log(status);
+    console.log(validTransitions[order.status].includes(status));
 
-    if (validTransitions[order.status] && !validTransitions[order.status].includes(status)) {
-      throw new DatabaseException(
-        OrderErrorCode.INVALID_STATUS_TRANSITION,
-      )
+    if (
+      validTransitions[order.status] &&
+      !validTransitions[order.status].includes(status)
+    ) {
+      throw new DatabaseException(OrderErrorCode.INVALID_STATUS_TRANSITION);
     }
 
     // 更新订单状态
-    order.status = status
+    order.status = status;
 
     await this.orderRepository.save(order);
     return {
       data: {
         orderId: order.id,
-        status: order.status
+        status: order.status,
       },
       msg: '订单状态更新成功',
+    };
+  }
+
+  async getOrderPdfExportData(orderId: number) {
+    const order = await this.orderRepository.findOne({
+      where: {
+        id: orderId,
+      },
+      relations: [
+        'orderProducts',
+        'orderProducts.product',
+        'orderProducts.product.product_type',
+        'orderProducts.orderProductPhotos',
+        'orderProducts.orderProductPhotos.photo',
+      ],
+    });
+
+    if (!order)
+      throw new DatabaseException(CommonErrorCode.NOT_FOUND, '订单不存在');
+
+    if (order.status !== OrderStatus.SUBMITTED)
+      throw new DatabaseException(CommonErrorCode.OTHER_ERROR, '用户未提交选片');
+
+    const newOrderProducts = order.orderProducts.map(orderProduct => ({
+      id: orderProduct.id,
+      name: orderProduct.product.name,
+      type: orderProduct.product.product_type.name,
+      count: orderProduct.count,
+      photoNames: orderProduct.orderProductPhotos.map(orderProductPhoto => ({
+        name: orderProductPhoto.photo.name,
+        remark: orderProductPhoto.remark,
+      }))
+    }))
+
+    //
+    const totalPhotos = newOrderProducts.reduce((acc, cur) => acc + cur.photoNames.length, 0)
+
+    // 计算超出照片数量
+    const extraPhotoCount = totalPhotos - order.maxSelectPhotos
+
+    return  {
+      id: order.id,
+      orderNumber: order.orderNumber,
+      customerName: order.customerName,
+      customerPhone: order.customerPhone,
+      maxSelectPhotos: order.maxSelectPhotos,
+      extraPhotoMoney: order.extraPhotoPrice * Math.max(0, extraPhotoCount),
+      totalPhotos,
+      selectDate: order.updatedAt,
+      orderProducts: newOrderProducts,
     }
+
   }
 }
