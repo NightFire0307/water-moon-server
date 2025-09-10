@@ -30,7 +30,7 @@ export enum PhotoJobName {
 
 @Processor('photo', { concurrency: 2 }) // 设置并发数为 4
 @Injectable()
-export class CompressPhotoProcessor extends WorkerHost {
+export class PhotoProcessor extends WorkerHost {
   @Inject(MinioService)
   private readonly minioService: MinioService;
 

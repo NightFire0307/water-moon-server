@@ -17,7 +17,7 @@ import { DeletePhotosDto } from './dto/delete-photos.dto';
 import { UpdatePhotoRecommendDto } from './dto/update-photo-recommend.dto';
 import { Request } from 'express';
 import { Observable } from 'rxjs';
-import { CompressPhotoProcessor } from './compress-photo.processor';
+import { PhotoProcessor } from './photo.processor';
 import { RequirePermission, RequireLogin, Public } from '@/common/decorators/auth.decorator';
 import { Pagination, type PaginationQuery } from '@/common/decorators/pagination.decorator';
 

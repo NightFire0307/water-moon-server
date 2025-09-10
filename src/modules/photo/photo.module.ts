@@ -9,7 +9,7 @@ import { RedisModule } from '../../redis/redis.module';
 import { PhotoCountSyncService } from './photo-count-sync.service';
 import { MinioModule } from '../../minio/minio.module';
 import { BullModule } from '@nestjs/bullmq';
-import { CompressPhotoProcessor } from './compress-photo.processor';
+import { PhotoProcessor } from './photo.processor';
 import { EventService } from './event.service';
 
 @Module({
@@ -26,7 +26,7 @@ import { EventService } from './event.service';
     MinioModule,
   ],
   controllers: [PhotoController],
-  providers: [PhotoService, PhotoCountSyncService, CompressPhotoProcessor, EventService],
+  providers: [PhotoService, PhotoCountSyncService, PhotoProcessor, EventService],
   exports: [PhotoService],
 })
 export class PhotoModule { }
