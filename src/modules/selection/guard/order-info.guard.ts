@@ -6,9 +6,11 @@ import type { Repository } from "typeorm";
 import { OrderNotFoundException } from "../exceptions/order-not-found.exception";
 
 /**
- * 校验订单是否存在
+ * 获取订单信息的守卫
+ * 1. 验证订单是否存在
+ * 2. 将订单信息附加到请求对象上，供后续中间件或处理器使用
  */
-export class OrderLoaderGuard implements CanActivate {
+export class OrderInfoGuard implements CanActivate {
   @InjectRepository(Order)
   private readonly orderRepository: Repository<Order>
 

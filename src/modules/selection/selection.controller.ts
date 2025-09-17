@@ -25,8 +25,7 @@ import { BulkUpdatePhotoPreselectStatusDto } from './dto/update-photo-preselect-
 import type { AssignOrderProductPhotosDto } from './dto/assign-order-product-photos.dto';
 import type { UpdateOrderStatusDto } from '../order/dto/order-status.dto';
 import { OrderService } from '../order/order.service';
-import { OrderValidGuard } from './guard/order-valid.guard';
-import { OrderLoaderGuard } from './guard/order-loader.guard';
+import { OrderFlow } from './decorators/OrderFlow';
 
 @Controller('selection')
 @Public()
@@ -38,6 +37,7 @@ export class SelectionController {
   ) { }
 
   // 订单号和手机号登录
+  @OrderFlow()
   @Post('login')
   async clientLogin(
     @Body() dto: SelectionLoginDto,
@@ -94,16 +94,18 @@ export class SelectionController {
     return await this.selectionService.refreshToken(refreshToken);
   }
 
+  // 获取订单信息
   @Get('order')
-  @UseGuards(ClientAuthGuard, OrderLoaderGuard, OrderValidGuard)
+  @UseGuards(ClientAuthGuard)
   async getOrderInfo(@Req() req: Request) {
-    const order = req.order
-    return await this.selectionService.getOrderInfo(order.id);
+    const orderId = req.tokenPayload.orderId;
+    return await this.selectionService.getOrderInfo(orderId);
   }
 
   // 获取选片照片
   @Get('photos')
-  @UseGuards(ClientAuthGuard, OrderLoaderGuard, OrderValidGuard)
+  @OrderFlow()
+  @UseGuards(ClientAuthGuard)
   async getPhotos(
     @Req() req: Request,
     @Pagination() pagination: PaginationQuery,
@@ -113,7 +115,8 @@ export class SelectionController {
 
   // 更新订单状态
   @Patch('order/status')
-  @UseGuards(ClientAuthGuard, OrderLoaderGuard, OrderValidGuard)
+  @OrderFlow()
+  @UseGuards(ClientAuthGuard)
   async updateOrderStatus(
     @Req() req: Request,
     @Body() dto: UpdateOrderStatusDto
@@ -123,7 +126,8 @@ export class SelectionController {
 
   // 更新照片预选标记
   @Patch('preselected-photos')
-  @UseGuards(ClientAuthGuard, OrderLoaderGuard, OrderValidGuard)
+  @OrderFlow()
+  @UseGuards(ClientAuthGuard)
   async updatePhotoPreSelectStatus(
     @Req() req: Request,
     @Body() dto: BulkUpdatePhotoPreselectStatusDto) {
@@ -132,7 +136,8 @@ export class SelectionController {
 
   // 重置预选照片
   @Post('photos/pre-select/reset')
-  @UseGuards(ClientAuthGuard, OrderLoaderGuard, OrderValidGuard)
+  @OrderFlow()
+  @UseGuards(ClientAuthGuard)
   async resetOrderPreSelect(
     @Req() req: Request
   ) {
@@ -141,7 +146,8 @@ export class SelectionController {
 
   // 重置产品选片
   @Post('order-product/reset')
-  @UseGuards(ClientAuthGuard, OrderLoaderGuard, OrderValidGuard)
+  @OrderFlow()
+  @UseGuards(ClientAuthGuard)
   async resetOrderProductPhotos(
     @Req() req: Request,
   ) {
@@ -150,7 +156,8 @@ export class SelectionController {
 
   // 更新产品照片
   @Post('product-photos')
-  @UseGuards(ClientAuthGuard, OrderLoaderGuard, OrderValidGuard)
+  @OrderFlow()
+  @UseGuards(ClientAuthGuard)
   async bulkAssignPhotosToOrderProduct(
     @Req() req: Request,
     @Body() dto: AssignOrderProductPhotosDto
@@ -160,8 +167,8 @@ export class SelectionController {
 
   // 锁定选片结果
   @Post(':orderId')
-  @UseGuards(ClientAuthGuard, OrderLoaderGuard, OrderValidGuard)
-  @HttpCode(200)
+  @OrderFlow()
+  @UseGuards(ClientAuthGuard)
   async submitOrder(@Param('orderId') orderId: number) {
     return await this.selectionService.submitOrder(orderId);
   }

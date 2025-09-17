@@ -204,6 +204,7 @@ export class SelectionService {
 
     return {
       ...order,
+      isExpired: dayjs().isAfter(dayjs(order.validUntil)),
       orderProducts: order.orderProducts.map((order_product) => ({
         id: order_product.id,
         count: order_product.count,
