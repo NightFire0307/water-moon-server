@@ -65,7 +65,7 @@ export class OrderService {
   @Inject(MinioService) private readonly minioService: MinioService;
   @Inject(PhotoService) private readonly PhotoService: PhotoService;
 
-  constructor(private readonly dataSource: DataSource) {}
+  constructor(private readonly dataSource: DataSource) { }
 
   async getOrderList(
     query: GetOrderListDto,
@@ -687,7 +687,7 @@ export class OrderService {
         OrderStatus.PRODUCT_SELECT,
         OrderStatus.CANCEL,
       ],
-      [OrderStatus.PRODUCT_SELECT]: [OrderStatus.SUBMITTED, OrderStatus.CANCEL],
+      [OrderStatus.PRODUCT_SELECT]: [OrderStatus.PRE_SELECT, OrderStatus.SUBMITTED, OrderStatus.CANCEL],
       [OrderStatus.SUBMITTED]: [OrderStatus.FINISHED, OrderStatus.CANCEL],
     };
 
@@ -751,7 +751,7 @@ export class OrderService {
     // 计算超出照片数量
     const extraPhotoCount = totalPhotos - order.maxSelectPhotos
 
-    return  {
+    return {
       id: order.id,
       orderNumber: order.orderNumber,
       customerName: order.customerName,

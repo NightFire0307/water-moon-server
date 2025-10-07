@@ -19,7 +19,11 @@ import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
 import { GetOrderListDto } from './dto/get-order-list.dto';
 import { Response } from 'express';
-import { RequirePermission, RequireLogin } from '@/common/decorators/auth.decorator';
+import {
+  RequirePermission,
+  RequireLogin,
+  Public,
+} from '@/common/decorators/auth.decorator';
 import { UserInfo } from '@/common/decorators/context.decorator';
 import { Pagination, type PaginationQuery } from '@/common/decorators/pagination.decorator';
 import { UpdateOrderStatusDto } from './dto/order-status.dto'
@@ -184,15 +188,17 @@ export class OrderController {
     return await this.orderService.getOrderResult(+orderId);
   }
 
-  // 导出订单选片结果
-  @Get('/:orderId/result/export')
+  // 获取订单下载链接
+  @Get('/:orderId/download-link')
   @RequireLogin()
-  @RequirePermission({
-    code: 'order-detail:export',
-    name: '导出订单选片结果',
-    type: 'button',
-    description: '导出订单选片结果',
-  })
+  async getDownloadLink(
+    @Body('orderId') orderId: string
+  ) {
+    return 'ok'
+  }
+
+  @Get('/:orderId/result/download')
+  @Public()
   async exportOrderResult(
     @Param('orderId') orderId: string,
     @Res() res: Response,
@@ -207,11 +213,11 @@ export class OrderController {
     // 设置响应头，告诉浏览器这是一个文件下载
     res.set({
       'Content-Type': 'application/zip',
-      'Content-Disposition': `attachment; filename=${orderNumber}.zip`,
+      'Content-Disposition': `attachment; filename="${orderNumber}-.zip"`,
     });
 
     zipStream.pipe(res);
-    archive.finalize();
+    await archive.finalize();
   }
 
   // 获取订单所有照片ID

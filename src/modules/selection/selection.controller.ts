@@ -26,6 +26,7 @@ import type { AssignOrderProductPhotosDto } from './dto/assign-order-product-pho
 import type { UpdateOrderStatusDto } from '../order/dto/order-status.dto';
 import { OrderService } from '../order/order.service';
 import { OrderFlow } from './decorators/OrderFlow';
+import { OrderInfoGuard } from './guard/order-info.guard';
 
 @Controller('selection')
 @Public()
@@ -37,7 +38,6 @@ export class SelectionController {
   ) { }
 
   // 订单号和手机号登录
-  @OrderFlow()
   @Post('login')
   async clientLogin(
     @Body() dto: SelectionLoginDto,
@@ -104,8 +104,7 @@ export class SelectionController {
 
   // 获取选片照片
   @Get('photos')
-  @OrderFlow()
-  @UseGuards(ClientAuthGuard)
+  @UseGuards(ClientAuthGuard, OrderInfoGuard)
   async getPhotos(
     @Req() req: Request,
     @Pagination() pagination: PaginationQuery,

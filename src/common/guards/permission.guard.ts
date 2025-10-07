@@ -46,7 +46,6 @@ export class PermissionGuard implements CanActivate {
     }
 
     // 3. 超级管理员直接放行
-    console.log(user.roles)
     if (user.roles?.includes('super_admin')) return true;
 
     // 4. 获取接口所需权限

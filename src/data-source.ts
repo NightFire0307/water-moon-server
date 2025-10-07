@@ -3,7 +3,6 @@ import path from 'path'
 import { DataSource } from 'typeorm';
 
 dotenv.config({ path: path.join(__dirname, `.env.${process.env.NODE_ENV}`) });
-console.log(path.join(__dirname, `.env.${process.env.NODE_ENV}`));
 export const appDataSource = new DataSource({
   type: 'mysql',
   host: process.env.DB_HOST,

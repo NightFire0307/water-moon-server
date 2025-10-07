@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Photo, PreSelectStatus } from './entities/photo.entity';
+import { Photo } from './entities/photo.entity';
 import { In, Repository } from 'typeorm';
 import { Order } from '../order/entities/order.entity';
 import { PaginationQuery } from '@/common/decorators/pagination.decorator';
@@ -64,7 +64,7 @@ export class PhotoService {
 
       const order = await this.getOrderById(orderId);
       const photos = await this.photoRepository.find({
-        where: { order: { id: order.id} },
+        where: { order: { id: order.id } },
       });
 
 
@@ -75,7 +75,7 @@ export class PhotoService {
           ossUrlThumbnail: await this.minioService.generateGetUrl(`${order.orderNumber}/thumbnail/${photo.name}.webp`),
           ossUrlMedium: await this.minioService.generateGetUrl(`${order.orderNumber}/medium/${photo.name}.webp`),
           expiresAt: dayjs().add(6, 'd').valueOf(),
-          preSelectStatus: PreSelectStatus.PENDING,
+          preSelectStatus: photo.preSelectStatus,
         }))
       }
 
@@ -189,7 +189,7 @@ export class PhotoService {
 
     return new Promise(async (resolve, reject) => {
       const bb = Busboy({ headers: req.headers });
-      let uid =''
+      let uid = ''
 
       bb.on('file', async (fieldname, file, info) => {
         let size = 0;
