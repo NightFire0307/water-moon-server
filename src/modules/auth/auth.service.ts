@@ -1,7 +1,5 @@
 import {
   ForbiddenException,
-  HttpException,
-  HttpStatus,
   Inject,
   Injectable,
   UnauthorizedException,
@@ -94,14 +92,6 @@ export class AuthService {
       });
     }
 
-    // 缓存用户权限(24小时)
-    // const pipeline = this.redisClient.pipeline();
-    // 移除旧权限
-    // pipeline.del(`permissions:${result.user_id}`);
-    // pipeline.lpush(`permissions:${result.user_id}`, ...result.permissions);
-    // pipeline.expire(`permissions:${result.user_id}`, 60 * 60 * 24);
-    // await pipeline.exec();
-
     return {
       userId: userInfo.user_id,
       username: userInfo.username,
@@ -111,7 +101,7 @@ export class AuthService {
     };
   }
 
-  async findUserById(userId: number) {
+  async getCurrentUserInfo(userId: number) {
     const user = await this.userRepository.findOne({
       where: {
         user_id: userId,
@@ -120,9 +110,10 @@ export class AuthService {
     });
 
     return {
-      id: user.user_id,
+      userId: user.user_id,
+      nickname: user.nickname,
       username: user.username,
-      roles: user.roles.map((item) => item.name),
+      roles: user.roles.map((item) => item.code),
       permissions: user.roles.reduce((arr, item) => {
         item.permissions.forEach((permission) => {
           if (arr.indexOf(permission) === -1) {
@@ -174,28 +165,29 @@ export class AuthService {
    */
   async refreshToken(userId: number) {
     try {
-      const user = await this.findUserById(userId);
+      const userInfo = await this.getCurrentUserInfo(userId);
 
-      const access_token = this.jwtService.sign(
+      const accessToken = this.jwtService.sign(
         {
-          userId: user.id,
-          username: user.username,
+          userId: userInfo.userId,
+          roles: userInfo.roles,
+          permissions: userInfo.permissions,
         },
         {
           expiresIn: this.configService.get('jwt_access_token_expires_time'),
         },
       );
 
-      const refresh_token = this.jwtService.sign(
+      const refreshToken = this.jwtService.sign(
         {
-          userId: user.id,
+          userId: userInfo.userId,
         },
         {
           expiresIn: this.configService.get('jwt_refresh_token_expires_time'),
         },
       );
 
-      return { access_token, refresh_token };
+      return { accessToken, refreshToken };
     } catch {
       throw new UnauthorizedException('Token 已失效');
     }
