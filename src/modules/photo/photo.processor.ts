@@ -90,8 +90,16 @@ export class PhotoProcessor extends WorkerHost {
 
       // 用 sharp 从同一 Buffer 生成两个不同尺寸的 Buffer（不会互相影响）
       const [mediumBuffer, thumbnailBuffer] = await Promise.all([
-        sharp(originalBuffer).resize({ width: 1920, fit: 'inside' }).webp({ quality: 70 }).toBuffer(),
-        sharp(originalBuffer).resize({ width: 300, fit: 'inside' }).webp({ quality: 70 }).toBuffer(),
+        sharp(originalBuffer)
+          .resize({ width: 1920, fit: 'inside' })
+          .rotate() // 自动根据 EXIF 信息旋转图片
+          .webp({ quality: 80 })
+          .toBuffer(),
+        sharp(originalBuffer)
+          .resize({ width: 300, fit: 'inside' })
+          .rotate() // 自动根据 EXIF 信息旋转图片
+          .webp({ quality: 70 })
+          .toBuffer(),
       ]);
 
       // 上传 Buffer 到 Minio

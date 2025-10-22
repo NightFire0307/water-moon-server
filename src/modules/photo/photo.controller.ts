@@ -17,11 +17,8 @@ import { DeletePhotosDto } from './dto/delete-photos.dto';
 import { UpdatePhotoRecommendDto } from './dto/update-photo-recommend.dto';
 import { Request } from 'express';
 import { Observable } from 'rxjs';
-import { PhotoProcessor } from './photo.processor';
 import { RequirePermission, RequireLogin, Public } from '@/common/decorators/auth.decorator';
 import { Pagination, type PaginationQuery } from '@/common/decorators/pagination.decorator';
-
-import { MinioService } from '@/minio/minio.service';
 import { EventService, type SSEMessage } from './event.service';
 
 @Controller('admin/photos')
@@ -77,7 +74,6 @@ export class PhotoController {
   @RequireLogin()
   async uploadPhoto(
     @Param('orderId') orderId: string,
-    @Body('uid') uid: string,
     @Req() req: Request
   ) {
     return this.photoService.uploadPhotos(Number(orderId), req)
