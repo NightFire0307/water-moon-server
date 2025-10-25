@@ -18,18 +18,16 @@ import { ProductModule } from './modules/product/product.module';
 import { OrderModule } from './modules/order/order.module';
 import { PhotoModule } from './modules/photo/photo.module';
 import { LinkModule } from './modules/link/link.module';
-import { RedisModule } from './redis/redis.module';
+import { RedisModule } from './modules/redis/redis.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { MinioModule } from './minio/minio.module';
 import { BullModule } from '@nestjs/bullmq';
 import { SelectionModule } from './modules/selection/selection.module';
-import * as path from 'path'
 import { SeedModule } from './seeds/seed.module';
 import { PackageModule } from '@/modules/package/package.module';
 import { MinioService } from './minio/minio.service';
-import { appDataSource } from 'data-source';
-
-console.log(`Environment: ${process.env.NODE_ENV}`);
+import { DatabaseModule } from './modules/database/database.module';
+import { envValidationSchema } from './config/.env.schema';
 
 @Module({
   imports: [
@@ -37,20 +35,19 @@ console.log(`Environment: ${process.env.NODE_ENV}`);
     TypeOrmModule.forFeature([Permission, User]),
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: path.join(__dirname, `.env.${process.env.NODE_ENV}`),
+      envFilePath: `.env.${process.env.NODE_ENV}`,
+      validationSchema: envValidationSchema,
+      validationOptions: {
+        allowUnknown: true, // 允许未知的环境变量
+        abortEarly: true, // 遇到第一个错误就停止验证
+      }
     }),
     ScheduleModule.forRoot(),
-    TypeOrmModule.forRootAsync({
-      useFactory: () => ({
-        ...appDataSource.options,
-        autoLoadEntities: true,
-      })
-    }),
     JwtModule.registerAsync({
       global: true,
       useFactory(configService: ConfigService) {
         return {
-          secret: configService.get('jwt_secret'),
+          secret: configService.get('JWT_SECRET'),
           signOptions: {
             expiresIn: '30m',
           },
@@ -76,6 +73,7 @@ console.log(`Environment: ${process.env.NODE_ENV}`);
     SelectionModule,
     SeedModule,
     PackageModule,
+    DatabaseModule,
   ],
   controllers: [AppController],
   providers: [

@@ -12,14 +12,12 @@ import * as Minio from 'minio';
       provide: 'MINIO_CLIENT',
       inject: [ConfigService],
       useFactory(configService: ConfigService) {
-        console.log(configService);
-
         return new Minio.Client({
-          endPoint: configService.get('minio_endpoint'),
-          port: configService.get('minio_port'),
+          endPoint: configService.get('MINIO_HOST'),
+          port: configService.get('MINIO_PORT'),
           useSSL: false,
-          accessKey: configService.get('minio_access_key'),
-          secretKey: configService.get('minio_secret_key'),
+          accessKey: configService.get('MINIO_ACCESS_KEY'),
+          secretKey: configService.get('MINIO_SECRET_KEY'),
         });
       },
     },

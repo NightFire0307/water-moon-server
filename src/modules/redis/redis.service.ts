@@ -8,8 +8,7 @@ import { Redis } from 'ioredis';
 import {
   RedisErrorType,
   RedisException,
-} from '../common/redis-exception.filter';
-import { Cron } from '@nestjs/schedule';
+} from '@/common/exceptions/redis.exception';
 
 @Injectable()
 export class RedisService implements OnModuleInit, OnModuleDestroy {

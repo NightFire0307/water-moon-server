@@ -4,7 +4,7 @@ import { RoleController } from './role.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Role } from './entities/role.entity';
 import { Permission } from '../auth/entities/permissions.entity';
-import { RedisModule } from '../../redis/redis.module';
+import { RedisModule } from '@/modules/redis/redis.module';
 
 @Module({
   imports: [TypeOrmModule.forFeature([Role, Permission]), RedisModule],

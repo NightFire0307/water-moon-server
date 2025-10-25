@@ -1,13 +1,11 @@
 import { Module } from '@nestjs/common';
 import { RedisService } from './redis.service';
-import { RedisController } from './redis.controller';
 import { Redis } from 'ioredis';
 import { ConfigService } from '@nestjs/config';
 
 const RETRY_CONNECT = 3;
 
 @Module({
-  controllers: [RedisController],
   providers: [
     RedisService,
     {
@@ -15,8 +13,8 @@ const RETRY_CONNECT = 3;
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => {
         return new Redis({
-          host: configService.get<string>('redis_server_host'),
-          port: configService.get<number>('redis_server_port'),
+          host: configService.get<string>('REDIS_HOST'),
+          port: configService.get<number>('REDIS_PORT'),
           retryStrategy: (times) => {
             if (times >= RETRY_CONNECT) {
               console.error('Redis重试连接次数过多，停止重试');
@@ -33,8 +31,8 @@ const RETRY_CONNECT = 3;
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => {
         return new Redis({
-          host: configService.get<string>('redis_server_host'),
-          port: configService.get<number>('redis_server_port'),
+          host: configService.get<string>('REDIS_HOST'),
+          port: configService.get<number>('REDIS_PORT'),
           retryStrategy: (times) => {
             if (times >= RETRY_CONNECT) {
               console.error('Redis重试连接次数过多，停止重试');

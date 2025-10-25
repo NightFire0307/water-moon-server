@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { SelectionService } from './selection.service';
 import { SelectionController } from './selection.controller';
-import { RedisModule } from '../../redis/redis.module';
+import { RedisModule } from '@/modules/redis/redis.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Order } from '../order/entities/order.entity';
 import { Product } from '../product/entities/product.entity';

@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { Subject } from "rxjs";
-import { RedisService } from "@/redis/redis.service";
+import { RedisService } from "@/modules/redis/redis.service";
 
 export interface SSEMessage {
   id?: string;                 // 可选，用于客户端断线重连

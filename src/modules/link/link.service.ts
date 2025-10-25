@@ -7,7 +7,7 @@ import { Repository } from 'typeorm';
 import { Order } from '../order/entities/order.entity';
 import { generatePassword } from '@/common/utils/generatePassword';
 import { PaginationQuery } from '@/common/decorators/pagination.decorator';
-import { RedisService } from '@/redis/redis.service';
+import { RedisService } from '@/modules/redis/redis.service';
 import dayjs from 'dayjs';
 import crypto from 'node:crypto';
 import {
