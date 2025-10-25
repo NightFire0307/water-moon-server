@@ -5,8 +5,9 @@ import { MinioService } from '@/minio/minio.service';
 import { Redis } from 'ioredis';
 import { PreSelectStatus } from './entities/photo.entity';
 import dayjs from 'dayjs';
-import sharp from 'sharp';
+import { piscina } from './piscina-poos'
 import { EventService, ProcessingStatus } from './event.service';
+import os from 'os'
 
 export interface PhotoJobData {
   id?: string
@@ -28,7 +29,7 @@ export enum PhotoJobName {
   NOTIFY_CLIENT = 'photo:notify:client', // 通知客户端
 }
 
-@Processor('photo', { concurrency: 2 }) // 设置并发数为 4
+@Processor('photo', { concurrency: os.cpus().length })
 @Injectable()
 export class PhotoProcessor extends WorkerHost {
   @Inject(MinioService)
@@ -88,24 +89,14 @@ export class PhotoProcessor extends WorkerHost {
       const objectStream = await this.minioService.downloadImage(data.ossKey);
       const originalBuffer = await streamToBuffer(objectStream);
 
-      // 用 sharp 从同一 Buffer 生成两个不同尺寸的 Buffer（不会互相影响）
-      const [mediumBuffer, thumbnailBuffer] = await Promise.all([
-        sharp(originalBuffer)
-          .resize({ width: 1920, fit: 'inside' })
-          .rotate() // 自动根据 EXIF 信息旋转图片
-          .webp({ quality: 80 })
-          .toBuffer(),
-        sharp(originalBuffer)
-          .resize({ width: 300, fit: 'inside' })
-          .rotate() // 自动根据 EXIF 信息旋转图片
-          .webp({ quality: 70 })
-          .toBuffer(),
-      ]);
+      const { thumb, medium } = await piscina.run(originalBuffer);
+      const thumbBuffer = Buffer.isBuffer(thumb) ? thumb : Buffer.from(thumb);
+      const mediumBuffer = Buffer.isBuffer(medium) ? medium : Buffer.from(medium);
 
       // 上传 Buffer 到 Minio
       await Promise.all([
         this.minioService.uploadImage(mediumBuffer, `${data.orderNumber}/medium/${data.name}.webp`),
-        this.minioService.uploadImage(thumbnailBuffer, `${data.orderNumber}/thumbnail/${data.name}.webp`),
+        this.minioService.uploadImage(thumbBuffer, `${data.orderNumber}/thumbnail/${data.name}.webp`),
       ]);
 
       // 获取上传后的 OSS 链接
@@ -123,7 +114,6 @@ export class PhotoProcessor extends WorkerHost {
 
   // 2. 缓存图片信息到 Redis
   async cacheCompressInfo(data: PhotoJobData) {
-    console.log(data)
     try {
       // 获取 OSS 图片链接
       const { name, ossUrlMedium, ossUrlThumbnail, orderId } = data;
