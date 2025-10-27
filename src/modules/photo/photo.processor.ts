@@ -1,7 +1,7 @@
 import { InjectQueue, OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
 import { Inject, Injectable } from '@nestjs/common';
 import { Job, Queue } from 'bullmq';
-import { MinioService } from '@/minio/minio.service';
+import { MinioService } from '@/modules/minio/minio.service';
 import { Redis } from 'ioredis';
 import { PreSelectStatus } from './entities/photo.entity';
 import dayjs from 'dayjs';

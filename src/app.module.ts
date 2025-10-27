@@ -20,12 +20,12 @@ import { PhotoModule } from './modules/photo/photo.module';
 import { LinkModule } from './modules/link/link.module';
 import { RedisModule } from './modules/redis/redis.module';
 import { ScheduleModule } from '@nestjs/schedule';
-import { MinioModule } from './minio/minio.module';
+import { MinioModule } from './modules/minio/minio.module';
 import { BullModule } from '@nestjs/bullmq';
 import { SelectionModule } from './modules/selection/selection.module';
 import { SeedModule } from './seeds/seed.module';
 import { PackageModule } from '@/modules/package/package.module';
-import { MinioService } from './minio/minio.service';
+import { MinioService } from './modules/minio/minio.service';
 import { DatabaseModule } from './modules/database/database.module';
 import { envValidationSchema } from './config/.env.schema';
 

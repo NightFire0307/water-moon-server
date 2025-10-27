@@ -7,7 +7,7 @@ import { Order } from '../order/entities/order.entity';
 import { AuthModule } from '../auth/auth.module';
 import { RedisModule } from '@/modules/redis/redis.module';
 import { PhotoCountSyncService } from './photo-count-sync.service';
-import { MinioModule } from '@/minio/minio.module';
+import { MinioModule } from '@/modules/minio/minio.module';
 import { BullModule } from '@nestjs/bullmq';
 import { PhotoProcessor } from './photo.processor';
 import { EventService } from './event.service';

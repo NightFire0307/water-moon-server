@@ -10,7 +10,7 @@ import { Redis } from 'ioredis';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { PhotoJobName } from './photo.processor';
-import { MinioService } from '@/minio/minio.service';
+import { MinioService } from '@/modules/minio/minio.service';
 import { ConfigService } from '@nestjs/config';
 import dayjs from 'dayjs';
 import {

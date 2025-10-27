@@ -1,7 +1,6 @@
 import { Inject, Injectable, type OnModuleInit } from '@nestjs/common';
 import * as Minio from 'minio';
 import { ConfigService } from '@nestjs/config';
-import axios from 'axios';
 import dayjs from 'dayjs';
 import type { Readable } from 'node:stream';
 

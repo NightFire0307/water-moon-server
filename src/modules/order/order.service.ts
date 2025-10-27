@@ -20,7 +20,7 @@ import type Redis from 'ioredis';
 import archiver from 'archiver';
 import { PassThrough } from 'node:stream';
 import { ConfigService } from '@nestjs/config';
-import { MinioService } from '../../minio/minio.service';
+import { MinioService } from '../minio/minio.service';
 import dayjs from 'dayjs';
 import iosWeek from 'dayjs/plugin/isoWeek.js';
 import { PhotoService } from '../photo/photo.service';

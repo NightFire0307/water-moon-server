@@ -6,16 +6,12 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from '../user/entities/user.entity';
-import { Role } from '../role/entities/role.entity';
 import { Repository } from 'typeorm';
-import { Permission } from './entities/permissions.entity';
 import { compare } from 'bcrypt';
 import { ConfigService } from '@nestjs/config';
 import { AdminLoginDto } from './dto/admin-login.dto';
 import { JwtService } from '@nestjs/jwt';
-import * as qiniu from 'qiniu';
 import * as Minio from 'minio';
-import { Redis } from 'ioredis';
 
 @Injectable()
 export class AuthService {
@@ -25,20 +21,12 @@ export class AuthService {
   @Inject(JwtService)
   private readonly jwtService: JwtService;
 
-  @Inject('REDIS_CLIENT')
-  private readonly redisClient: Redis;
-
   @Inject('MINIO_CLIENT')
   private readonly minioClient: Minio.Client;
 
   @InjectRepository(User)
   private readonly userRepository: Repository<User>;
 
-  @InjectRepository(Role)
-  private readonly roleRepository: Repository<Role>;
-
-  @InjectRepository(Permission)
-  private readonly permissionRepository: Repository<Permission>;
 
   async login(loginUserDto: AdminLoginDto) {
     const userInfo = await this.userRepository
@@ -191,26 +179,6 @@ export class AuthService {
     } catch {
       throw new UnauthorizedException('Token 已失效');
     }
-  }
-
-  async getOssToken() {
-    const accessKey = this.configService.get('oss_access_key');
-    const secretKey = this.configService.get('oss_secret_key');
-    const scope = this.configService.get('oss_bucket');
-    const expires = Number(this.configService.get('oss_token_expire_time'));
-    const options = {
-      scope: `${scope}`,
-      expires,
-      returnBody:
-        '{"key": $(key), "hash": $(etag), "bucket": $(bucket), "fsize": $(fsize)}, "name": $(x:name)}',
-    };
-
-    const mac = new qiniu.auth.digest.Mac(accessKey, secretKey);
-    const putPolicy = new qiniu.rs.PutPolicy(options);
-    const uploadToken = putPolicy.uploadToken(mac);
-    return {
-      uploadToken,
-    };
   }
 
   async getMinioToken(orderNumber: string, fileName: string) {

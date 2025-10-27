@@ -6,7 +6,7 @@ import { User } from '../user/entities/user.entity';
 import { Role } from '../role/entities/role.entity';
 import { Permission } from './entities/permissions.entity';
 import { RedisModule } from '@/modules/redis/redis.module';
-import { MinioModule } from '@/minio/minio.module';
+import { MinioModule } from '@/modules/minio/minio.module';
 import { Order } from '../order/entities/order.entity';
 
 @Module({
