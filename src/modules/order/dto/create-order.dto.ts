@@ -1,6 +1,5 @@
 import {
   IsArray,
-  IsDate,
   IsNotEmpty,
   IsNumber,
   IsOptional,
@@ -17,8 +16,7 @@ export class OrderProductDto {
   count: number;
 
   @IsString()
-  @IsOptional()
-  remark: string;
+  type: 'package' | 'single';
 }
 
 export class CreateOrderDto {

@@ -6,8 +6,8 @@ import { DataSource, In, Repository } from 'typeorm';
 import { Product } from '../product/entities/product.entity';
 import { PaginationQuery } from '@/common/decorators/pagination.decorator';
 import { OrderProduct } from './entities/orderProduct.entity';
+import { ProductPackage } from '../package/entities/product-package.entity'
 import { UpdateOrderDto } from './dto/update-order.dto';
-import { instanceToPlain } from 'class-transformer';
 import { GetOrderListDto } from './dto/get-order-list.dto';
 import { Photo, PreSelectStatus } from '../photo/entities/photo.entity';
 import {
@@ -19,12 +19,12 @@ import {
 import type Redis from 'ioredis';
 import archiver from 'archiver';
 import { PassThrough } from 'node:stream';
-import { ConfigService } from '@nestjs/config';
 import { MinioService } from '../minio/minio.service';
 import dayjs from 'dayjs';
 import iosWeek from 'dayjs/plugin/isoWeek.js';
 import { PhotoService } from '../photo/photo.service';
 import { OrderProductPhoto } from './entities/orderProductPhotos.entity';
+import { DatabaseService } from '../database/database.service';
 
 dayjs.extend(iosWeek);
 
@@ -50,9 +50,6 @@ export class OrderService {
   @InjectRepository(Photo)
   private readonly photoRepository: Repository<Photo>;
 
-  @InjectRepository(OrderProduct)
-  private readonly orderProductRepository: Repository<OrderProduct>;
-
   @InjectRepository(OrderProductPhoto)
   private readonly orderProductPhotoRepository: Repository<OrderProductPhoto>;
 
@@ -61,7 +58,7 @@ export class OrderService {
 
   @Inject('REDIS_CLIENT') private readonly redisClient: Redis;
 
-  @Inject(ConfigService) private readonly configService: ConfigService;
+  @Inject(DatabaseService) private readonly databaseService: DatabaseService;
   @Inject(MinioService) private readonly minioService: MinioService;
   @Inject(PhotoService) private readonly PhotoService: PhotoService;
 
@@ -149,88 +146,106 @@ export class OrderService {
     }
   }
 
-  async createOrder(createOrderDto: CreateOrderDto) {
+  async createOrder(dto: CreateOrderDto) {
     const {
       orderNumber,
-      customerName,
-      customerPhone,
-      orderProducts,
-      extraPhotoPrice,
-      maxSelectPhotos,
-      validUntil,
-    } = createOrderDto;
+    } = dto;
 
-    const queryRunner =
-      this.orderRepository.manager.connection.createQueryRunner();
+    await this.databaseService.runInTransaction(async (manager) => {
+      const foundOrder = await manager.findOne(Order, {
+        where: {
+          orderNumber,
+          isDeleted: false
+        }
+      })
 
-    await queryRunner.startTransaction();
-
-    const foundOrder = await this.orderRepository.findOne({
-      where: {
-        orderNumber,
-        isDeleted: false,
-      },
-    });
-
-    if (foundOrder) {
-      throw new DatabaseException(
-        OrderErrorCode.ORDER_NUMBER_ALREADY_EXISTS,
-        '订单号已存在',
-      );
-    }
-
-    const order = this.orderRepository.create({
-      orderNumber,
-      customerName,
-      customerPhone,
-      extraPhotoPrice,
-      maxSelectPhotos,
-      validUntil: new Date(validUntil),
-    });
-    await queryRunner.manager.save(order);
-
-    // 获取orderProducts中的产品id
-    const productIds = [...new Set(orderProducts.map((item) => item.id))];
-
-    const foundProduct = await this.productRepository.find({
-      where: {
-        id: In(productIds),
-      },
-    });
-
-    if (foundProduct.length !== productIds.length) {
-      throw new DatabaseException(CommonErrorCode.NOT_FOUND, '查询不到产品');
-    }
-
-    // 保存orderProducts
-    const orderProducts_data = orderProducts.map((item) => {
-      const product = foundProduct.find((product) => product.id === item.id);
-      if (!product) {
-        throw new Error(`查询不到产品id: ${item.id}`);
+      if (foundOrder) {
+        throw new DatabaseException(
+          OrderErrorCode.ORDER_NUMBER_ALREADY_EXISTS,
+          '订单号已存在',
+        );
       }
-      return this.orderProductRepository.create({
-        order,
-        product,
-        count: item.count,
-        remark: item.remark,
-      });
-    });
-    try {
-      await queryRunner.manager.save(orderProducts_data);
 
-      await queryRunner.commitTransaction();
-
-      return {
-        data: {
-          ...order,
-          orderProducts: instanceToPlain(orderProducts_data),
+      // 提取订单内所有套餐和单品的ID
+      const packageIds = [
+        ...new Set(dto.orderProducts.map(item => item.type === 'package' ? item.id : null).filter(id => id !== null)),
+      ]
+      // 查询对应的套餐和单品
+      const packageCount = await manager.count(ProductPackage, {
+        where: {
+          id: In(packageIds)
         },
-      };
-    } catch (e) {
-      await queryRunner.rollbackTransaction();
-      throw new DatabaseException(CommonErrorCode.DATABASE_ERROR, e);
-    } finally {
-      await queryRunner.release();
+        relations: ['items']
+      })
+
+      if (packageCount !== packageIds.length) {
+        throw new DatabaseException(CommonErrorCode.NOT_FOUND, '部分套餐不存在，请检查后重新提交订单');
+      }
+
+      const productIds = [
+        ...new Set(dto.orderProducts.flatMap(item => item.type === 'package' ? item.id : null).filter(id => id !== null)),
+      ]
+
+      // 判断单品是否存在
+      const productCount = await manager.count(Product, {
+        where: {
+          id: In(productIds)
+        }
+      })
+
+      if (productCount !== productIds.length) {
+        throw new DatabaseException(CommonErrorCode.NOT_FOUND, '部分单品不存在，请检查后重新提交订单');
+      }
+
+      const packages = await manager.find(ProductPackage, {
+        where: {
+          id: In(packageIds)
+        },
+        relations: ['items']
+      })
+
+      const singleProductIds = new Set([
+        ...packages.flatMap(pkg => pkg.items.map(item => item.product.id)),
+        ...dto.orderProducts.filter(item => item.type === 'single').map(item => item.id)
+      ])
+
+      const products = await this.productRepository.find({
+        where: {
+          id: In([...singleProductIds])
+        }
+      })
+
+      const newOrder = manager.create(Order, {
+        orderNumber: dto.orderNumber,
+        customerName: dto.customerName,
+        customerPhone: dto.customerPhone,
+        extraPhotoPrice: dto.extraPhotoPrice,
+        maxSelectPhotos: dto.maxSelectPhotos,
+        validUntil: new Date(dto.validUntil),
+      })
+      await manager.save(newOrder)
+
+      const orderProducts = products.map(product => {
+        return manager.create(OrderProduct, {
+          order: newOrder,
+          product,
+          count: dto.orderProducts.find(item => item.id === product.id)?.count || 1,
+        })
+      })
+
+      await manager.save(orderProducts);
+
+    })
+
+    const fullOrder = await this.orderRepository.findOne({
+      where: {
+        orderNumber: dto.orderNumber
+      }
+    })
+
+    return {
+      data: fullOrder,
+      msg: '订单创建成功',
     }
   }
 

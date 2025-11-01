@@ -9,6 +9,7 @@ import { CommonErrorCode, DatabaseException } from '@/common/exceptions/database
 import type { PaginationQuery } from '@/common/decorators/pagination.decorator';
 import type { UpdatePackageDto } from './dto/updatePackage.dto';
 import type { QueryPackageDto } from './dto/queryPackage.dto';
+import { getSelectFields } from '@/common/utils/getSelectFields';
 
 @Injectable()
 export class PackageService {
@@ -65,26 +66,19 @@ export class PackageService {
   }
 
   async getPackageById(id: number) {
-    const pkg = await this.packageRepository.createQueryBuilder('package')
-      .leftJoinAndSelect('package.items', 'items')
-      .leftJoinAndSelect('items.product', 'product')
-      .leftJoinAndSelect('product.product_type', 'productType')
-      .where('package.id = :id', { id })
-      .getOne()
+    const metadata = this.packageRepository.metadata;
+    const selectFields = getSelectFields(metadata, ['is_published']);
+    const pkg = await this.validatePackageExist(id, ['items', 'items.product', 'items.product.product_type'], selectFields)
 
     return {
       data: {
         ...pkg,
         items: pkg.items.map(item => ({
-          id: item.id,
+          id: item.product.id,
+          name: item.product.name,
+          type: item.product.product_type.name,
+          photo_limit: item.product.photo_limit,
           count: item.count,
-          category: item.product.product_type.name,
-          product: {
-            productId: item.product.id,
-            name: item.product.name,
-            is_published: item.product.is_published,
-            photo_limit: item.product.photo_limit,
-          }
         }))
       },
       msg: '获取套餐详情成功',
@@ -177,10 +171,15 @@ export class PackageService {
   }
 
   // 校验套餐是否存在
-  private async validatePackageExist(id: number) {
+  private async validatePackageExist(
+    id: number,
+    relations: string[] = [],
+    fields?: any[]
+  ) {
     const pkg = await this.packageRepository.findOne({
       where: { id },
-      relations: ['items', 'items.product']
+      relations,
+      select: [...fields],
     })
 
     if (!pkg) {

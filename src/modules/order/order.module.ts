@@ -11,13 +11,16 @@ import { RedisModule } from '@/modules/redis/redis.module';
 import { MinioModule } from '@/modules/minio/minio.module';
 import { OrderProductPhoto } from './entities/orderProductPhotos.entity';
 import { PhotoModule } from '../photo/photo.module';
+import { DatabaseModule } from '../database/database.module';
+import { ProductPackage } from '../package/entities/product-package.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Order, Product, OrderProduct, Link, Photo, OrderProductPhoto]),
+    TypeOrmModule.forFeature([Order, Product, OrderProduct, Link, Photo, OrderProductPhoto, ProductPackage]),
     RedisModule,
     MinioModule,
-    PhotoModule
+    PhotoModule,
+    DatabaseModule,
   ],
   controllers: [OrderController],
   providers: [OrderService],
