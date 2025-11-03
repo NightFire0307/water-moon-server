@@ -130,7 +130,7 @@ export class AuthService {
         permissions: vo.permissions,
       },
       {
-        expiresIn: this.configService.get('jwt_access_token_expires_time'),
+        expiresIn: this.configService.get('JWT_ACCESS_TOKEN_EXPIRES_IN'),
       },
     );
 
@@ -140,7 +140,7 @@ export class AuthService {
         userId: vo.userId,
       },
       {
-        expiresIn: this.configService.get('jwt_refresh_token_expires_time'),
+        expiresIn: this.configService.get('JWT_REFRESH_TOKEN_EXPIRES_IN'),
       },
     );
 
@@ -162,7 +162,7 @@ export class AuthService {
           permissions: userInfo.permissions,
         },
         {
-          expiresIn: this.configService.get('jwt_access_token_expires_time'),
+          expiresIn: this.configService.get('JWT_ACCESS_TOKEN_EXPIRES_IN'),
         },
       );
 
@@ -171,7 +171,7 @@ export class AuthService {
           userId: userInfo.userId,
         },
         {
-          expiresIn: this.configService.get('jwt_refresh_token_expires_time'),
+          expiresIn: this.configService.get('JWT_REFRESH_TOKEN_EXPIRES_IN'),
         },
       );
 

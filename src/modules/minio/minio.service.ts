@@ -13,7 +13,7 @@ export class MinioService implements OnModuleInit {
   private readonly configService: ConfigService;
 
   async onModuleInit(): Promise<void> {
-    const bucketName = this.configService.get('minio_bucket');
+    const bucketName = this.configService.get('MINIO_BUCKET');
     const bucketExists = await this.minioClient.bucketExists(bucketName);
     if (!bucketExists) {
       console.log('Bucket not exists, creating...');
@@ -27,7 +27,7 @@ export class MinioService implements OnModuleInit {
    * @param expires 上传策略过期时间（默认24小时）
    */
   async generatePostPolicy(keyName: string, expires?: Date) {
-    const bucketName = this.configService.get('minio_bucket');
+    const bucketName = this.configService.get('MINIO_BUCKET');
     const policy = this.minioClient.newPostPolicy();
     const expiresTime = expires || dayjs().add(24, 'hour').toDate();
 
@@ -44,7 +44,7 @@ export class MinioService implements OnModuleInit {
    * @param expires 下载链接过期时间（默认 7 天，以秒为单位）
    */
   async generateGetUrl(keyName: string, expires?: number) {
-    const bucketName: string = this.configService.get('minio_bucket');
+    const bucketName: string = this.configService.get('MINIO_BUCKET');
 
     return await this.minioClient.presignedGetObject(
       bucketName,
@@ -59,14 +59,14 @@ export class MinioService implements OnModuleInit {
    * @param keyName 图片名称
    */
   async uploadImage(stream: Readable | Buffer, keyName: string) {
-    const bucketName = this.configService.get('minio_bucket');
+    const bucketName = this.configService.get('MINIO_BUCKET');
     // const url = await this.minioClient.presignedPutObject(bucketName, keyName);
 
     await this.minioClient.putObject(bucketName, keyName, stream);
   }
 
   async downloadImage(keyName: string) {
-    const bucketName = this.configService.get('minio_bucket');
+    const bucketName = this.configService.get('MINIO_BUCKET');
     return await this.minioClient.getObject(bucketName, keyName);
   }
 }

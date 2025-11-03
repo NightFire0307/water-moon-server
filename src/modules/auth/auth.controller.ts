@@ -47,6 +47,7 @@ export class AuthController {
       this.userService.generateToken(userInfo);
     response.cookie('refreshToken', refreshToken, {
       httpOnly: true,
+      sameSite: 'lax',
     });
 
     return {
