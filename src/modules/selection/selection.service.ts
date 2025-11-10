@@ -1,4 +1,4 @@
-import { BadRequestException, Inject, Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, HttpStatus, Inject, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import basex from 'base-x';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Order, OrderStatus } from '../order/entities/order.entity';
@@ -8,21 +8,14 @@ import { JwtService } from '@nestjs/jwt';
 import { Photo, PreSelectStatus } from '../photo/entities/photo.entity';
 import { OrderProduct } from '../order/entities/orderProduct.entity';
 import { ProductPhotoSelectionDto } from './dto/selection-photos-update.dto';
-import {
-  CommonErrorCode,
-  DatabaseException,
-  LinkErrorCode,
-  OrderErrorCode,
-  PhotoErrorCode,
-} from '@/common/exceptions/database.exception';
-import {
-  AuthErrorCode,
-  AuthException,
-} from '@/common/exceptions/auth.exception';
 import { Link } from '../link/entities/link.entity';
 import dayjs from 'dayjs';
 import type { AssignOrderProductPhotosDto } from './dto/assign-order-product-photos.dto';
 import { OrderProductPhoto } from '../order/entities/orderProductPhotos.entity';
+import { OrderErrorCode, OrderException } from '@/common/exceptions/order.exception';
+import { ProductErrorCode, ProductException } from '@/common/exceptions/product.exception';
+import { PhotoErrorCode, PhotoException } from '@/common/exceptions/photo.exception';
+import { LinkErrorCode, LinkException } from '@/common/exceptions/link.exception';
 
 @Injectable()
 export class SelectionService {
@@ -57,7 +50,7 @@ export class SelectionService {
 
       // 验证订单是否存在
       if (!order) {
-        throw new DatabaseException(CommonErrorCode.NOT_FOUND, '订单不存在');
+        throw new OrderException(OrderErrorCode.ORDER_NOT_FOUND, null, HttpStatus.NOT_FOUND);
       }
 
       // 校验短链密码
@@ -68,7 +61,7 @@ export class SelectionService {
       });
 
       if (link.share_password !== credential) {
-        throw new AuthException(AuthErrorCode.PASSWORD_ERROR, '密码错误');
+        throw new UnauthorizedException('密码错误');
       }
     } else if (loginType === 'order') {
       // 常规登录处理
@@ -80,12 +73,12 @@ export class SelectionService {
 
       // 验证订单是否存在
       if (!order) {
-        throw new DatabaseException(CommonErrorCode.NOT_FOUND, '订单不存在');
+        throw new OrderException(OrderErrorCode.ORDER_NOT_FOUND, null, HttpStatus.NOT_FOUND);
       }
 
       // 验证手机号
       if (order.customerPhone !== credential) {
-        throw new AuthException(AuthErrorCode.PHONE_ERROR, '手机号不匹配');
+        throw new UnauthorizedException('手机或订单号错误')
       }
 
     } else {
@@ -124,7 +117,7 @@ export class SelectionService {
     });
 
     if (!link) {
-      throw new DatabaseException(LinkErrorCode.LINK_ERROR, '链接无效或过期');
+      throw new LinkException(LinkErrorCode.LINK_NOT_FOUND, null, HttpStatus.NOT_FOUND);
     }
 
     // 判断链接是否过期
@@ -132,7 +125,7 @@ export class SelectionService {
       const now = dayjs();
       const expiredTime = dayjs(link.expired_at);
       if (expiredTime.isBefore(now)) {
-        throw new DatabaseException(LinkErrorCode.LINK_ERROR, '链接无效或过期');
+        throw new LinkException(LinkErrorCode.LINK_EXPIRED, null, HttpStatus.BAD_REQUEST);
       }
     }
 
@@ -200,7 +193,7 @@ export class SelectionService {
     });
 
     if (!order)
-      throw new DatabaseException(CommonErrorCode.NOT_FOUND, { orderId });
+      throw new OrderException(OrderErrorCode.ORDER_NOT_FOUND, null, HttpStatus.NOT_FOUND);
 
     return {
       ...order,
@@ -232,9 +225,9 @@ export class SelectionService {
 
     // 验证订单是否已经提交锁定
     if (order.status === OrderStatus.SUBMITTED) {
-      throw new DatabaseException(
-        OrderErrorCode.ORDER_IS_SUBMIT,
-        '选片结果已锁定，如需更改请联系选片师',
+      throw new OrderException(
+        OrderErrorCode.ORDER_IS_SUBMITTED,
+        '选片结果已提交，如需更改请联系选片师',
       );
     }
     // 
@@ -251,7 +244,7 @@ export class SelectionService {
       });
 
       if (!orderProduct) {
-        throw new DatabaseException(CommonErrorCode.NOT_FOUND, '订单产品不存在');
+        throw new ProductException(ProductErrorCode.PRODUCT_NOT_FOUND, null, HttpStatus.NOT_FOUND);
       }
 
       // 确保没有重复的照片ID
@@ -266,10 +259,11 @@ export class SelectionService {
           uniquePhotoIds.size >
           orderProduct.product.photo_limit * orderProduct.count
         ) {
-          throw new DatabaseException(
-            PhotoErrorCode.PHOTO_UPDATE_FAILED,
-            '当前产品的照片数量已超过限制',
-          );
+          throw new ProductException(
+            ProductErrorCode.PRODUCT_PHOTO_SELECTION_EXCEED_LIMIT,
+            null,
+            HttpStatus.BAD_REQUEST,
+          )
         }
       }
 
@@ -343,7 +337,7 @@ export class SelectionService {
       })
 
       if (photos.length === 0) {
-        throw new DatabaseException(CommonErrorCode.NOT_FOUND, '没有找到符合重置条件的预选照片');
+        throw new PhotoException(PhotoErrorCode.PHOTO_NOT_FOUND, '没有找到符合重置条件的预选照片', HttpStatus.NOT_FOUND);
       }
 
       // 清除照片的预选状态
@@ -369,7 +363,7 @@ export class SelectionService {
       })
 
       if (orderProducts.length === 0) {
-        throw new DatabaseException(CommonErrorCode.NOT_FOUND, '订单产品不存在');
+        throw new OrderException(OrderErrorCode.ORDER_NOT_FOUND, '订单产品不存在', HttpStatus.NOT_FOUND);
       }
 
       // 清除所有订单产品照片
@@ -393,7 +387,7 @@ export class SelectionService {
       })
 
       if (products.length !== dto.items.length) {
-        throw new DatabaseException(CommonErrorCode.NOT_FOUND, '部分订单产品不存在');
+        throw new ProductException(ProductErrorCode.PRODUCT_NOT_FOUND, '部分订单产品不存在', HttpStatus.NOT_FOUND);
       }
 
       // 验证照片是否存在或者重复 并且预选状态为选中
@@ -411,11 +405,6 @@ export class SelectionService {
           preSelectStatus: PreSelectStatus.SELECTED
         }
       })
-      console.log(photos)
-
-      // if (photos.length !== photoIds.length) {
-      //   throw new DatabaseException(CommonErrorCode.NOT_FOUND, '部分照片不存在或未选中');
-      // }
 
       for (const item of dto.items) {
         // 获取对应的订单产品

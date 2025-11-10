@@ -1,9 +1,9 @@
-import type { CanActivate, ExecutionContext } from "@nestjs/common";
+import { HttpStatus, type CanActivate, type ExecutionContext } from "@nestjs/common";
 import { Request } from "express";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Order } from "@/modules/order/entities/order.entity";
 import type { Repository } from "typeorm";
-import { OrderNotFoundException } from "../exceptions/order-not-found.exception";
+import { OrderErrorCode, OrderException } from "@/common/exceptions/order.exception";
 
 /**
  * 获取订单信息的守卫
@@ -23,7 +23,7 @@ export class OrderInfoGuard implements CanActivate {
       }
     })
 
-    if (!order) throw new OrderNotFoundException()
+    if (!order) throw new OrderException(OrderErrorCode.ORDER_NOT_FOUND, null, HttpStatus.NOT_FOUND);
 
     // 将订单信息附加到请求对象上，供后续中间件或处理器使用
     request.order = order

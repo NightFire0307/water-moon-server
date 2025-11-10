@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Photo } from './entities/photo.entity';
 import { In, Repository } from 'typeorm';
@@ -13,15 +13,14 @@ import { PhotoJobName } from './photo.processor';
 import { MinioService } from '@/modules/minio/minio.service';
 import { ConfigService } from '@nestjs/config';
 import dayjs from 'dayjs';
-import {
-  CommonErrorCode,
-  DatabaseException,
-} from '@/common/exceptions/database.exception';
 import type { BulkUpdatePhotoPreselectStatusDto } from '../selection/dto/update-photo-preselect-status.dto';
 import Busboy from 'busboy'
 import { Request } from 'express';
 import { PassThrough } from 'stream';
 import { EventService, ProcessingStatus } from './event.service';
+import { OrderErrorCode, OrderException } from '@/common/exceptions/order.exception';
+import { RedisErrorCode, RedisException } from '@/common/exceptions/redis.exception';
+import { PhotoErrorCode, PhotoException } from '@/common/exceptions/photo.exception';
 
 @Injectable()
 export class PhotoService {
@@ -48,7 +47,7 @@ export class PhotoService {
       },
     });
     if (!foundOrder) {
-      throw new DatabaseException(CommonErrorCode.NOT_FOUND, '订单不存在');
+      throw new OrderException(OrderErrorCode.ORDER_NOT_FOUND, null, HttpStatus.NOT_FOUND);
     }
 
     return foundOrder;
@@ -130,7 +129,7 @@ export class PhotoService {
         );
       }
     } catch (e) {
-      throw new DatabaseException(CommonErrorCode.DATABASE_ERROR, e);
+      throw new RedisException(RedisErrorCode.REDIS_OPERATION_FAILED, '', HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
     return { message: '删除照片成功', data: [] };
@@ -144,7 +143,7 @@ export class PhotoService {
     const order = await this.getOrderById(orderId);
 
     if (!order) {
-      throw new DatabaseException(CommonErrorCode.NOT_FOUND, '订单不存在');
+      throw new OrderException(OrderErrorCode.ORDER_NOT_FOUND, null, HttpStatus.NOT_FOUND);
     }
 
     // 更新照片推荐状态
@@ -333,7 +332,7 @@ export class PhotoService {
     const order = await this.getOrderById(orderId);
 
     if (!order) {
-      throw new DatabaseException(CommonErrorCode.NOT_FOUND, '订单不存在');
+      throw new OrderException(OrderErrorCode.ORDER_NOT_FOUND, null, HttpStatus.NOT_FOUND);
     }
 
     // 去掉文件后缀名
@@ -388,7 +387,7 @@ export class PhotoService {
 
     // 判断是否有不存在的照片
     if (matchedPhotos.length !== dto.photos.length) {
-      throw new DatabaseException(CommonErrorCode.NOT_FOUND, '部分照片不存在或不属于该订单');
+      throw new PhotoException(PhotoErrorCode.PHOTO_NOT_FOUND, null, HttpStatus.NOT_FOUND);
     }
 
     // 更新照片预选状态

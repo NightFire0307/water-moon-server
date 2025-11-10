@@ -1,5 +1,6 @@
 import {
   ForbiddenException,
+  HttpStatus,
   Inject,
   Injectable,
   UnauthorizedException,
@@ -12,6 +13,7 @@ import { ConfigService } from '@nestjs/config';
 import { AdminLoginDto } from './dto/admin-login.dto';
 import { JwtService } from '@nestjs/jwt';
 import * as Minio from 'minio';
+import { AuthErrorCode, AuthException } from '@/common/exceptions/auth.exception';
 
 @Injectable()
 export class AuthService {
@@ -48,7 +50,7 @@ export class AuthService {
       .getOne();
 
     if (!userInfo) {
-      throw new UnauthorizedException('用户不存在或密码错误');
+      throw new AuthException(AuthErrorCode.AUTH_LOGIN_FAILED)
     }
 
     if (userInfo.isFrozen) {
@@ -58,7 +60,7 @@ export class AuthService {
     // 验证密码
     const match = await compare(loginUserDto.password, userInfo.password)
     if (!match) {
-      throw new UnauthorizedException('用户名或密码错误');
+      throw new AuthException(AuthErrorCode.AUTH_LOGIN_FAILED)
     }
 
     // 遍历用户角色，获取权限

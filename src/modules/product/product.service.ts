@@ -1,18 +1,15 @@
-import { Injectable } from '@nestjs/common';
+import { ConflictException, HttpStatus, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { ProductType } from './entities/productType.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Product } from './entities/product.entity';
-import { In, Like, Repository, type DataSource } from 'typeorm';
+import { In, Like, Repository } from 'typeorm';
 import { PaginationQuery } from '@/common/decorators/pagination.decorator';
 import { CreateProductDto } from './dto/create-product.dto';
 import { CreateProductTypeDto } from './dto/create-productType.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { UpdateProductTypeDto } from './dto/update-productType.dto';
-import {
-  CommonErrorCode,
-  DatabaseException,
-  ProductErrorCode,
-} from '../../common/exceptions/database.exception';
+import { ProductException, ProductErrorCode } from '@/common/exceptions/product.exception';
+
 
 @Injectable()
 export class ProductService {
@@ -114,7 +111,7 @@ export class ProductService {
       await this.productRepository.save(product);
       return '修改成功'
     } catch (e) {
-      throw new DatabaseException(CommonErrorCode.DATABASE_ERROR, e);
+      throw new ProductException(ProductErrorCode.PRODUCT_UPDATE_FAILED, null, HttpStatus.CONFLICT);
     }
   }
 
@@ -126,7 +123,7 @@ export class ProductService {
     });
 
     if (!product)
-      throw new DatabaseException(CommonErrorCode.NOT_FOUND, '数据不存在');
+      throw new ProductException(ProductErrorCode.PRODUCT_NOT_FOUND, null, HttpStatus.NOT_FOUND);
 
     await this.productRepository.remove(product);
     return { data: product.id, message: '删除成功' };
@@ -164,7 +161,7 @@ export class ProductService {
     });
 
     if (foundProductType)
-      throw new DatabaseException(ProductErrorCode.PRODUCT_NAME_ALREADY_EXISTS);
+      throw new ProductException(ProductErrorCode.PRODUCT_TYPE_INVALID, null, HttpStatus.CONFLICT);
 
     try {
       const productType = new ProductType();
@@ -184,14 +181,14 @@ export class ProductService {
     });
 
     if (!productType)
-      throw new DatabaseException(CommonErrorCode.NOT_FOUND, '产品类型不存在');
+      throw new NotFoundException('产品类型不存在');
 
     productType.name = updateProductType.name;
     try {
       const data = await this.productTypeRepository.save(productType);
       return { data, message: '修改成功' };
     } catch (e) {
-      throw new DatabaseException(CommonErrorCode.DATABASE_ERROR, e);
+      throw new InternalServerErrorException('产品类型更新失败');
     }
   }
 
@@ -203,17 +200,13 @@ export class ProductService {
     });
 
     if (!productType)
-      throw new DatabaseException(CommonErrorCode.NOT_FOUND, '产品类型不存在');
+      throw new NotFoundException('产品类型不存在');
 
     try {
       await this.productTypeRepository.remove(productType);
       return '删除成功';
     } catch (e) {
-      // 当有产品使用了这个类型时，删除会失败
-      throw new DatabaseException(
-        CommonErrorCode.DATABASE_CANNOT_DELETE,
-        '请先删除产品',
-      );
+      throw new ConflictException('请先删除对应产品');
     }
   }
 
@@ -225,7 +218,7 @@ export class ProductService {
     });
 
     if (productTypes.length !== ids.length) {
-      throw new DatabaseException(CommonErrorCode.NOT_FOUND, '部分数据不存在');
+      throw new NotFoundException('部分产品类型不存在');
     }
 
     await this.productTypeRepository.remove(productTypes);

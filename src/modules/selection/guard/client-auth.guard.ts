@@ -8,10 +8,6 @@ import {
 import { Observable } from 'rxjs';
 import { JwtService } from '@nestjs/jwt';
 import { Request } from 'express';
-import {
-  AuthErrorCode,
-  AuthException,
-} from '@/common/exceptions/auth.exception';
 
 interface JwtSelectData {
   orderId: number;
@@ -36,7 +32,7 @@ export class ClientAuthGuard implements CanActivate {
       const tokenPayload = this.jwtService.verify<JwtSelectData>(token);
       request.tokenPayload = tokenPayload
     } catch {
-      throw new AuthException(AuthErrorCode.LOGIN_EXPIRED);
+      throw new UnauthorizedException('登录失效，请重新登录');
     }
 
     return true;

@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { BadRequestException, HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { CreateLinkDto } from './dto/create-link.dto';
 import basex from 'base-x';
 import { Link, LinkStatus } from './entities/link.entity';
@@ -10,10 +10,8 @@ import { PaginationQuery } from '@/common/decorators/pagination.decorator';
 import { RedisService } from '@/modules/redis/redis.service';
 import dayjs from 'dayjs';
 import crypto from 'node:crypto';
-import {
-  CommonErrorCode,
-  DatabaseException,
-} from '@/common/exceptions/database.exception';
+import { OrderErrorCode, OrderException } from '@/common/exceptions/order.exception';
+import { LinkException, LinkErrorCode } from '@/common/exceptions/link.exception';
 
 const BASE62 = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
 const bs62 = basex(BASE62);
@@ -33,15 +31,12 @@ export class LinkService {
     const { password, expired_at, order_id, access_limit } = createLinkDto;
     const order = await this.orderRepository.findOneBy({ id: order_id });
     if (!order)
-      throw new DatabaseException(CommonErrorCode.NOT_FOUND, '订单不存在');
+      throw new OrderException(OrderErrorCode.ORDER_NOT_FOUND, null, HttpStatus.NOT_FOUND);
 
     if (expired_at) {
       const now = dayjs().unix();
       if (expired_at * 1000 < now) {
-        throw new DatabaseException(
-          CommonErrorCode.DATE_ERROR,
-          '过期时间不能小于当前时间',
-        );
+        throw new BadRequestException('过期时间必须大于当前时间');
       }
     }
 
@@ -81,7 +76,7 @@ export class LinkService {
     const { current, pageSize } = pagination;
     const order = await this.orderRepository.findOneBy({ id: orderId });
     if (!order)
-      throw new DatabaseException(CommonErrorCode.NOT_FOUND, '订单不存在');
+      throw new OrderException(OrderErrorCode.ORDER_NOT_FOUND, null, HttpStatus.NOT_FOUND);
 
     const [links, total] = await this.linkRepository.findAndCount({
       order: {
@@ -104,7 +99,7 @@ export class LinkService {
     const link = await this.linkRepository.findOneBy({ id });
 
     if (!link)
-      throw new DatabaseException(CommonErrorCode.NOT_FOUND, '链接不存在');
+      throw new LinkException(LinkErrorCode.LINK_NOT_FOUND, null, HttpStatus.NOT_FOUND);
     await this.linkRepository.remove(link);
 
     return {

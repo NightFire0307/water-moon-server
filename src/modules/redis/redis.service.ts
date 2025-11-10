@@ -5,10 +5,6 @@ import {
   OnModuleDestroy,
 } from '@nestjs/common';
 import { Redis } from 'ioredis';
-import {
-  RedisErrorType,
-  RedisException,
-} from '@/common/exceptions/redis.exception';
 
 @Injectable()
 export class RedisService implements OnModuleInit, OnModuleDestroy {

@@ -1,8 +1,8 @@
 import { Injectable, CanActivate, type ExecutionContext } from '@nestjs/common';
 import type { Observable } from 'rxjs';
 import { Request } from 'express';
-import { OrderExpiredException } from '../exceptions/order-expired.exception';
 import dayjs from 'dayjs';
+import { OrderErrorCode, OrderException } from '@/common/exceptions/order.exception';
 
 @Injectable()
 export class OrderExpiredGuard implements CanActivate {
@@ -13,7 +13,7 @@ export class OrderExpiredGuard implements CanActivate {
 
     // 判断订单是否过期
     if (dayjs().isAfter(dayjs(validUntil))) {
-      throw new OrderExpiredException()
+      throw new OrderException(OrderErrorCode.ORDER_EXPIRED)
     }
 
     return true

@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Order, OrderStatus } from './entities/order.entity';
@@ -10,12 +10,6 @@ import { ProductPackage } from '../package/entities/product-package.entity'
 import { UpdateOrderDto } from './dto/update-order.dto';
 import { GetOrderListDto } from './dto/get-order-list.dto';
 import { Photo, PreSelectStatus } from '../photo/entities/photo.entity';
-import {
-  CommonErrorCode,
-  DatabaseException,
-  OrderErrorCode,
-  PhotoErrorCode,
-} from '../../common/exceptions/database.exception';
 import type Redis from 'ioredis';
 import archiver from 'archiver';
 import { PassThrough } from 'node:stream';
@@ -25,6 +19,10 @@ import iosWeek from 'dayjs/plugin/isoWeek.js';
 import { PhotoService } from '../photo/photo.service';
 import { OrderProductPhoto } from './entities/orderProductPhotos.entity';
 import { DatabaseService } from '../database/database.service';
+import { OrderException, OrderErrorCode } from '@/common/exceptions/order.exception';
+import { PackageErrorCode, PackageException } from '@/common/exceptions/package.exception';
+import { ProductErrorCode, ProductException } from '@/common/exceptions/product.exception';
+import { PhotoException, PhotoErrorCode } from '@/common/exceptions/photo.exception';
 
 dayjs.extend(iosWeek);
 
@@ -142,7 +140,7 @@ export class OrderService {
         current,
       };
     } catch {
-      throw new DatabaseException(PhotoErrorCode.PHOTO_UPDATE_FAILED);
+      throw new PhotoException(PhotoErrorCode.PHOTO_UPDATE_FAILED, null, HttpStatus.CONFLICT)
     }
   }
 
@@ -160,10 +158,7 @@ export class OrderService {
       })
 
       if (foundOrder) {
-        throw new DatabaseException(
-          OrderErrorCode.ORDER_NUMBER_ALREADY_EXISTS,
-          '订单号已存在',
-        );
+        throw new OrderException(OrderErrorCode.ORDER_NUMBER_ALREADY_EXISTS, null, HttpStatus.NOT_FOUND)
       }
 
       // 提取订单内所有套餐和单品的ID
@@ -179,7 +174,7 @@ export class OrderService {
       })
 
       if (packageCount !== packageIds.length) {
-        throw new DatabaseException(CommonErrorCode.NOT_FOUND, '部分套餐不存在，请检查后重新提交订单');
+        throw new PackageException(PackageErrorCode.PACKAGE_NOT_FOUND, '部分套餐不存在，请检查后重新提交订单', HttpStatus.NOT_FOUND)
       }
 
       const productIds = [
@@ -194,7 +189,7 @@ export class OrderService {
       })
 
       if (productCount !== productIds.length) {
-        throw new DatabaseException(CommonErrorCode.NOT_FOUND, '部分单品不存在，请检查后重新提交订单');
+        throw new ProductException(ProductErrorCode.PRODUCT_NOT_FOUND, '部分产品不存在，请检查后重新提交订单', HttpStatus.NOT_FOUND)
       }
 
       const packages = await manager.find(ProductPackage, {
@@ -261,7 +256,7 @@ export class OrderService {
     });
 
     if (!order)
-      throw new DatabaseException(CommonErrorCode.NOT_FOUND, '订单不存在');
+      throw new OrderException(OrderErrorCode.ORDER_NOT_FOUND, null, HttpStatus.NOT_FOUND);
 
     const [, total_photos] = await this.photoRepository.findAndCount({
       where: { order: { id: order.id }, isDeleted: false },
@@ -300,10 +295,11 @@ export class OrderService {
       }
 
       if (order.status === OrderStatus.SUBMITTED) {
-        throw new DatabaseException(
-          OrderErrorCode.ORDER_IS_SUBMIT,
+        throw new OrderException(
+          OrderErrorCode.ORDER_IS_SUBMITTED,
           '用户选片结果已提交，若需修改订单内容则需先重置订单状态',
-        );
+          HttpStatus.CONFLICT,
+        )
       }
 
       // 更新订单信息
@@ -341,7 +337,7 @@ export class OrderService {
         });
 
         if (!product) {
-          throw new DatabaseException(CommonErrorCode.NOT_FOUND, '产品不存在');
+          throw new ProductException(ProductErrorCode.PRODUCT_NOT_FOUND, null, HttpStatus.NOT_FOUND)
         }
 
         const orderProduct = queryRunner.manager.create(OrderProduct, {
@@ -387,7 +383,7 @@ export class OrderService {
     });
 
     if (!order)
-      throw new DatabaseException(CommonErrorCode.NOT_FOUND, '订单不存在');
+      throw new OrderException(OrderErrorCode.ORDER_NOT_FOUND, null, HttpStatus.NOT_FOUND);
 
     if (reset) {
       console.log('重置选片结果');
@@ -438,12 +434,12 @@ export class OrderService {
 
     // 检查订单是否存在
     if (!order) {
-      throw new DatabaseException(CommonErrorCode.NOT_FOUND, '订单不存在');
+      throw new OrderException(OrderErrorCode.ORDER_NOT_FOUND, null, HttpStatus.NOT_FOUND);
     }
 
     // 检查订单状态用户是否已提交
     if (order.status !== OrderStatus.SUBMITTED) {
-      throw new DatabaseException(CommonErrorCode.DATE_ERROR, '用户选片未提交');
+      throw new OrderException(OrderErrorCode.ORDER_STATUS_UPDATE_FAILED, '用户选片未提交', HttpStatus.CONFLICT);
     }
 
     // 判断照片缓存是否存在 redis 中
@@ -520,11 +516,11 @@ export class OrderService {
     });
 
     if (!order) {
-      throw new DatabaseException(CommonErrorCode.NOT_FOUND, '订单不存在');
+      throw new OrderException(OrderErrorCode.ORDER_NOT_FOUND, null, HttpStatus.NOT_FOUND);
     }
 
     if (order.status !== OrderStatus.SUBMITTED) {
-      throw new DatabaseException(CommonErrorCode.DATE_ERROR, '用户选片未提交');
+      throw new OrderException(OrderErrorCode.ORDER_STATUS_UPDATE_FAILED, '用户选片未提交', HttpStatus.CONFLICT);
     }
 
     const archive = archiver('zip', {
@@ -664,7 +660,7 @@ export class OrderService {
     });
 
     if (!order) {
-      throw new DatabaseException(CommonErrorCode.NOT_FOUND, '订单不存在');
+      throw new OrderException(OrderErrorCode.ORDER_NOT_FOUND, null, HttpStatus.NOT_FOUND);
     }
 
     return {
@@ -681,7 +677,7 @@ export class OrderService {
     });
 
     if (!order) {
-      throw new DatabaseException(CommonErrorCode.NOT_FOUND, '订单不存在');
+      throw new OrderException(OrderErrorCode.ORDER_NOT_FOUND, null, HttpStatus.NOT_FOUND);
     }
 
     // 检查当前订单状态是否允许更新
@@ -689,10 +685,11 @@ export class OrderService {
       order.status === OrderStatus.FINISHED ||
       order.status === OrderStatus.CANCEL
     ) {
-      throw new DatabaseException(
-        OrderErrorCode.ORDER_ALREADY_FINISHED,
+      throw new OrderException(
+        OrderErrorCode.ORDER_STATUS_UPDATE_FAILED,
         '订单已完成或已取消，无法更新状态',
-      );
+        HttpStatus.CONFLICT,
+      )
     }
 
     // 判断状态流转是否符合预期
@@ -706,15 +703,17 @@ export class OrderService {
       [OrderStatus.SUBMITTED]: [OrderStatus.FINISHED, OrderStatus.CANCEL],
     };
 
-    console.log(status);
-    console.log(validTransitions[order.status].includes(status));
-
     if (
       validTransitions[order.status] &&
       !validTransitions[order.status].includes(status)
     ) {
-      throw new DatabaseException(OrderErrorCode.INVALID_STATUS_TRANSITION);
+      throw new OrderException(
+        OrderErrorCode.ORDER_STATUS_UPDATE_FAILED,
+        '当前订单状态不允许此操作',
+        HttpStatus.CONFLICT,
+      )
     }
+
 
     // 更新订单状态
     order.status = status;
@@ -744,10 +743,10 @@ export class OrderService {
     });
 
     if (!order)
-      throw new DatabaseException(CommonErrorCode.NOT_FOUND, '订单不存在');
+      throw new OrderException(OrderErrorCode.ORDER_NOT_FOUND, null, HttpStatus.NOT_FOUND);
 
     if (order.status !== OrderStatus.SUBMITTED)
-      throw new DatabaseException(CommonErrorCode.OTHER_ERROR, '用户未提交选片');
+      throw new OrderException(OrderErrorCode.ORDER_NOT_SUBMITTED, null, HttpStatus.CONFLICT);
 
     const newOrderProducts = order.orderProducts.map(orderProduct => ({
       id: orderProduct.id,

@@ -28,6 +28,7 @@ import { PackageModule } from '@/modules/package/package.module';
 import { MinioService } from './modules/minio/minio.service';
 import { DatabaseModule } from './modules/database/database.module';
 import { envValidationSchema } from './config/.env.schema';
+import { HealthModule } from './modules/health/health.module';
 
 @Module({
   imports: [
@@ -67,13 +68,13 @@ import { envValidationSchema } from './config/.env.schema';
     ProductModule,
     OrderModule,
     PhotoModule,
-    LinkModule,
     RedisModule,
     MinioModule,
     SelectionModule,
     SeedModule,
     PackageModule,
     DatabaseModule,
+    HealthModule,
   ],
   controllers: [AppController],
   providers: [
