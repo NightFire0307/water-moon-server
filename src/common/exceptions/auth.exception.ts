@@ -1,45 +1,21 @@
-import { BaseBusinessException } from './base-business.exception';
-import { HttpStatus } from '@nestjs/common';
+import { BaseException } from './base.exception';
 
 export enum AuthErrorCode {
-  NOT_LOGIN = 'AUTH_NOT_LOGIN',
-  LOGIN_EXPIRED = 'AUTH_LOGIN_EXPIRED',
-  PASSWORD_ERROR = 'AUTH_PASSWORD_ERROR',
-  INVALID_TOKEN = 'AUTH_INVALID_TOKEN',
-  PHONE_ERROR = 'AUTH_PHONE_ERROR',
+  AUTH_INVALID_TOKEN = 'Auth.InvalidToken', // 无效的token
+  AUTH_TOKEN_EXPIRED = 'Auth.TokenExpired', // token过期
+  AUTH_NOT_LOGIN = 'Auth.NotLogin', // 未登录
+  AUTH_LOGIN_FAILED = 'Auth.LoginFailed', // 用户名或密码错误
 }
 
-export class AuthException extends BaseBusinessException {
-  constructor(code: AuthErrorCode, detail?: any) {
-    const map: Record<AuthErrorCode, { msg: string; status: number }> = {
-      [AuthErrorCode.NOT_LOGIN]: {
-        msg: '用户未登录',
-        status: HttpStatus.UNAUTHORIZED,
-      },
-      [AuthErrorCode.LOGIN_EXPIRED]: {
-        msg: '登录已过期',
-        status: HttpStatus.UNAUTHORIZED,
-      },
-      [AuthErrorCode.PASSWORD_ERROR]: {
-        msg: '密码错误',
-        status: HttpStatus.UNAUTHORIZED,
-      },
-      [AuthErrorCode.INVALID_TOKEN]: {
-        msg: '无效的Token',
-        status: HttpStatus.UNAUTHORIZED,
-      },
-      [AuthErrorCode.PHONE_ERROR]: {
-        msg: '手机号错误',
-        status: HttpStatus.BAD_REQUEST,
-      },
-    };
+export const AuthExceptionMessages = {
+  [AuthErrorCode.AUTH_INVALID_TOKEN]: '无效的 token',
+  [AuthErrorCode.AUTH_TOKEN_EXPIRED]: 'token 已过期',
+  [AuthErrorCode.AUTH_NOT_LOGIN]: '未登录',
+  [AuthErrorCode.AUTH_LOGIN_FAILED]: '用户名或密码错误',
+}
 
-    const { msg, status } = map[code];
-    super({
-      msg,
-      code,
-      data: detail ?? null,
-      status,
-    });
+export class AuthException extends BaseException {
+  constructor(code: AuthErrorCode, httpStatus: number = 401, data: any = null) {
+    super(code, AuthExceptionMessages[code], data, httpStatus);
   }
 }

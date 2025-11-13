@@ -19,21 +19,21 @@ export class PhotoCountSyncService {
     // 获取所有照片数量
     const keys = await this.redisClient.keys('photos_count:*');
     for (const key of keys) {
-      const order_number = key.split(':')[1];
+      const orderNumber = key.split(':')[1];
       const count = await this.redisClient.get(key);
 
       const order = await this.orderRepository.findOne({
-        where: { order_number },
+        where: { orderNumber },
       });
       // if (order) {
       //   await this.orderRepository.update(
-      //     { order_number },
+      //     { orderNumber },
       //     { total_photos: order.total_photos + Number(count) },
       //   );
       // }
 
       await this.redisClient.del(key);
-      console.log('同步订单号为', order_number, '的照片数量为', count);
+      console.log('同步订单号为', orderNumber, '的照片数量为', count);
     }
   }
 }

@@ -12,18 +12,21 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { SelectionService } from './selection.service';
-import { SelectionLoginDto } from './dto/selection-login.dto';
+import { SelectionLoginDto } from './dto/login.dto';
 import { Request, Response } from 'express';
-import { CustomLogin } from './guard/custom-login.guard';
-import { ProductPhotoSelectionDto } from './dto/selection-photos-update.dto';
-import { SelectionRemarkUpdateDto } from './dto/selection-remark-update.dto';
+import { ClientAuthGuard } from './guard/client-auth.guard';
 import { PhotoService } from '../photo/photo.service';
 import {
   AuthErrorCode,
 } from '@/common/exceptions/auth.exception';
 import { Public } from '@/common/decorators/auth.decorator';
-import { OrderInfo } from '@/common/decorators/context.decorator';
 import { Pagination, PaginationQuery } from '@/common/decorators/pagination.decorator';
+import { BulkUpdatePhotoPreselectStatusDto } from './dto/update-photo-preselect-status.dto';
+import type { AssignOrderProductPhotosDto } from './dto/assign-order-product-photos.dto';
+import type { UpdateOrderStatusDto } from '../order/dto/order-status.dto';
+import { OrderService } from '../order/order.service';
+import { OrderFlow } from './decorators/OrderFlow';
+import { OrderInfoGuard } from './guard/order-info.guard';
 
 @Controller('selection')
 @Public()
@@ -31,6 +34,7 @@ export class SelectionController {
   constructor(
     private readonly selectionService: SelectionService,
     private readonly photoService: PhotoService,
+    private readonly orderService: OrderService
   ) { }
 
   // 订单号和手机号登录
@@ -39,7 +43,7 @@ export class SelectionController {
     @Body() dto: SelectionLoginDto,
     @Res({ passthrough: true }) response: Response,
   ) {
-    const { accessToken, refreshToken, order } = await this.selectionService.selectionLogin(dto)
+    const { accessToken, refreshToken } = await this.selectionService.selectionLogin(dto)
 
     // 设置cookie
     response.cookie('selection_refresh_token', refreshToken, {
@@ -50,10 +54,29 @@ export class SelectionController {
     return {
       data: {
         accessToken,
-        order,
       },
-      message: '登录成功',
+      msg: '登录成功',
     }
+  }
+
+  @Post('logout')
+  @UseGuards(ClientAuthGuard)
+  clientLogout(
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    // 清除cookie
+    response.clearCookie('selection_refresh_token', {
+      httpOnly: true,
+    });
+    return {
+      msg: '登出成功',
+    };
+  }
+
+  @Get('auth/validate')
+  @UseGuards(ClientAuthGuard)
+  validateToken() {
+    return { valid: true };
   }
 
   @Post('auth/verify/:short_url')
@@ -67,73 +90,84 @@ export class SelectionController {
   async refreshToken(@Req() request: Request) {
     const refreshToken: string | undefined =
       request.cookies['selection_refresh_token'];
-    if (!refreshToken) throw new ForbiddenException(AuthErrorCode.INVALID_TOKEN);
+    if (!refreshToken) throw new ForbiddenException(AuthErrorCode.AUTH_INVALID_TOKEN);
     return await this.selectionService.refreshToken(refreshToken);
   }
 
-  @Get('order_info')
-  @UseGuards(CustomLogin)
-  async getOrderInfo(@OrderInfo('orderId') orderId: number) {
+  // 获取订单信息
+  @Get('order')
+  @UseGuards(ClientAuthGuard)
+  async getOrderInfo(@Req() req: Request) {
+    const orderId = req.tokenPayload.orderId;
     return await this.selectionService.getOrderInfo(orderId);
   }
 
   // 获取选片照片
   @Get('photos')
-  @UseGuards(CustomLogin)
+  @UseGuards(ClientAuthGuard, OrderInfoGuard)
   async getPhotos(
-    @OrderInfo('orderId') orderId: number,
+    @Req() req: Request,
     @Pagination() pagination: PaginationQuery,
   ) {
-    return await this.photoService.getPhotosByOrderId(orderId, pagination);
+    return await this.photoService.getPhotosByOrderId(req.order.id, pagination);
   }
 
-  // 更新照片选择
-  @Patch('photos')
-  @UseGuards(CustomLogin)
-  async updatePhotos(
-    @OrderInfo('orderId') orderId: number,
-    @Body() dto: ProductPhotoSelectionDto,
+  // 更新订单状态
+  @Patch('order/status')
+  @OrderFlow()
+  @UseGuards(ClientAuthGuard)
+  async updateOrderStatus(
+    @Req() req: Request,
+    @Body() dto: UpdateOrderStatusDto
   ) {
-    return await this.selectionService.updateSelectedPhotos(
-      orderId,
-      dto,
-    );
+    return await this.orderService.updateOrderStatus(req.order.id, dto.status);
   }
 
-  // 更新照片备注
-  @Patch('photos/remark')
-  @UseGuards(CustomLogin)
-  async updatePhotoRemark(
-    @OrderInfo('orderId') orderId: number,
-    @Body() remarkUpdateDto: SelectionRemarkUpdateDto,
+  // 更新照片预选标记
+  @Patch('preselected-photos')
+  @OrderFlow()
+  @UseGuards(ClientAuthGuard)
+  async updatePhotoPreSelectStatus(
+    @Req() req: Request,
+    @Body() dto: BulkUpdatePhotoPreselectStatusDto) {
+    return await this.photoService.updatePhotoPreSelectStatus(req.order.id, dto);
+  }
+
+  // 重置预选照片
+  @Post('photos/pre-select/reset')
+  @OrderFlow()
+  @UseGuards(ClientAuthGuard)
+  async resetOrderPreSelect(
+    @Req() req: Request
   ) {
-    return await this.selectionService.updatePhotoRemark(
-      orderId,
-      remarkUpdateDto,
-    );
+    return await this.selectionService.resetOrderPreSelect(req.order.id);
   }
 
-  // 获取照片备注
-  @Get('photos/:photoId/remark/')
-  @UseGuards(CustomLogin)
-  async getPhotoRemarkById(@Param('photoId') photoId: number) {
-    return await this.selectionService.getPhotoRemarkById(photoId);
-  }
-
-  // 移除照片下所有的标记
-  @Patch('photos/:photoId/remove-all-tag')
-  @UseGuards(CustomLogin)
-  async removeAllTags(
-    @OrderInfo('orderId') orderId: number,
-    @Param('photoId') photoId: number,
+  // 重置产品选片
+  @Post('order-product/reset')
+  @OrderFlow()
+  @UseGuards(ClientAuthGuard)
+  async resetOrderProductPhotos(
+    @Req() req: Request,
   ) {
-    return await this.selectionService.removeAllTags(orderId, photoId);
+    return await this.selectionService.resetOrderProductPhotos(req.order.id);
+  }
+
+  // 更新产品照片
+  @Post('product-photos')
+  @OrderFlow()
+  @UseGuards(ClientAuthGuard)
+  async bulkAssignPhotosToOrderProduct(
+    @Req() req: Request,
+    @Body() dto: AssignOrderProductPhotosDto
+  ) {
+    return await this.selectionService.bulkAssignPhotosToOrderProduct(req.order.id, dto);
   }
 
   // 锁定选片结果
   @Post(':orderId')
-  @UseGuards(CustomLogin)
-  @HttpCode(200)
+  @OrderFlow()
+  @UseGuards(ClientAuthGuard)
   async submitOrder(@Param('orderId') orderId: number) {
     return await this.selectionService.submitOrder(orderId);
   }

@@ -6,10 +6,16 @@ import {
   CreateDateColumn,
   JoinColumn,
   UpdateDateColumn,
-  ManyToMany,
+  OneToMany,
 } from 'typeorm';
-import { Order } from '../../order/entities/order.entity';
-import { OrderProduct } from '../../order/entities/orderProduct.entity'; // 产品类型实体
+import { Order } from '@/modules/order/entities/order.entity';
+import { OrderProductPhoto } from '@/modules/order/entities/orderProductPhotos.entity';
+
+export enum PreSelectStatus {
+  PENDING = 'pending',
+  SELECTED = 'selected',
+  EXCLUDED = 'excluded',
+}
 
 @Entity('photos')
 export class Photo {
@@ -19,8 +25,8 @@ export class Photo {
   @Column()
   name: string; // 照片名称
 
-  @Column()
-  oss_file_key: string;
+  @Column({ name: 'oss_file_key', unique: true })
+  ossFileKey: string; // OSS存储的文件键
 
   @Column()
   size: number;
@@ -31,28 +37,30 @@ export class Photo {
   order: Order;
 
   // 产品关联照片
-  @ManyToMany(
-    () => OrderProduct,
-    (op) => op.selected_photos,
-    { onDelete: 'CASCADE' }
+  @OneToMany(
+    () => OrderProductPhoto,
+    (op) => op.photo,
+    { cascade: true }
   )
-  order_products: OrderProduct[];
+  orderProductPhotos: OrderProductPhoto[];
 
-  @Column({ default: false })
-  is_selected: boolean; // 是否被选中
+  @Column({
+    name: 'pre_select_status',
+    type: 'enum',
+    enum: PreSelectStatus,
+    default: PreSelectStatus.PENDING,
+  })
+  preSelectStatus: PreSelectStatus; // 预选状态
 
-  @Column({ default: false })
-  is_recommended: boolean; // 是否推荐
+  @Column({ name: 'is_recommended', default: false })
+  isRecommended: boolean; // 是否推荐
 
   @Column({ type: 'boolean', default: false })
-  is_deleted: boolean; // 是否删除
+  isDeleted: boolean; // 是否删除
 
-  @Column({ default: '' })
-  remark: string;
+  @CreateDateColumn({ name: 'created_at' })
+  createdAt: Date;
 
-  @CreateDateColumn()
-  created_at: Date;
-
-  @UpdateDateColumn()
-  updated_at: Date;
+  @UpdateDateColumn({ name: 'updated_at' })
+  updatedAt: Date;
 }

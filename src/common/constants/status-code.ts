@@ -1,0 +1,20 @@
+/**
+ * 业务状态码
+ */
+
+export enum StatusCode {
+  SUCCESS = 0,
+  INTERNAL_ERROR = 1000,
+
+  // 数据库相关
+  DATABASE_ERROR = 1500,
+  DATABASE_NO_PERMISSION = 1501,
+
+  // 订单相关
+  ORDER_NOT_FOUND = 2001,
+  ORDER_IS_SUBMITTED = 2002,
+  ORDER_IS_CANCELED = 2003,
+  ORDER_IS_FINISHED = 2004,
+  ORDER_IS_EXPIRED = 2005, // 订单已过期
+  ORDER_STATUS_NOT_ALLOW_UPDATE = 2006, // 订单状态不允许修改
+}

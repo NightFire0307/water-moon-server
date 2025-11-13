@@ -4,26 +4,22 @@ import {
   Controller,
   Delete,
   Get,
-  HttpCode,
   Inject,
   Param,
   Post,
   Put,
   Query,
+  Req,
   Sse,
-  UploadedFile,
-  UseInterceptors,
 } from '@nestjs/common';
 import { PhotoService } from './photo.service';
 import { DeletePhotosDto } from './dto/delete-photos.dto';
 import { UpdatePhotoRecommendDto } from './dto/update-photo-recommend.dto';
-import { FileInterceptor } from '@nestjs/platform-express';
-import { Express } from 'express';
-import { FileTypeValidationPipe } from './file-type-validation.pipe';
-import { map, Observable } from 'rxjs';
-import { CompressPhotoProcessor } from './compress-photo.processor';
+import { Request } from 'express';
+import { Observable } from 'rxjs';
 import { RequirePermission, RequireLogin, Public } from '@/common/decorators/auth.decorator';
 import { Pagination, type PaginationQuery } from '@/common/decorators/pagination.decorator';
+import { EventService, type SSEMessage } from './event.service';
 
 @Controller('admin/photos')
 @RequirePermission({
@@ -36,8 +32,8 @@ export class PhotoController {
   @Inject(PhotoService)
   private readonly photoService: PhotoService;
 
-  @Inject(CompressPhotoProcessor)
-  private readonly compressPhotoProcessor: CompressPhotoProcessor;
+  @Inject(EventService)
+  private readonly eventService: EventService;
 
   @Get()
   @RequireLogin()
@@ -60,31 +56,27 @@ export class PhotoController {
   // 服务端推送照片处理进度
   @Sse('completions')
   @Public()
-  completions(): Observable<any> {
-    return this.compressPhotoProcessor.imageProcessed$.pipe(
-      map((event) => {
-        return {
-          data: event,
-        };
-      }),
-    );
+  completions(): Observable<SSEMessage> {
+    return this.eventService.getEventStream()
+  }
+
+  // 通知服务端开始处理照片
+  @Post('/upload/commit/:orderId')
+  @RequireLogin()
+  async commitUpload(
+    @Param('orderId') orderId: string,
+  ) {
+    await this.photoService.bulkSavePhotos(Number(orderId))
+    return 'done'
   }
 
   @Post('/upload/:orderId')
   @RequireLogin()
-  @UseInterceptors(
-    FileInterceptor('file', {
-      limits: { fileSize: 20 * 1024 * 1024 },
-    }),
-  )
-  @HttpCode(202)
-  uploadPhoto(
+  async uploadPhoto(
     @Param('orderId') orderId: string,
-    @Body('uid') uid: string,
-    @UploadedFile(new FileTypeValidationPipe())
-    file: Express.Multer.File,
+    @Req() req: Request
   ) {
-    return this.photoService.savePhotoToMinio(+orderId, file, uid);
+    return this.photoService.uploadPhotos(Number(orderId), req)
   }
 
   @Put('/recommend/:orderId')
@@ -112,5 +104,14 @@ export class PhotoController {
       throw new BadRequestException('订单ID必须是数字');
     }
     return this.photoService.deletePhotos(+orderId, deletePhotosDto);
+  }
+
+  // 清除指定单号所有照片
+  @Delete('/all/:orderId')
+  @RequireLogin()
+  deleteAllPhotos(
+    @Param('orderId') orderId: string
+  ) {
+    return this.photoService.deleteAllPhotos(Number(orderId))
   }
 }

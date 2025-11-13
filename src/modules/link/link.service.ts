@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { BadRequestException, HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { CreateLinkDto } from './dto/create-link.dto';
 import basex from 'base-x';
 import { Link, LinkStatus } from './entities/link.entity';
@@ -7,13 +7,11 @@ import { Repository } from 'typeorm';
 import { Order } from '../order/entities/order.entity';
 import { generatePassword } from '@/common/utils/generatePassword';
 import { PaginationQuery } from '@/common/decorators/pagination.decorator';
-import { RedisService } from '@/redis/redis.service';
-import * as dayjs from 'dayjs';
-import * as crypto from 'node:crypto';
-import {
-  CommonErrorCode,
-  DatabaseException,
-} from '@/common/exceptions/database.exception';
+import { RedisService } from '@/modules/redis/redis.service';
+import dayjs from 'dayjs';
+import crypto from 'node:crypto';
+import { OrderErrorCode, OrderException } from '@/common/exceptions/order.exception';
+import { LinkException, LinkErrorCode } from '@/common/exceptions/link.exception';
 
 const BASE62 = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
 const bs62 = basex(BASE62);
@@ -33,21 +31,18 @@ export class LinkService {
     const { password, expired_at, order_id, access_limit } = createLinkDto;
     const order = await this.orderRepository.findOneBy({ id: order_id });
     if (!order)
-      throw new DatabaseException(CommonErrorCode.NOT_FOUND, '订单不存在');
+      throw new OrderException(OrderErrorCode.ORDER_NOT_FOUND, null, HttpStatus.NOT_FOUND);
 
     if (expired_at) {
       const now = dayjs().unix();
       if (expired_at * 1000 < now) {
-        throw new DatabaseException(
-          CommonErrorCode.DATE_ERROR,
-          '过期时间不能小于当前时间',
-        );
+        throw new BadRequestException('过期时间必须大于当前时间');
       }
     }
 
     // 生成短链接
     const buffer = Buffer.from(
-      `${order.id}_${order.order_number}_${crypto.randomBytes(6)}`,
+      `${order.id}_${order.orderNumber}_${crypto.randomBytes(6)}`,
       'utf-8',
     );
     const short_url = bs62.encode(buffer);
@@ -64,7 +59,7 @@ export class LinkService {
     const result = await this.linkRepository.save(link);
 
     await this.redisService.addShareLink(
-      order.order_number,
+      order.orderNumber,
       link.share_url,
       link.share_password,
       access_limit ?? 0,
@@ -81,7 +76,7 @@ export class LinkService {
     const { current, pageSize } = pagination;
     const order = await this.orderRepository.findOneBy({ id: orderId });
     if (!order)
-      throw new DatabaseException(CommonErrorCode.NOT_FOUND, '订单不存在');
+      throw new OrderException(OrderErrorCode.ORDER_NOT_FOUND, null, HttpStatus.NOT_FOUND);
 
     const [links, total] = await this.linkRepository.findAndCount({
       order: {
@@ -104,7 +99,7 @@ export class LinkService {
     const link = await this.linkRepository.findOneBy({ id });
 
     if (!link)
-      throw new DatabaseException(CommonErrorCode.NOT_FOUND, '链接不存在');
+      throw new LinkException(LinkErrorCode.LINK_NOT_FOUND, null, HttpStatus.NOT_FOUND);
     await this.linkRepository.remove(link);
 
     return {

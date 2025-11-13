@@ -16,20 +16,19 @@ export class OrderProductDto {
   count: number;
 
   @IsString()
-  @IsOptional()
-  remark: string;
+  type: 'package' | 'single';
 }
 
 export class CreateOrderDto {
   @IsNotEmpty({
     message: '订单编号不能为空',
   })
-  order_number: string;
+  orderNumber: string;
 
   @IsNotEmpty({
     message: '客户姓名不能为空',
   })
-  customer_name: string;
+  customerName: string;
 
   @IsNotEmpty({
     message: '客户电话不能为空',
@@ -37,10 +36,10 @@ export class CreateOrderDto {
   @MinLength(11, {
     message: '客户电话长度不能小于11',
   })
-  customer_phone: string;
+  customerPhone: string;
 
   @IsArray()
-  order_products: OrderProductDto[];
+  orderProducts: OrderProductDto[];
 
   @IsNotEmpty({
     message: '最大可选照片总数不能为空',
@@ -51,9 +50,13 @@ export class CreateOrderDto {
       message: '最大可选照片总数必须是数字',
     },
   )
-  max_select_photos: number;
+  maxSelectPhotos: number;
 
   @IsNumber({ maxDecimalPlaces: 2 })
   @IsNotEmpty()
-  extra_photo_price: number;
+  extraPhotoPrice: number;
+
+  @IsString()
+  @IsOptional()
+  validUntil?: string;
 }

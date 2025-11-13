@@ -28,8 +28,7 @@ export class Product {
   @OneToMany(() => OrderProduct, (orderProduct) => orderProduct.product, {
     cascade: true,
   })
-  @JoinColumn({ name: 'order_products' })
-  order_products: OrderProduct[];
+  orderProducts: OrderProduct[];
 
   // 照片数量限制
   @Column({ type: 'int', default: 0 })

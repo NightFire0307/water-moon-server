@@ -3,13 +3,13 @@ import {
   PrimaryGeneratedColumn,
   ManyToOne,
   Column,
-  ManyToMany,
-  JoinTable,
+  OneToMany,
+  JoinColumn,
 } from 'typeorm';
 import { Product } from '../../product/entities/product.entity';
 import { Order } from './order.entity';
 import { Exclude } from 'class-transformer';
-import { Photo } from '../../photo/entities/photo.entity';
+import { OrderProductPhoto } from './orderProductPhotos.entity'
 
 @Entity('order_products')
 export class OrderProduct {
@@ -17,33 +17,20 @@ export class OrderProduct {
   @Exclude()
   id: number;
 
-  @ManyToOne(() => Order, (order) => order.order_products, {
+  @ManyToOne(() => Order, (order) => order.orderProducts, {
     onDelete: 'CASCADE',
   })
-  @Exclude()
+  @JoinColumn({ name: 'order_id' })
   order: Order;
 
-  @ManyToOne(() => Product, (product) => product.order_products, {
+  @ManyToOne(() => Product, (product) => product.orderProducts, {
     onDelete: 'CASCADE',
   })
+  @JoinColumn({ name: 'product_id' })
   product: Product;
 
-  // 选择的照片
-  @ManyToMany(() => Photo, (photo) => photo.order_products, {
-    cascade: true,
-  })
-  @JoinTable({
-    name: 'order_product_photos',
-    joinColumn: {
-      name: 'order_product_id',
-      referencedColumnName: 'id',
-    },
-    inverseJoinColumn: {
-      name: 'photo_id',
-      referencedColumnName: 'id',
-    },
-  })
-  selected_photos: Photo[];
+  @OneToMany(() => OrderProductPhoto, (opp) => opp.orderProduct, { cascade: true })
+  orderProductPhotos: OrderProductPhoto[]; // 关联的照片
 
   // 数量
   @Column({ type: 'int', default: 1 })

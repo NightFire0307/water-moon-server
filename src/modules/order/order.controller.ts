@@ -18,11 +18,15 @@ import { OrderService } from './order.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
 import { GetOrderListDto } from './dto/get-order-list.dto';
-import { ResetOrderStatusDto } from './dto/reset-order-status.dto';
 import { Response } from 'express';
-import { RequirePermission, RequireLogin } from '@/common/decorators/auth.decorator';
+import {
+  RequirePermission,
+  RequireLogin,
+  Public,
+} from '@/common/decorators/auth.decorator';
 import { UserInfo } from '@/common/decorators/context.decorator';
 import { Pagination, type PaginationQuery } from '@/common/decorators/pagination.decorator';
+import { UpdateOrderStatusDto } from './dto/order-status.dto'
 
 @Controller('admin/orders')
 @RequirePermission({
@@ -123,8 +127,18 @@ export class OrderController {
     return await this.orderService.updateOrder(+orderId, updateOrderDto);
   }
 
+  // 更新订单状态
+  @Patch(':orderId/status')
+  @RequireLogin()
+  async updateOrderStatus(
+    @Param('orderId') orderId: string,
+    @Body() dto: UpdateOrderStatusDto
+  ) {
+    return await this.orderService.updateOrderStatus(+orderId, dto.status);
+  }
+
   // 重置订单状态
-  @Patch('/:orderId')
+  @Post('/:orderId')
   @RequireLogin()
   @RequirePermission({
     code: 'order:reset-status',
@@ -134,12 +148,12 @@ export class OrderController {
   })
   resetOrderStatus(
     @Param('orderId') orderId: string,
-    @Body() resetOrderStatusDto: ResetOrderStatusDto,
+    @Query() { reset = false }: { reset?: boolean }
   ) {
     if (Number.isNaN(+orderId)) {
       throw new BadRequestException('Id必须是一个数字');
     }
-    return this.orderService.resetOrderStatus(+orderId, resetOrderStatusDto);
+    return this.orderService.resetOrderStatus(+orderId, reset);
   }
 
   // 删除订单
@@ -174,18 +188,20 @@ export class OrderController {
     return await this.orderService.getOrderResult(+orderId);
   }
 
-  // 导出订单选片结果
-  @Get('/:orderId/result/export')
+  // 获取订单下载链接
+  @Get('/:orderId/download-link')
   @RequireLogin()
-  @RequirePermission({
-    code: 'order-detail:export',
-    name: '导出订单选片结果',
-    type: 'button',
-    description: '导出订单选片结果',
-  })
+  async getDownloadLink(
+    @Body('orderId') orderId: string
+  ) {
+    return 'ok'
+  }
+
+  @Get('/:orderId/result/download')
+  @Public()
   async exportOrderResult(
     @Param('orderId') orderId: string,
-    @Res({ passthrough: true }) res: Response,
+    @Res() res: Response,
   ) {
     if (Number.isNaN(+orderId)) {
       throw new BadRequestException('Id必须是一个数字');
@@ -195,13 +211,28 @@ export class OrderController {
       await this.orderService.exportOrderResult(+orderId);
 
     // 设置响应头，告诉浏览器这是一个文件下载
-    res.setHeader('Content-Type', 'application/zip');
-    res.setHeader(
-      'Content-Disposition',
-      `attachment; filename=${orderNumber}.zip`,
-    );
+    res.set({
+      'Content-Type': 'application/zip',
+      'Content-Disposition': `attachment; filename="${orderNumber}-.zip"`,
+    });
 
     zipStream.pipe(res);
     await archive.finalize();
+  }
+
+  // 获取订单所有照片ID
+  @Get('/:orderId/photo-ids')
+  @RequireLogin()
+  async getOrderPhotoIds(@Param('orderId') orderId: string) {
+    return await this.orderService.getOrderPhotoIds(+orderId);
+  }
+
+  // 获取PDF导出数据
+  @Get('/:orderId/export-data')
+  @RequireLogin()
+  async getOrderPdfExportData(
+    @Param("orderId")orderId: string
+  ){
+    return await this.orderService.getOrderPdfExportData(+orderId)
   }
 }

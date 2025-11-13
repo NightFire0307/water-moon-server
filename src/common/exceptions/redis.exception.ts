@@ -1,25 +1,17 @@
-import { BaseBusinessException } from './base-business.exception';
-import { HttpStatus } from '@nestjs/common';
+import { BaseException } from "./base.exception";
 
-export enum RedisErrorType {
-  UNKNOWN = 'unknown',
+export enum RedisErrorCode {
+  REDIS_CONNECTION_FAILED = 'Redis.ConnectionFailed',
+  REDIS_OPERATION_FAILED = 'Redis.OperationFailed',
 }
 
-export class RedisException extends BaseBusinessException {
-  constructor(code: RedisErrorType, detail?: any) {
-    const map: Record<RedisErrorType, { msg: string; status: number }> = {
-      [RedisErrorType.UNKNOWN]: {
-        msg: '未知错误',
-        status: HttpStatus.INTERNAL_SERVER_ERROR,
-      },
-    };
+export const RedisExceptionMessages = {
+  [RedisErrorCode.REDIS_CONNECTION_FAILED]: 'Redis 连接失败',
+  [RedisErrorCode.REDIS_OPERATION_FAILED]: 'Redis 操作失败',
+}
 
-    const { msg, status } = map[code];
-    super({
-      msg,
-      code,
-      data: detail ?? null,
-      status,
-    });
+export class RedisException extends BaseException {
+  constructor(code: RedisErrorCode, data: any = null, httpStatus: number = 500) {
+    super(code, RedisExceptionMessages[code], data, httpStatus);
   }
 }

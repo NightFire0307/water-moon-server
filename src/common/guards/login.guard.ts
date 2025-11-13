@@ -9,7 +9,6 @@ import { Observable } from 'rxjs';
 import { JwtService } from '@nestjs/jwt';
 import { Reflector } from '@nestjs/core';
 import { Request } from 'express';
-import { AuthErrorCode, AuthException } from '../exceptions/auth.exception';
 import { REQUIRE_LOGIN_KEY } from '../decorators/auth.decorator';
 
 export interface JwtUserData {
@@ -62,10 +61,7 @@ export class LoginGuard implements CanActivate {
 
       return true;
     } catch {
-      throw new AuthException(
-        AuthErrorCode.LOGIN_EXPIRED,
-        'Token 失效，请重新登录',
-      );
+      throw new UnauthorizedException('用户未登录');
     }
   }
 }

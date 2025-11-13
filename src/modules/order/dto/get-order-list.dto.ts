@@ -4,15 +4,15 @@ import { IsEnum, IsOptional, IsString } from 'class-validator';
 export class GetOrderListDto {
   @IsOptional()
   @IsString()
-  order_number?: string;
+  orderNumber?: string;
 
   @IsOptional()
   @IsString()
-  customer_name?: string;
+  customerName?: string;
 
   @IsOptional()
   @IsString()
-  customer_phone?: string;
+  customerPhone?: string;
 
   @IsOptional()
   @IsEnum(OrderStatus)

@@ -1,14 +1,16 @@
-import { Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable } from '@nestjs/common';
 import { CreatePackageDto } from './dto/createPackage.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ProductPackage } from './entities/product-package.entity';
 import { ProductPackageItem } from './entities/product-package-item.entity';
 import { Product } from '../product/entities/product.entity';
 import { In, Repository } from 'typeorm';
-import { CommonErrorCode, DatabaseException } from '@/common/exceptions/database.exception';
 import type { PaginationQuery } from '@/common/decorators/pagination.decorator';
 import type { UpdatePackageDto } from './dto/updatePackage.dto';
 import type { QueryPackageDto } from './dto/queryPackage.dto';
+import { getSelectFields } from '@/common/utils/getSelectFields';
+import { PackageErrorCode, PackageException } from '@/common/exceptions/package.exception';
+import { ProductErrorCode, ProductException } from '@/common/exceptions/product.exception';
 
 @Injectable()
 export class PackageService {
@@ -65,26 +67,19 @@ export class PackageService {
   }
 
   async getPackageById(id: number) {
-    const pkg = await this.packageRepository.createQueryBuilder('package')
-      .leftJoinAndSelect('package.items', 'items')
-      .leftJoinAndSelect('items.product', 'product')
-      .leftJoinAndSelect('product.product_type', 'productType')
-      .where('package.id = :id', { id })
-      .getOne()
+    const metadata = this.packageRepository.metadata;
+    const selectFields = getSelectFields(metadata, ['is_published']);
+    const pkg = await this.validatePackageExist(id, ['items', 'items.product', 'items.product.product_type'], selectFields)
 
     return {
       data: {
         ...pkg,
         items: pkg.items.map(item => ({
-          id: item.id,
+          id: item.product.id,
+          name: item.product.name,
+          type: item.product.product_type.name,
+          photo_limit: item.product.photo_limit,
           count: item.count,
-          category: item.product.product_type.name,
-          product: {
-            productId: item.product.id,
-            name: item.product.name,
-            is_published: item.product.is_published,
-            photo_limit: item.product.photo_limit,
-          }
         }))
       },
       msg: '获取套餐详情成功',
@@ -123,7 +118,7 @@ export class PackageService {
       }
     } catch (e) {
       console.error('创建套餐失败:', e);
-      throw new DatabaseException(CommonErrorCode.DATABASE_ERROR, '创建套餐失败');
+      throw new PackageException(PackageErrorCode.PACKAGE_CREATION_FAILED, null, HttpStatus.CONFLICT);
     }
   }
 
@@ -131,7 +126,7 @@ export class PackageService {
     const pkg = await this.validatePackageExist(id);
 
     if (!Array.isArray(items) || items.length === 0) {
-      throw new DatabaseException(CommonErrorCode.DATABASE_ERROR, '套餐内必须包含至少一个商品');
+      throw new PackageException(PackageErrorCode.PACKAGE_UPDATE_FAILED, '套餐内必须包含至少一个商品', HttpStatus.BAD_REQUEST);
     }
 
     const productIds = items.map(item => item.productId);
@@ -177,14 +172,19 @@ export class PackageService {
   }
 
   // 校验套餐是否存在
-  private async validatePackageExist(id: number) {
+  private async validatePackageExist(
+    id: number,
+    relations: string[] = [],
+    fields?: any[]
+  ) {
     const pkg = await this.packageRepository.findOne({
       where: { id },
-      relations: ['items', 'items.product']
+      relations,
+      select: [...fields],
     })
 
     if (!pkg) {
-      throw new DatabaseException(CommonErrorCode.NOT_FOUND, '套餐不存在');
+      throw new PackageException(PackageErrorCode.PACKAGE_NOT_FOUND, null, HttpStatus.NOT_FOUND);
     }
 
     return pkg;
@@ -200,7 +200,7 @@ export class PackageService {
     });
 
     if (productIds.length !== products.length) {
-      throw new DatabaseException(CommonErrorCode.NOT_FOUND, '部分商品不存在或未上架');
+      throw new ProductException(ProductErrorCode.PRODUCT_NOT_FOUND, '部分商品不存在或未上架', HttpStatus.NOT_FOUND);
     }
 
     return products

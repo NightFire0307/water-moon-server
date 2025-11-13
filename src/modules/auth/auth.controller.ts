@@ -1,9 +1,7 @@
 import {
-  BadRequestException,
   Body,
   ClassSerializerInterceptor,
   Controller,
-  ForbiddenException,
   Get,
   HttpCode,
   Inject,
@@ -11,6 +9,7 @@ import {
   Query,
   Req,
   Res,
+  UnauthorizedException,
   UseInterceptors,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
@@ -18,9 +17,7 @@ import { AdminLoginDto } from './dto/admin-login.dto';
 import { JwtService } from '@nestjs/jwt';
 import { Public, RequireLogin } from '@/common/decorators/auth.decorator';
 import { Request, Response } from 'express';
-import {
-  AuthErrorCode,
-} from '../../common/exceptions/auth.exception';
+import { UserInfo } from '@/common/decorators/context.decorator';
 
 interface RefreshTokenPayload {
   userId: number;
@@ -50,6 +47,7 @@ export class AuthController {
       this.userService.generateToken(userInfo);
     response.cookie('refreshToken', refreshToken, {
       httpOnly: true,
+      sameSite: 'lax',
     });
 
     return {
@@ -58,37 +56,43 @@ export class AuthController {
     };
   }
 
-  // Token 刷新
-  @Get('refresh')
-  async refresh(@Query('refreshToken') refreshToken: string) {
-    try {
-      const { userId } =
-        this.jwtService.verify<RefreshTokenPayload>(refreshToken);
-      return await this.userService.refreshToken(userId);
-    } catch {
-      throw new ForbiddenException(AuthErrorCode.LOGIN_EXPIRED);
-    }
-  }
-
-  @Get('admin/refresh')
+  @Post('admin/refresh')
+  @Public()
   async adminRefresh(
     @Req() request: Request,
     @Res({ passthrough: true }) response: Response,
   ) {
-    const { refreshToken } = request.cookies;
-    if (!refreshToken) throw new BadRequestException('请先登录');
+    const cookies = request.cookies;
+    if (!cookies.refreshToken) throw new UnauthorizedException('请重新登录');
     const { userId } =
-      this.jwtService.verify<RefreshTokenPayload>(refreshToken);
-    const { access_token, refresh_token } = await this.userService.refreshToken(
+      this.jwtService.verify<RefreshTokenPayload>(cookies.refreshToken);
+    console.log('verify', userId);
+    const { accessToken, refreshToken } = await this.userService.refreshToken(
       userId,
     );
 
     // 更新 refreshToken
-    response.cookie('refreshToken', refresh_token, {
+    response.cookie('refreshToken', refreshToken, {
       httpOnly: true,
     });
 
-    return { data: { access_token }, message: '刷新成功' };
+    return {
+      accessToken,
+    };
+  }
+
+  @Post('admin/logout')
+  @Public()
+  async adminLogout(
+    @Req() request: Request,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    const cookies = request.cookies;
+    if (cookies.refreshToken) {
+      response.clearCookie('refreshToken')
+    }
+
+    return { msg: '退出登录成功' };
   }
 
   @Get('admin/oss-token')
@@ -98,5 +102,13 @@ export class AuthController {
     @Query('fileName') fileName: string,
   ) {
     return await this.userService.getMinioToken(orderNumber, fileName);
+  }
+
+  @Get('me')
+  @RequireLogin()
+  async getCurrentUser(
+    @UserInfo() userInfo
+  ) {
+    return await this.userService.getCurrentUserInfo(userInfo.userId)
   }
 }

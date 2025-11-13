@@ -18,19 +18,8 @@ export class VerifySurl implements CanActivate {
   canActivate(
     context: ExecutionContext,
   ): boolean | Promise<boolean> | Observable<boolean> {
-    const request: Request = context.switchToHttp().getRequest();
-    const { short_url } = request.params;
-    const { orderId } = request.orderInfo;
 
-    if (!short_url) {
-      throw new BadRequestException('无效链接');
-    }
 
-    const decodedOrderId = this.selectionService.decodeOrderId(short_url);
-
-    if (orderId !== +decodedOrderId) {
-      throw new NotFoundException('未找到订单');
-    }
 
     return true;
   }

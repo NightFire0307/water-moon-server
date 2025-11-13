@@ -1,6 +1,5 @@
 import {
   ForbiddenException,
-  HttpException,
   HttpStatus,
   Inject,
   Injectable,
@@ -8,16 +7,13 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from '../user/entities/user.entity';
-import { Role } from '../role/entities/role.entity';
 import { Repository } from 'typeorm';
-import { Permission } from './entities/permissions.entity';
 import { compare } from 'bcrypt';
 import { ConfigService } from '@nestjs/config';
 import { AdminLoginDto } from './dto/admin-login.dto';
 import { JwtService } from '@nestjs/jwt';
-import * as qiniu from 'qiniu';
 import * as Minio from 'minio';
-import { Redis } from 'ioredis';
+import { AuthErrorCode, AuthException } from '@/common/exceptions/auth.exception';
 
 @Injectable()
 export class AuthService {
@@ -27,20 +23,12 @@ export class AuthService {
   @Inject(JwtService)
   private readonly jwtService: JwtService;
 
-  @Inject('REDIS_CLIENT')
-  private readonly redisClient: Redis;
-
   @Inject('MINIO_CLIENT')
   private readonly minioClient: Minio.Client;
 
   @InjectRepository(User)
   private readonly userRepository: Repository<User>;
 
-  @InjectRepository(Role)
-  private readonly roleRepository: Repository<Role>;
-
-  @InjectRepository(Permission)
-  private readonly permissionRepository: Repository<Permission>;
 
   async login(loginUserDto: AdminLoginDto) {
     const userInfo = await this.userRepository
@@ -62,7 +50,7 @@ export class AuthService {
       .getOne();
 
     if (!userInfo) {
-      throw new UnauthorizedException('用户不存在或密码错误');
+      throw new AuthException(AuthErrorCode.AUTH_LOGIN_FAILED)
     }
 
     if (userInfo.isFrozen) {
@@ -72,7 +60,7 @@ export class AuthService {
     // 验证密码
     const match = await compare(loginUserDto.password, userInfo.password)
     if (!match) {
-      throw new UnauthorizedException('用户名或密码错误');
+      throw new AuthException(AuthErrorCode.AUTH_LOGIN_FAILED)
     }
 
     // 遍历用户角色，获取权限
@@ -94,14 +82,6 @@ export class AuthService {
       });
     }
 
-    // 缓存用户权限(24小时)
-    // const pipeline = this.redisClient.pipeline();
-    // 移除旧权限
-    // pipeline.del(`permissions:${result.user_id}`);
-    // pipeline.lpush(`permissions:${result.user_id}`, ...result.permissions);
-    // pipeline.expire(`permissions:${result.user_id}`, 60 * 60 * 24);
-    // await pipeline.exec();
-
     return {
       userId: userInfo.user_id,
       username: userInfo.username,
@@ -111,7 +91,7 @@ export class AuthService {
     };
   }
 
-  async findUserById(userId: number) {
+  async getCurrentUserInfo(userId: number) {
     const user = await this.userRepository.findOne({
       where: {
         user_id: userId,
@@ -120,9 +100,10 @@ export class AuthService {
     });
 
     return {
-      id: user.user_id,
+      userId: user.user_id,
+      nickname: user.nickname,
       username: user.username,
-      roles: user.roles.map((item) => item.name),
+      roles: user.roles.map((item) => item.code),
       permissions: user.roles.reduce((arr, item) => {
         item.permissions.forEach((permission) => {
           if (arr.indexOf(permission) === -1) {
@@ -151,7 +132,7 @@ export class AuthService {
         permissions: vo.permissions,
       },
       {
-        expiresIn: this.configService.get('jwt_access_token_expires_time'),
+        expiresIn: this.configService.get('JWT_ACCESS_TOKEN_EXPIRES_IN'),
       },
     );
 
@@ -161,7 +142,7 @@ export class AuthService {
         userId: vo.userId,
       },
       {
-        expiresIn: this.configService.get('jwt_refresh_token_expires_time'),
+        expiresIn: this.configService.get('JWT_REFRESH_TOKEN_EXPIRES_IN'),
       },
     );
 
@@ -174,51 +155,32 @@ export class AuthService {
    */
   async refreshToken(userId: number) {
     try {
-      const user = await this.findUserById(userId);
+      const userInfo = await this.getCurrentUserInfo(userId);
 
-      const access_token = this.jwtService.sign(
+      const accessToken = this.jwtService.sign(
         {
-          userId: user.id,
-          username: user.username,
+          userId: userInfo.userId,
+          roles: userInfo.roles,
+          permissions: userInfo.permissions,
         },
         {
-          expiresIn: this.configService.get('jwt_access_token_expires_time'),
+          expiresIn: this.configService.get('JWT_ACCESS_TOKEN_EXPIRES_IN'),
         },
       );
 
-      const refresh_token = this.jwtService.sign(
+      const refreshToken = this.jwtService.sign(
         {
-          userId: user.id,
+          userId: userInfo.userId,
         },
         {
-          expiresIn: this.configService.get('jwt_refresh_token_expires_time'),
+          expiresIn: this.configService.get('JWT_REFRESH_TOKEN_EXPIRES_IN'),
         },
       );
 
-      return { access_token, refresh_token };
+      return { accessToken, refreshToken };
     } catch {
       throw new UnauthorizedException('Token 已失效');
     }
-  }
-
-  async getOssToken() {
-    const accessKey = this.configService.get('oss_access_key');
-    const secretKey = this.configService.get('oss_secret_key');
-    const scope = this.configService.get('oss_bucket');
-    const expires = Number(this.configService.get('oss_token_expire_time'));
-    const options = {
-      scope: `${scope}`,
-      expires,
-      returnBody:
-        '{"key": $(key), "hash": $(etag), "bucket": $(bucket), "fsize": $(fsize)}, "name": $(x:name)}',
-    };
-
-    const mac = new qiniu.auth.digest.Mac(accessKey, secretKey);
-    const putPolicy = new qiniu.rs.PutPolicy(options);
-    const uploadToken = putPolicy.uploadToken(mac);
-    return {
-      uploadToken,
-    };
   }
 
   async getMinioToken(orderNumber: string, fileName: string) {

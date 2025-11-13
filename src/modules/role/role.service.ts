@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Role } from './entities/role.entity';
 import { In, Repository } from 'typeorm';
@@ -7,10 +7,7 @@ import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto, UpdateRolePermissionsDto } from './dto/update-role.dto';
 import { Permission } from '../auth/entities/permissions.entity';
 import { Redis } from 'ioredis';
-import {
-  CommonErrorCode,
-  DatabaseException,
-} from '../../common/exceptions/database.exception';
+import { UserErrorCode, UserException } from '@/common/exceptions/user.exception';
 
 @Injectable()
 export class RoleService {
@@ -109,7 +106,7 @@ export class RoleService {
 
     // 禁止删除超级管理员角色
     if (role.code === 'super_admin') {
-      throw new DatabaseException(CommonErrorCode.DATABASE_ERROR, '禁止删除超级管理员角色');
+      throw new UserException(UserErrorCode.USER_DELETE_FAILED, '禁止删除超级管理员角色', HttpStatus.FORBIDDEN);
     }
 
     if (!role) return '删除失败！角色不存在';
@@ -133,7 +130,7 @@ export class RoleService {
     });
 
     if (!role_permissions)
-      throw new DatabaseException(CommonErrorCode.NOT_FOUND, '角色不存在');
+      throw new UserException(UserErrorCode.USER_UPDATE_FAILED, '角色不存在', HttpStatus.NOT_FOUND);
 
     role_permissions.permissions = await this.permissionRepository.find({
       where: {
