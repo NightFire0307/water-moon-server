@@ -158,7 +158,7 @@ export class OrderService {
       })
 
       if (foundOrder) {
-        throw new OrderException(OrderErrorCode.ORDER_NUMBER_ALREADY_EXISTS, null, HttpStatus.NOT_FOUND)
+        throw new OrderException(OrderErrorCode.ORDER_NUMBER_ALREADY_EXISTS, null, HttpStatus.CONFLICT)
       }
 
       // 提取订单内所有套餐和单品的ID
@@ -437,8 +437,8 @@ export class OrderService {
       throw new OrderException(OrderErrorCode.ORDER_NOT_FOUND, null, HttpStatus.NOT_FOUND);
     }
 
-    // 检查订单状态用户是否已提交
-    if (order.status !== OrderStatus.SUBMITTED) {
+    // 订单状态不为提交或者已完成时抛出异常
+    if (order.status !== OrderStatus.SUBMITTED && order.status !== OrderStatus.FINISHED) {
       throw new OrderException(OrderErrorCode.ORDER_STATUS_UPDATE_FAILED, '用户选片未提交', HttpStatus.CONFLICT);
     }
 
@@ -745,7 +745,7 @@ export class OrderService {
     if (!order)
       throw new OrderException(OrderErrorCode.ORDER_NOT_FOUND, null, HttpStatus.NOT_FOUND);
 
-    if (order.status !== OrderStatus.SUBMITTED)
+    if (order.status !== OrderStatus.SUBMITTED && order.status !== OrderStatus.FINISHED)
       throw new OrderException(OrderErrorCode.ORDER_NOT_SUBMITTED, null, HttpStatus.CONFLICT);
 
     const newOrderProducts = order.orderProducts.map(orderProduct => ({

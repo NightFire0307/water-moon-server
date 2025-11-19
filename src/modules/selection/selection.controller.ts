@@ -18,6 +18,7 @@ import { ClientAuthGuard } from './guard/client-auth.guard';
 import { PhotoService } from '../photo/photo.service';
 import {
   AuthErrorCode,
+  AuthException,
 } from '@/common/exceptions/auth.exception';
 import { Public } from '@/common/decorators/auth.decorator';
 import { Pagination, PaginationQuery } from '@/common/decorators/pagination.decorator';
@@ -90,7 +91,7 @@ export class SelectionController {
   async refreshToken(@Req() request: Request) {
     const refreshToken: string | undefined =
       request.cookies['selection_refresh_token'];
-    if (!refreshToken) throw new ForbiddenException(AuthErrorCode.AUTH_INVALID_TOKEN);
+    if (!refreshToken) throw new AuthException(AuthErrorCode.AUTH_INVALID_TOKEN);
     return await this.selectionService.refreshToken(refreshToken);
   }
 
